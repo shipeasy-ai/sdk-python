@@ -1,0 +1,57 @@
+name: Publish
+
+# HARD RULE: never publish manually. Bump the `version` field in
+# pyproject.toml, push to main, and this workflow handles PyPI.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # PyPI Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install build hatchling
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest -q
+
+      - name: Read package version
+        id: ver
+        run: |
+          VER=$(python -c "import tomllib,sys; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version already on PyPI
+        id: check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/shipeasy/${{ steps.ver.outputs.version }}/json)
+          if [ "$STATUS" = "200" ]; then
+            echo "Already published: shipeasy==${{ steps.ver.outputs.version }}"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build distributions
+        if: steps.check.outputs.skip != '1'
+        run: python -m build
+
+      - name: Publish to PyPI (Trusted Publishing)
+        if: steps.check.outputs.skip != '1'
+        uses: pypa/gh-action-pypi-publish@release/v1
