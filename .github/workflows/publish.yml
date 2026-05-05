@@ -28,7 +28,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pip install pytest
+          pip install pytest -e .
           pytest -q
 
       - name: Read package version
@@ -52,6 +52,14 @@ jobs:
         if: steps.check.outputs.skip != '1'
         run: python -m build
 
+      # Requires PyPI Trusted Publishing to be configured for the
+      # `shipeasy` project on pypi.org → repo `shipeasy-ai/sdk-python`,
+      # workflow `publish.yml`. Set vars.PUBLISH_ENABLED=true once
+      # trusted publisher is configured.
       - name: Publish to PyPI (Trusted Publishing)
-        if: steps.check.outputs.skip != '1'
+        if: steps.check.outputs.skip != '1' && vars.PUBLISH_ENABLED == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Publish skipped notice
+        if: steps.check.outputs.skip != '1' && vars.PUBLISH_ENABLED != 'true'
+        run: echo "::warning::vars.PUBLISH_ENABLED is not 'true' — configure PyPI Trusted Publishing on this repo, then set the variable."
