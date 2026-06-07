@@ -9,6 +9,7 @@ import urllib.error
 from typing import Any, Callable, Mapping, Optional, TypeVar
 
 from ._eval import ExperimentResult, eval_experiment, eval_gate
+from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
 
 T = TypeVar("T")
 log = logging.getLogger("shipeasy")
@@ -18,9 +19,26 @@ _DEFAULT_POLL_INTERVAL = 30
 
 
 class Client:
-    def __init__(self, api_key: str, base_url: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        base_url: Optional[str] = None,
+        *,
+        env: str = "prod",
+        disable_telemetry: bool = False,
+        telemetry_url: Optional[str] = None,
+    ) -> None:
         self._api_key = api_key
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
+        # Per-evaluation usage telemetry. ON by default; pass
+        # disable_telemetry=True to opt out. See _telemetry.py.
+        self._telemetry = Telemetry(
+            endpoint=telemetry_url or DEFAULT_TELEMETRY_URL,
+            sdk_key=api_key,
+            side="server",
+            env=env,
+            disabled=disable_telemetry,
+        )
         self._flags_blob: Optional[dict] = None
         self._exps_blob: Optional[dict] = None
         self._flags_etag: Optional[str] = None
@@ -49,6 +67,7 @@ class Client:
             self._thread = None
 
     def get_flag(self, name: str, user: Mapping[str, Any]) -> bool:
+        self._telemetry.emit("gate", name)
         with self._lock:
             gate = (self._flags_blob or {}).get("gates", {}).get(name)
         if not gate:
@@ -58,6 +77,7 @@ class Client:
     def get_config(
         self, name: str, decode: Optional[Callable[[Any], T]] = None
     ) -> Optional[T]:
+        self._telemetry.emit("config", name)
         with self._lock:
             entry = (self._flags_blob or {}).get("configs", {}).get(name)
         if not entry:
@@ -78,6 +98,7 @@ class Client:
         default_params: T,
         decode: Optional[Callable[[Any], T]] = None,
     ) -> ExperimentResult:
+        self._telemetry.emit("experiment", name)
         with self._lock:
             flags_blob = self._flags_blob
             exps_blob = self._exps_blob
