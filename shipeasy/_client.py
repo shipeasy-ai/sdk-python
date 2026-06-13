@@ -10,9 +10,25 @@ from typing import Any, Callable, Mapping, Optional, TypeVar
 
 from ._eval import ExperimentResult, eval_experiment, eval_gate
 from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
+from . import _anon_id
 
 T = TypeVar("T")
 log = logging.getLogger("shipeasy")
+
+
+def _with_anon_id(user: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Default ``anonymous_id`` to the request's ``__se_anon_id`` (set by the
+    middleware) when the caller passed no explicit unit. A caller-supplied
+    ``user_id``/``anonymous_id`` always wins; with no middleware this is a no-op.
+    """
+    if user.get("user_id") or user.get("anonymous_id"):
+        return user
+    anon = _anon_id.current()
+    if not anon:
+        return user
+    merged = dict(user)
+    merged["anonymous_id"] = anon
+    return merged
 
 _DEFAULT_BASE_URL = "https://edge.shipeasy.dev"
 _DEFAULT_POLL_INTERVAL = 30
@@ -72,7 +88,7 @@ class Client:
             gate = (self._flags_blob or {}).get("gates", {}).get(name)
         if not gate:
             return False
-        return eval_gate(gate, user)
+        return eval_gate(gate, _with_anon_id(user))
 
     def get_config(
         self, name: str, decode: Optional[Callable[[Any], T]] = None
@@ -103,7 +119,7 @@ class Client:
             flags_blob = self._flags_blob
             exps_blob = self._exps_blob
         exp = (exps_blob or {}).get("experiments", {}).get(name)
-        result = eval_experiment(exp, flags_blob, exps_blob, user)
+        result = eval_experiment(exp, flags_blob, exps_blob, _with_anon_id(user))
         if result.params is None:
             result.params = default_params
         if result.in_experiment and decode is not None:

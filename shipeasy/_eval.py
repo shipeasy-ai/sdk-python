@@ -86,7 +86,12 @@ def eval_gate(gate: Mapping[str, Any], user: Mapping[str, Any]) -> bool:
             return False
     uid = _user_id(user)
     if not uid:
-        return False
+        # No unit id (an unidentified request before any anon id is minted): a
+        # fully-rolled gate is on for everyone, so it can be answered without
+        # bucketing; a fractional rollout genuinely needs a stable unit, so deny
+        # until one exists. Rules above are still checked, so targeting wins.
+        # See experiment-platform/18-identity-bucketing.md.
+        return (gate.get("rolloutPct") or 0) >= 10000
     salt = gate.get("salt") or ""
     return murmur3(f"{salt}:{uid}") % 10000 < (gate.get("rolloutPct") or 0)
 
