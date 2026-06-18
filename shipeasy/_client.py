@@ -64,14 +64,57 @@ class Client:
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._initialized = False
+        # Local-override / test-mode state. ``_test_mode`` makes init()/track()
+        # no-ops so the client never touches the network; the override maps win
+        # over the fetched blob in the getters (Statsig-style local overrides).
+        self._test_mode = False
+        self._flag_overrides: dict[str, bool] = {}
+        self._config_overrides: dict[str, Any] = {}
+        self._experiment_overrides: dict[str, tuple[str, Any]] = {}
+
+    @classmethod
+    def for_testing(cls) -> "Client":
+        """Build a no-network client for tests. Telemetry is disabled,
+        ``init()``/``init_once()`` are no-ops (never fetch), ``track()`` is a
+        no-op, and no api_key is required. The client is immediately usable:
+        getters resolve against an empty blob plus whatever you seed via the
+        ``override_*`` setters.
+        """
+        client = cls(api_key="", disable_telemetry=True)
+        client._test_mode = True
+        client._flags_blob = {}
+        client._exps_blob = {}
+        client._initialized = True
+        return client
+
+    def override_flag(self, name: str, value: bool) -> None:
+        """Force ``get_flag(name)`` to return ``value`` regardless of the blob."""
+        self._flag_overrides[name] = value
+
+    def override_config(self, name: str, value: Any) -> None:
+        """Force ``get_config(name)`` to return ``value`` regardless of the blob."""
+        self._config_overrides[name] = value
+
+    def override_experiment(self, name: str, group: str, params: Any) -> None:
+        """Force ``get_experiment(name)`` to report the caller as enrolled in
+        ``group`` with ``params``, regardless of the blob."""
+        self._experiment_overrides[name] = (group, params)
+
+    def clear_overrides(self) -> None:
+        """Drop every flag/config/experiment override."""
+        self._flag_overrides.clear()
+        self._config_overrides.clear()
+        self._experiment_overrides.clear()
 
     def init(self) -> None:
+        if self._test_mode:
+            return
         self._fetch_all()
         self._initialized = True
         self._start_poll()
 
     def init_once(self) -> None:
-        if self._initialized:
+        if self._test_mode or self._initialized:
             return
         self._fetch_all()
         self._initialized = True
@@ -83,6 +126,8 @@ class Client:
             self._thread = None
 
     def get_flag(self, name: str, user: Mapping[str, Any]) -> bool:
+        if name in self._flag_overrides:
+            return self._flag_overrides[name]
         self._telemetry.emit("gate", name)
         with self._lock:
             gate = (self._flags_blob or {}).get("gates", {}).get(name)
@@ -93,6 +138,15 @@ class Client:
     def get_config(
         self, name: str, decode: Optional[Callable[[Any], T]] = None
     ) -> Optional[T]:
+        if name in self._config_overrides:
+            value = self._config_overrides[name]
+            if decode is None:
+                return value
+            try:
+                return decode(value)
+            except Exception as e:  # noqa: BLE001
+                log.warning("get_config(%s) decode failed: %s", name, e)
+                return None
         self._telemetry.emit("config", name)
         with self._lock:
             entry = (self._flags_blob or {}).get("configs", {}).get(name)
@@ -114,6 +168,9 @@ class Client:
         default_params: T,
         decode: Optional[Callable[[Any], T]] = None,
     ) -> ExperimentResult:
+        if name in self._experiment_overrides:
+            group, params = self._experiment_overrides[name]
+            return ExperimentResult(in_experiment=True, group=group, params=params)
         self._telemetry.emit("experiment", name)
         with self._lock:
             flags_blob = self._flags_blob
@@ -131,6 +188,8 @@ class Client:
         return result
 
     def track(self, user_id: str, event_name: str, properties: Optional[Mapping[str, Any]] = None) -> None:
+        if self._test_mode:
+            return
         body = {
             "events": [{
                 "type": "metric",

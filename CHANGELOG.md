@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Local-override test utility.** Added `Client.for_testing()` — a no-network,
+  immediately-usable client (no api_key, telemetry off, `init()`/`init_once()`/
+  `track()` are no-ops). New override setters (also usable on a normal client):
+  `override_flag`, `override_config`, `override_experiment`, and
+  `clear_overrides`. An override always wins in `get_flag`/`get_config`/
+  `get_experiment` (Statsig-style local overrides). See the README "Testing"
+  section.
+
 ## 0.3.0
 
 - **Anonymous bucketing (`__se_anon_id`).** Added `AnonIdMiddleware` (WSGI) and

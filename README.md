@@ -56,6 +56,47 @@ browser SDK buckets identically; a request with **no** unit still resolves a
 fully-rolled (100%) gate as on. Cookie name + format are a cross-SDK contract —
 see `18-identity-bucketing.md`.
 
+## Testing
+
+Use `Client.for_testing()` for unit tests: it does **zero network**, needs no
+api_key, disables telemetry, and makes `init()`/`init_once()`/`track()` no-ops.
+Seed every entity with the `override_*` setters (Statsig-style local overrides) —
+an override always wins over whatever the client would otherwise resolve.
+
+```python
+from shipeasy import Client
+
+client = Client.for_testing()  # no key, no network, immediately usable
+
+# Flags
+client.override_flag("new_checkout", True)
+assert client.get_flag("new_checkout", {"user_id": "u_123"}) is True
+
+# Configs (decode is optional and still applies)
+client.override_config("billing_copy", {"title": "Welcome"})
+assert client.get_config("billing_copy") == {"title": "Welcome"}
+assert client.get_config("billing_copy", decode=lambda v: v["title"]) == "Welcome"
+
+# Experiments → ExperimentResult(in_experiment=True, group=..., params=...)
+client.override_experiment("checkout_button", group="treatment", params={"color": "green"})
+result = client.get_experiment(
+    "checkout_button",
+    user={"user_id": "u_123"},
+    default_params={"color": "blue"},
+)
+assert result.in_experiment and result.group == "treatment"
+assert result.params == {"color": "green"}
+
+# track() is a no-op in test mode — safe to call, sends nothing
+client.track("u_123", "purchase", {"amount": 49})
+
+# Reset between cases
+client.clear_overrides()
+```
+
+The same `override_*` / `clear_overrides()` setters also work on a normal
+`Client` if you want to pin a value in a live client.
+
 ## Evaluation
 
 Tested against the cross-language MurmurHash3 vectors in `experiment-platform/04-evaluation.md`.
