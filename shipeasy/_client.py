@@ -8,7 +8,16 @@ import urllib.request
 import urllib.error
 from typing import Any, Callable, Mapping, Optional, TypeVar
 
-from ._eval import ExperimentResult, eval_experiment, eval_gate
+from ._eval import ExperimentResult, eval_experiment, eval_gate, _enabled
+from ._detail import (
+    FlagDetail,
+    CLIENT_NOT_READY,
+    FLAG_NOT_FOUND,
+    OFF,
+    OVERRIDE,
+    RULE_MATCH,
+    DEFAULT,
+)
 from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
 from . import _anon_id
 
@@ -71,6 +80,10 @@ class Client:
         self._flag_overrides: dict[str, bool] = {}
         self._config_overrides: dict[str, Any] = {}
         self._experiment_overrides: dict[str, tuple[str, Any]] = {}
+        # Change listeners: fired (in the poll thread) after a background fetch
+        # returns NEW data (a 200, not a 304). Guarded by _lock. Never fired in
+        # test/offline mode (no poll thread runs there).
+        self._change_listeners: list[Callable[[], None]] = []
 
     @classmethod
     def for_testing(cls) -> "Client":
@@ -86,6 +99,36 @@ class Client:
         client._exps_blob = {}
         client._initialized = True
         return client
+
+    @classmethod
+    def from_snapshot(cls, flags: Optional[dict], experiments: Optional[dict]) -> "Client":
+        """Build an offline client from in-memory blobs (no network, ever).
+
+        ``flags`` is the body of ``/sdk/flags`` (``{"gates": ..., "configs":
+        ...}``) and ``experiments`` is the body of ``/sdk/experiments``
+        (``{"experiments": ..., "universes": ...}``). Reuses the test-mode
+        plumbing: telemetry is off, ``init()``/``init_once()``/``track()`` are
+        no-ops, and the client is already initialized — but evaluations run the
+        *real* eval logic against the snapshot. ``override_*`` setters still
+        apply on top.
+        """
+        client = cls(api_key="", disable_telemetry=True)
+        client._test_mode = True
+        client._flags_blob = dict(flags) if flags else {}
+        client._exps_blob = dict(experiments) if experiments else {}
+        client._initialized = True
+        return client
+
+    @classmethod
+    def from_file(cls, path: str) -> "Client":
+        """Build an offline client from a JSON file (no network, ever).
+
+        The file is ``{"flags": <body of /sdk/flags>, "experiments": <body of
+        /sdk/experiments>}``. Both blobs are optional. See ``from_snapshot``.
+        """
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls.from_snapshot(data.get("flags"), data.get("experiments"))
 
     def override_flag(self, name: str, value: bool) -> None:
         """Force ``get_flag(name)`` to return ``value`` regardless of the blob."""
@@ -106,6 +149,33 @@ class Client:
         self._config_overrides.clear()
         self._experiment_overrides.clear()
 
+    def on_change(self, fn: Callable[[], None]) -> Callable[[], None]:
+        """Register a listener fired after a background poll fetches NEW data
+        (a 200, not a 304). Returns an unsubscribe callable. Listeners never
+        fire in test/offline mode (no poll thread runs). Each listener is
+        called in a try/except so one failing listener can't break the others.
+        """
+        with self._lock:
+            self._change_listeners.append(fn)
+
+        def unsubscribe() -> None:
+            with self._lock:
+                try:
+                    self._change_listeners.remove(fn)
+                except ValueError:
+                    pass
+
+        return unsubscribe
+
+    def _notify_change(self) -> None:
+        with self._lock:
+            listeners = list(self._change_listeners)
+        for fn in listeners:
+            try:
+                fn()
+            except Exception as e:  # noqa: BLE001 -- a listener must not break polling
+                log.warning("on_change listener failed: %s", e)
+
     def init(self) -> None:
         if self._test_mode:
             return
@@ -125,18 +195,54 @@ class Client:
             self._thread.join(timeout=1)
             self._thread = None
 
-    def get_flag(self, name: str, user: Mapping[str, Any]) -> bool:
+    def get_flag_detail(self, name: str, user: Mapping[str, Any]) -> FlagDetail:
+        """Evaluate ``name`` and report both the value and *why* it resolved
+        that way. The reason is computed at the boundary without touching
+        ``eval_gate``. The "gate" telemetry beacon is emitted exactly once here
+        (steps 2-5) and never on an override.
+        """
+        # 1. Override wins — short-circuit before telemetry, like get_experiment.
         if name in self._flag_overrides:
-            return self._flag_overrides[name]
+            return FlagDetail(value=self._flag_overrides[name], reason=OVERRIDE)
+
         self._telemetry.emit("gate", name)
+
+        # 2. Not initialized — no blob to evaluate against.
+        if not self._initialized:
+            return FlagDetail(value=False, reason=CLIENT_NOT_READY)
+
         with self._lock:
             gate = (self._flags_blob or {}).get("gates", {}).get(name)
+
+        # 3. Gate absent from the blob.
         if not gate:
-            return False
-        return eval_gate(gate, _with_anon_id(user))
+            return FlagDetail(value=False, reason=FLAG_NOT_FOUND)
+
+        # 4. Gate present but disabled (same predicate eval_gate uses).
+        if not _enabled(gate.get("enabled")):
+            return FlagDetail(value=False, reason=OFF)
+
+        # 5. Evaluate (targeting + rollout).
+        result = eval_gate(gate, _with_anon_id(user))
+        return FlagDetail(value=result, reason=RULE_MATCH if result else DEFAULT)
+
+    def get_flag(
+        self, name: str, user: Mapping[str, Any], default: bool = False
+    ) -> bool:
+        """Return the flag's boolean value. ``default`` is returned only when
+        the flag CANNOT be evaluated — the client isn't initialized or the gate
+        isn't in the blob — never when it simply evaluates to False.
+        """
+        detail = self.get_flag_detail(name, user)
+        if detail.reason in (CLIENT_NOT_READY, FLAG_NOT_FOUND):
+            return default
+        return detail.value
 
     def get_config(
-        self, name: str, decode: Optional[Callable[[Any], T]] = None
+        self,
+        name: str,
+        decode: Optional[Callable[[Any], T]] = None,
+        default: Optional[T] = None,
     ) -> Optional[T]:
         if name in self._config_overrides:
             value = self._config_overrides[name]
@@ -146,12 +252,12 @@ class Client:
                 return decode(value)
             except Exception as e:  # noqa: BLE001
                 log.warning("get_config(%s) decode failed: %s", name, e)
-                return None
+                return default
         self._telemetry.emit("config", name)
         with self._lock:
             entry = (self._flags_blob or {}).get("configs", {}).get(name)
         if not entry:
-            return None
+            return default
         value = entry.get("value")
         if decode is None:
             return value
@@ -159,7 +265,7 @@ class Client:
             return decode(value)
         except Exception as e:  # noqa: BLE001
             log.warning("get_config(%s) decode failed: %s", name, e)
-            return None
+            return default
 
     def get_experiment(
         self,
@@ -222,24 +328,28 @@ class Client:
         def loop() -> None:
             while not self._stop.wait(self._poll_interval):
                 try:
-                    self._fetch_all()
+                    if self._fetch_all():
+                        # New data (a 200, not a 304) arrived on this poll.
+                        self._notify_change()
                 except Exception as e:  # noqa: BLE001
                     log.warning("background poll failed: %s", e)
         self._thread = threading.Thread(target=loop, daemon=True)
         self._thread.start()
 
-    def _fetch_all(self) -> None:
-        interval = self._fetch_flags()
-        self._fetch_exps()
+    def _fetch_all(self) -> bool:
+        """Fetch both blobs. Returns True if either returned NEW data (200)."""
+        interval, flags_changed = self._fetch_flags()
+        exps_changed = self._fetch_exps()
         if interval and interval != self._poll_interval:
             self._poll_interval = interval
+        return flags_changed or exps_changed
 
-    def _fetch_flags(self) -> Optional[int]:
+    def _fetch_flags(self) -> tuple[Optional[int], bool]:
         status, headers, body = self._http_get("/sdk/flags", self._flags_etag)
         interval_str = headers.get("X-Poll-Interval") or headers.get("x-poll-interval")
         interval = int(interval_str) if interval_str else None
         if status == 304:
-            return interval
+            return interval, False
         if status != 200:
             raise RuntimeError(f"GET /sdk/flags returned {status}")
         with self._lock:
@@ -247,12 +357,12 @@ class Client:
             if etag:
                 self._flags_etag = etag
             self._flags_blob = json.loads(body)
-        return interval
+        return interval, True
 
-    def _fetch_exps(self) -> None:
+    def _fetch_exps(self) -> bool:
         status, headers, body = self._http_get("/sdk/experiments", self._exps_etag)
         if status == 304:
-            return
+            return False
         if status != 200:
             raise RuntimeError(f"GET /sdk/experiments returned {status}")
         with self._lock:
@@ -260,6 +370,7 @@ class Client:
             if etag:
                 self._exps_etag = etag
             self._exps_blob = json.loads(body)
+        return True
 
     def _http_get(self, path: str, etag: Optional[str]) -> tuple[int, Mapping[str, str], bytes]:
         headers = {"X-SDK-Key": self._api_key}

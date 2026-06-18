@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Default values on `get_flag`/`get_config`.** `get_flag(name, user,
+  default=False)` returns `default` only when the flag *cannot* be evaluated
+  (client not initialized, or the gate isn't in the blob) — never when it
+  simply evaluates to False. `get_config(name, decode=None, default=None)`
+  returns `default` when the key is absent or `decode` raises. Both additive
+  and backward-compatible.
+- **Flag evaluation detail.** Added `get_flag_detail(name, user) ->
+  FlagDetail(value, reason)` and exported the reason constants
+  `CLIENT_NOT_READY`, `FLAG_NOT_FOUND`, `OFF`, `OVERRIDE`, `RULE_MATCH`,
+  `DEFAULT`. The reason is computed at the boundary without touching the
+  canonical `eval_gate`; the "gate" telemetry beacon fires exactly once and
+  never on an override. `get_flag` now delegates to `get_flag_detail`.
+- **Change listeners.** Added `on_change(fn) -> unsubscribe` — the callback
+  fires (in the poll thread) after a background fetch returns NEW data (a 200,
+  not a 304). Listener errors are isolated; never fires in test/offline mode.
+- **Offline data source.** Added `Client.from_file(path)` and
+  `Client.from_snapshot(flags, experiments)` — a no-network client that runs
+  real evaluation against a JSON snapshot (`{"flags": ..., "experiments":
+  ...}`). Reuses the test-mode plumbing (telemetry off,
+  `init()`/`init_once()`/`track()` no-op); `override_*` setters apply on top.
 - **Local-override test utility.** Added `Client.for_testing()` — a no-network,
   immediately-usable client (no api_key, telemetry off, `init()`/`init_once()`/
   `track()` are no-ops). New override setters (also usable on a normal client):

@@ -56,6 +56,79 @@ browser SDK buckets identically; a request with **no** unit still resolves a
 fully-rolled (100%) gate as on. Cookie name + format are a cross-SDK contract —
 see `18-identity-bucketing.md`.
 
+## Default values
+
+`get_flag` and `get_config` take a `default` that is returned only when the
+value **cannot be evaluated** — never when it simply resolves off:
+
+```python
+# default is returned only if the client isn't initialized OR the gate isn't
+# in the blob. A gate that evaluates to False returns False, not the default.
+client.get_flag("new_checkout", {"user_id": "u_123"}, default=True)
+
+# default is returned when the config key is absent (or decode raises).
+client.get_config("billing_copy", default={"title": "Welcome"})
+client.get_config("limits", decode=lambda v: v["max"], default=0)
+```
+
+## Evaluation detail
+
+`get_flag_detail` returns a `FlagDetail(value, reason)` so you can log *why* a
+flag resolved the way it did. `reason` is one of the exported constants:
+
+```python
+from shipeasy import (
+    FlagDetail, CLIENT_NOT_READY, FLAG_NOT_FOUND, OFF, OVERRIDE, RULE_MATCH, DEFAULT,
+)
+
+d = client.get_flag_detail("new_checkout", {"user_id": "u_123"})
+print(d.value, d.reason)  # e.g. True RULE_MATCH
+```
+
+| reason | meaning |
+| --- | --- |
+| `OVERRIDE` | a local `override_flag` forced the value (no telemetry) |
+| `CLIENT_NOT_READY` | `init()`/`init_once()` hasn't run yet → `value=False` |
+| `FLAG_NOT_FOUND` | no gate by that name in the blob → `value=False` |
+| `OFF` | the gate exists but is disabled → `value=False` |
+| `RULE_MATCH` | evaluated **on** (targeting + rollout) |
+| `DEFAULT` | evaluated **off** (fell through) |
+
+`get_flag` delegates to `get_flag_detail` and returns `.value` (substituting
+`default` for `CLIENT_NOT_READY`/`FLAG_NOT_FOUND`).
+
+## Change listeners
+
+Register a callback fired after a background poll fetches **new** data (a 200,
+not a 304). It returns an unsubscribe callable. Listeners never fire in
+test/offline mode.
+
+```python
+unsubscribe = client.on_change(lambda: print("flags changed, rebuild cache"))
+...
+unsubscribe()  # stop listening
+```
+
+## Offline snapshot
+
+Run fully offline from a JSON snapshot — handy for tests, local dev, or
+air-gapped CI. Evaluations run the **real** eval logic against the snapshot;
+no network is ever touched (`init()`/`init_once()`/`track()` are no-ops) and
+`override_*` setters still apply on top.
+
+```python
+# From a file: { "flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments> }
+client = Client.from_file("shipeasy-snapshot.json")
+
+# Or from in-memory blobs
+client = Client.from_snapshot(
+    flags={"gates": {...}, "configs": {...}},
+    experiments={"experiments": {...}, "universes": {...}},
+)
+
+client.get_flag("new_checkout", {"user_id": "u_123"})
+```
+
 ## Testing
 
 Use `Client.for_testing()` for unit tests: it does **zero network**, needs no
