@@ -34,6 +34,31 @@ def _user_id(user: Mapping[str, Any]) -> Optional[str]:
     return str(uid) if uid else None
 
 
+def pick_identifier(user: Mapping[str, Any], bucket_by: Optional[str]) -> Optional[str]:
+    """Resolve the bucketing unit for a caller. With ``bucket_by`` set (e.g.
+    ``company_id``), hash on that attribute so a whole org buckets together;
+    otherwise fall back to ``user_id`` then ``anonymous_id``. When ``bucket_by``
+    is named but absent (or not a usable value) on the user, also falls back —
+    and if nothing resolves, returns ``None`` (the caller then applies the
+    missing-unit rule). Mirrors the canonical ``pickIdentifier`` in
+    ``packages/core/src/eval/gate.ts`` so gate rollout and experiment
+    holdout/allocation/group stay in sync.
+    """
+    if bucket_by:
+        v = user.get(bucket_by)
+        if isinstance(v, str) and len(v) > 0:
+            return v
+        # bool is a subclass of int; match JS where only number → String(n).
+        if isinstance(v, bool):
+            pass
+        elif isinstance(v, int):
+            return str(v)
+        elif isinstance(v, float):
+            # JS String(number): integral floats render without a fraction.
+            return str(int(v)) if v.is_integer() else repr(v)
+    return _user_id(user)
+
+
 def match_rule(rule: Mapping[str, Any], user: Mapping[str, Any]) -> bool:
     attr = rule.get("attr")
     op = rule.get("op")
@@ -114,7 +139,10 @@ def eval_experiment(
         if not gate or not eval_gate(gate, user):
             return _NOT_IN
 
-    uid = _user_id(user)
+    # Bucket on exp.bucketBy (e.g. company_id) when set, else
+    # user_id/anonymous_id. Holdout, allocation, and group all hash on the SAME
+    # unit so a whole org moves together. No resolvable unit ⇒ not enrolled.
+    uid = pick_identifier(user, exp.get("bucketBy"))
     if not uid:
         return _NOT_IN
 

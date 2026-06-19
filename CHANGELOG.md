@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Per-experiment `bucketBy`.** Experiment evaluation now honors an optional
+  `bucketBy` attribute (e.g. `company_id`): when set and present on the user it
+  becomes the bucketing unit for the holdout, allocation, AND group hashes, so a
+  whole org buckets onto one variant together. Absent or unusable ⇒ falls back to
+  `user_id`/`anonymous_id`, matching gate rollout. Mirrors the canonical
+  `pickIdentifier` in `@shipeasy/core`; locked by the cross-language
+  golden-vector fixture.
 - **Default values on `get_flag`/`get_config`.** `get_flag(name, user,
   default=False)` returns `default` only when the flag *cannot* be evaluated
   (client not initialized, or the gate isn't in the blob) — never when it
