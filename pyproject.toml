@@ -16,6 +16,11 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+# OpenFeature provider (`shipeasy.openfeature.ShipeasyProvider`). Optional so the
+# base SDK doesn't force the openfeature-sdk dependency on every consumer.
+openfeature = ["openfeature-sdk>=0.7"]
+
 [project.urls]
 Homepage = "https://shipeasy.dev"
 Source = "https://github.com/shipeasy-ai/sdk-python"

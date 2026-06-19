@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **OpenFeature provider.** Added `shipeasy.openfeature.ShipeasyProvider`, an
+  implementation of the OpenFeature python-server provider contract
+  (`openfeature.provider.AbstractProvider`) that wraps a `Client`. Metadata name
+  `"shipeasy"`. `resolve_boolean_details` evaluates the gate with a user built
+  from the evaluation context (`targeting_key` → `user_id`, attributes → user
+  attrs) and maps reasons RULE_MATCH→TARGETING_MATCH, DEFAULT→DEFAULT,
+  OFF→DISABLED, OVERRIDE→STATIC, FLAG_NOT_FOUND→ERROR+FLAG_NOT_FOUND,
+  CLIENT_NOT_READY→ERROR+PROVIDER_NOT_READY. `resolve_string/integer/float/
+  object_details` route to `get_config(key)`: absent → default + DEFAULT,
+  type mismatch → default + TYPE_MISMATCH, present → value + TARGETING_MATCH.
+  `openfeature-sdk` is an OPTIONAL dependency — install the extra with
+  `pip install shipeasy[openfeature]`; importing the base `shipeasy` package
+  never requires it.
 - **Private attributes.** New `private_attributes` client option (a list of
   attribute keys). Those keys are stripped from every outbound event
   `properties` bag in `track()` before POSTing to `/collect` (LD/Statsig
