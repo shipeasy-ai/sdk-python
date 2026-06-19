@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Private attributes.** New `private_attributes` client option (a list of
+  attribute keys). Those keys are stripped from every outbound event
+  `properties` bag in `track()` before POSTing to `/collect` (LD/Statsig
+  `privateAttributes`). Evaluation runs locally, so private attrs still drive
+  targeting — they just never leave the process on the telemetry path.
+- **Manual exposure (server).** Added `log_exposure(user_or_user_id,
+  experiment_name)` — accepts a bare `user_id` string (wrapped as `{"user_id":
+  ...}`) or a full user dict. The server never auto-logs; this re-evaluates the
+  experiment and, if the user is enrolled, POSTs a single `{type:"exposure",
+  experiment, group, user_id, ts}` event to `/collect`. No-op when not enrolled
+  or in test mode. Parity with the browser's auto-exposure.
+- **Sticky bucketing (server).** Added a `StickyBucketStore` protocol
+  (`get(unit) -> {exp: StickyEntry} | None`, `set(unit, exp, entry)`), a
+  `StickyEntry = {"g": group, "s": salt8}` shape, an `InMemoryStickyStore`
+  implementation, and a `sticky_store` client option (absent ⇒ deterministic).
+  In experiment eval, after the holdout and before the allocation gate, a stored
+  entry for `(unit, exp)` whose salt prefix still matches skips allocation and
+  returns the stored group (so a shrinking allocation keeps an enrolled unit
+  in). A fresh pick writes the entry; a salt-prefix mismatch or a vanished
+  stored group re-buckets and overwrites. `unit` is the `bucketBy`-resolved
+  identifier (`pick_identifier`). Mirrors the TypeScript reference (doc 20 §2).
 - **Per-experiment `bucketBy`.** Experiment evaluation now honors an optional
   `bucketBy` attribute (e.g. `company_id`): when set and present on the user it
   becomes the bucketing unit for the holdout, allocation, AND group hashes, so a

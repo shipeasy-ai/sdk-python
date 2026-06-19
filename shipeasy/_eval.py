@@ -3,6 +3,7 @@ from typing import Any, Mapping, Optional
 import re
 
 from ._hash import murmur3
+from ._sticky import StickyBucketStore
 
 
 @dataclass
@@ -129,6 +130,9 @@ def eval_experiment(
     flags_blob: Optional[Mapping[str, Any]],
     exps_blob: Optional[Mapping[str, Any]],
     user: Mapping[str, Any],
+    *,
+    exp_name: Optional[str] = None,
+    sticky_store: Optional[StickyBucketStore] = None,
 ) -> ExperimentResult:
     if not exp or exp.get("status") != "running":
         return _NOT_IN
@@ -155,16 +159,39 @@ def eval_experiment(
             return _NOT_IN
 
     salt = exp.get("salt") or ""
+    groups = exp.get("groups") or []
+
+    def _result_for_group(g: Mapping[str, Any]) -> ExperimentResult:
+        return ExperimentResult(
+            in_experiment=True, group=g.get("name", "control"), params=g.get("params")
+        )
+
+    # Sticky short-circuit (doc 20 §2): an enrolled unit whose stored salt prefix
+    # still matches skips the allocation gate (so a shrinking allocation keeps it
+    # in) and returns the stored group without re-running the pick. A salt change
+    # (prefix mismatch) or a stored group that no longer exists falls through to
+    # re-bucket + overwrite.
+    salt8 = salt[:8]
+    if sticky_store is not None and exp_name is not None:
+        unit_entries = sticky_store.get(uid)
+        entry = unit_entries.get(exp_name) if unit_entries else None
+        if entry and entry.get("s") == salt8:
+            for g in groups:
+                if g.get("name") == entry.get("g"):
+                    return _result_for_group(g)
+            # Stored group gone — fall through to re-bucket + overwrite.
+
     alloc_pct = exp.get("allocationPct") or 0
     if murmur3(f"{salt}:alloc:{uid}") % 10000 >= alloc_pct:
         return _NOT_IN
 
     group_hash = murmur3(f"{salt}:group:{uid}") % 10000
     cumulative = 0
-    groups = exp.get("groups") or []
     for i, g in enumerate(groups):
         cumulative += g.get("weight", 0)
         if group_hash < cumulative or i == len(groups) - 1:
-            return ExperimentResult(in_experiment=True, group=g.get("name", "control"), params=g.get("params"))
+            if sticky_store is not None and exp_name is not None:
+                sticky_store.set(uid, exp_name, {"g": g.get("name", "control"), "s": salt8})
+            return _result_for_group(g)
 
     return _NOT_IN

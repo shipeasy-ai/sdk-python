@@ -6,9 +6,10 @@ import threading
 import time
 import urllib.request
 import urllib.error
-from typing import Any, Callable, Mapping, Optional, TypeVar
+from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar, Union
 
 from ._eval import ExperimentResult, eval_experiment, eval_gate, _enabled
+from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from ._detail import (
     FlagDetail,
     CLIENT_NOT_READY,
@@ -52,9 +53,18 @@ class Client:
         env: str = "prod",
         disable_telemetry: bool = False,
         telemetry_url: Optional[str] = None,
+        private_attributes: Optional[Sequence[str]] = None,
+        sticky_store: Optional[StickyBucketStore] = None,
     ) -> None:
         self._api_key = api_key
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
+        # Attribute keys to strip from every outbound event ``properties`` bag
+        # before POSTing to /collect (LD/Statsig ``privateAttributes``). The
+        # server evaluates locally, so private attrs still drive targeting —
+        # they just never leave the process on the telemetry path.
+        self._private_attributes = list(private_attributes or [])
+        # Pluggable sticky-bucketing store (doc 20 §2). Absent ⇒ deterministic.
+        self._sticky_store = sticky_store
         # Per-evaluation usage telemetry. ON by default; pass
         # disable_telemetry=True to opt out. See _telemetry.py.
         self._telemetry = Telemetry(
@@ -282,7 +292,14 @@ class Client:
             flags_blob = self._flags_blob
             exps_blob = self._exps_blob
         exp = (exps_blob or {}).get("experiments", {}).get(name)
-        result = eval_experiment(exp, flags_blob, exps_blob, _with_anon_id(user))
+        result = eval_experiment(
+            exp,
+            flags_blob,
+            exps_blob,
+            _with_anon_id(user),
+            exp_name=name,
+            sticky_store=self._sticky_store,
+        )
         if result.params is None:
             result.params = default_params
         if result.in_experiment and decode is not None:
@@ -293,18 +310,71 @@ class Client:
                 return ExperimentResult(False, "control", default_params)
         return result
 
+    def _strip_private(
+        self, properties: Optional[Mapping[str, Any]]
+    ) -> Optional[dict]:
+        """Drop caller-marked private attributes from an outbound props bag."""
+        if not properties:
+            return None
+        if not self._private_attributes:
+            return dict(properties)
+        return {
+            k: v for k, v in properties.items() if k not in self._private_attributes
+        }
+
     def track(self, user_id: str, event_name: str, properties: Optional[Mapping[str, Any]] = None) -> None:
         if self._test_mode:
             return
+        safe_props = self._strip_private(properties)
         body = {
             "events": [{
                 "type": "metric",
                 "event_name": event_name,
                 "user_id": str(user_id),
                 "ts": int(time.time() * 1000),
-                **({"properties": dict(properties)} if properties else {}),
+                **({"properties": safe_props} if safe_props is not None else {}),
             }]
         }
+        data = json.dumps(body).encode("utf-8")
+        threading.Thread(
+            target=self._post_silent,
+            args=("/collect", data),
+            daemon=True,
+        ).start()
+
+    def log_exposure(
+        self, user_or_user_id: Union[str, Mapping[str, Any]], experiment_name: str
+    ) -> None:
+        """Emit an exposure event for an experiment at the server-side decision
+        point (parity with the browser's auto-exposure). The server is stateless
+        and never auto-logs, so call this when you actually present the
+        treatment. ``user_or_user_id`` is a bare ``user_id`` string (wrapped as
+        ``{"user_id": ...}``) or a full user dict. Re-evaluates the experiment;
+        if the user is enrolled, POSTs a single ``exposure`` event to /collect.
+        No-op in test mode or when the user isn't enrolled.
+        """
+        if self._test_mode:
+            return
+        user: Mapping[str, Any] = (
+            {"user_id": user_or_user_id}
+            if isinstance(user_or_user_id, str)
+            else user_or_user_id
+        )
+        result = self.get_experiment(experiment_name, user, None)
+        if not result.in_experiment:
+            return
+        u = _with_anon_id(user)
+        event: dict = {
+            "type": "exposure",
+            "experiment": experiment_name,
+            "group": result.group,
+            "ts": int(time.time() * 1000),
+        }
+        if u.get("user_id") is not None:
+            event["user_id"] = u["user_id"]
+        if u.get("anonymous_id") is not None:
+            event["anonymous_id"] = u["anonymous_id"]
+        body = {"events": [event]}
         data = json.dumps(body).encode("utf-8")
         threading.Thread(
             target=self._post_silent,

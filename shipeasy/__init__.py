@@ -9,6 +9,7 @@ from ._detail import (
     DEFAULT,
 )
 from ._hash import murmur3
+from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from .middleware import AnonIdMiddleware, AnonIdASGIMiddleware
 
 __all__ = [
@@ -22,6 +23,9 @@ __all__ = [
     "RULE_MATCH",
     "DEFAULT",
     "murmur3",
+    "StickyBucketStore",
+    "InMemoryStickyStore",
+    "StickyEntry",
     "AnonIdMiddleware",
     "AnonIdASGIMiddleware",
 ]
