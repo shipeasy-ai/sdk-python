@@ -9,6 +9,7 @@ import urllib.error
 from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar, Union
 
 from ._eval import ExperimentResult, eval_experiment, eval_gate, _enabled
+from ._bootstrap import render_bootstrap_tag, render_i18n_tag
 from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from ._detail import (
     FlagDetail,
@@ -333,6 +334,87 @@ class Client:
         return {
             k: v for k, v in properties.items() if k not in self._private_attributes
         }
+
+    def evaluate(self, user: Mapping[str, Any]) -> dict:
+        """Batch-evaluate every loaded gate, config and experiment for ``user``
+        into a bootstrap payload (``{flags, configs, experiments, killswitches}``)
+        keyed to match the browser SDK's ``window.__SE_BOOTSTRAP`` shape. Local
+        overrides win. Killswitches are folded into per-gate evaluation, so the
+        standalone ``killswitches`` map is empty for this SDK. No telemetry.
+        """
+        user = _with_anon_id(user)
+        with self._lock:
+            flags_blob = self._flags_blob or {}
+            exps_blob = self._exps_blob or {}
+            flag_ov = dict(self._flag_overrides)
+            config_ov = dict(self._config_overrides)
+            exp_ov = dict(self._experiment_overrides)
+            sticky = self._sticky_store
+
+        flags: dict = {}
+        for name, gate in (flags_blob.get("gates") or {}).items():
+            flags[name] = flag_ov[name] if name in flag_ov else eval_gate(gate, user)
+
+        configs: dict = {}
+        for name, entry in (flags_blob.get("configs") or {}).items():
+            configs[name] = (
+                config_ov[name] if name in config_ov else (entry or {}).get("value")
+            )
+
+        experiments: dict = {}
+        for name, exp in (exps_blob.get("experiments") or {}).items():
+            if name in exp_ov:
+                group, params = exp_ov[name]
+                experiments[name] = {
+                    "inExperiment": True,
+                    "group": group,
+                    "params": params,
+                }
+                continue
+            r = eval_experiment(
+                exp, flags_blob, exps_blob, user, exp_name=name, sticky_store=sticky
+            )
+            experiments[name] = {
+                "inExperiment": r.in_experiment,
+                "group": r.group,
+                "params": r.params,
+            }
+
+        return {
+            "flags": flags,
+            "configs": configs,
+            "experiments": experiments,
+            "killswitches": {},
+        }
+
+    def bootstrap_script_tag(
+        self,
+        user: Mapping[str, Any],
+        *,
+        anon_id: Optional[str] = None,
+        i18n_profile: str = "en:prod",
+        base_url: Optional[str] = None,
+    ) -> str:
+        """Return the cross-platform SSR bootstrap ``<script>`` tag for a request.
+        ``se-bootstrap.js`` reads its ``data-*`` attributes and hydrates
+        ``window.__SE_BOOTSTRAP`` (and writes the anon cookie). No key embedded.
+        """
+        return render_bootstrap_tag(
+            self.evaluate(user),
+            anon_id=anon_id,
+            i18n_profile=i18n_profile,
+            base_url=base_url,
+        )
+
+    def i18n_script_tag(
+        self,
+        client_key: str,
+        profile: str = "en:prod",
+        *,
+        base_url: Optional[str] = None,
+    ) -> str:
+        """Return the i18n loader ``<script>`` tag (uses the public client key)."""
+        return render_i18n_tag(client_key, profile, base_url=base_url)
 
     def track(self, user_id: str, event_name: str, properties: Optional[Mapping[str, Any]] = None) -> None:
         if self._test_mode:
