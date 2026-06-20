@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **see() structured error reporting.** New `see()` API, mirroring the
+  TypeScript SDK's `@shipeasy/sdk` grammar, for reporting handled exceptions
+  with their product consequence into the Errors primitive. Available both as an
+  instance method (`client.see(e).causes_the("checkout").to("use cached prices")
+  .extras({...})`) and as package-level functions (`from shipeasy import see`)
+  backed by the last-constructed client. Also `see_violation(name)` for
+  non-exception problems and `control_flow_exception(e).because("because …")` to
+  mark expected control flow (reports nothing). Dispatch is fire-and-forget to
+  `/collect`; `.to(outcome)` is the terminal that sends. Events carry
+  `sdk_version` (new), `env`, sanitized `extras` (≤20 keys, 200-char values),
+  and are spam-guarded (30s dedup window, 25/process cap). Reporting never
+  blocks or throws into caller code, and is a no-op in test/offline mode.
+
 - **OpenFeature provider.** Added `shipeasy.openfeature.ShipeasyProvider`, an
   implementation of the OpenFeature python-server provider contract
   (`openfeature.provider.AbstractProvider`) that wraps a `Client`. Metadata name

@@ -20,7 +20,10 @@ from ._detail import (
     DEFAULT,
 )
 from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
+from ._version import SDK_VERSION
 from . import _anon_id
+from . import _see
+from ._see import Violation, build_see_event, SeeLimiter
 
 T = TypeVar("T")
 log = logging.getLogger("shipeasy")
@@ -58,6 +61,9 @@ class Client:
     ) -> None:
         self._api_key = api_key
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
+        # Deployment env, tagged onto see() error events (telemetry already
+        # carries it separately).
+        self._env = env
         # Attribute keys to strip from every outbound event ``properties`` bag
         # before POSTing to /collect (LD/Statsig ``privateAttributes``). The
         # server evaluates locally, so private attrs still drive targeting —
@@ -94,6 +100,12 @@ class Client:
         # returns NEW data (a 200, not a 304). Guarded by _lock. Never fired in
         # test/offline mode (no poll thread runs there).
         self._change_listeners: list[Callable[[], None]] = []
+        # see() structured error reporting. Per-process spam guard; bound here so
+        # repeated reports of the same issue collapse to one send.
+        self._see_limiter = SeeLimiter()
+        # Register as the default client backing the package-level see() funcs
+        # (last constructed wins — the server-SDK analog of TS's shipeasy({key})).
+        _see.set_default_client(self)
 
     @classmethod
     def for_testing(cls) -> "Client":
@@ -393,6 +405,57 @@ class Client:
             urllib.request.urlopen(req, timeout=10).read()
         except Exception as e:  # noqa: BLE001
             log.warning("track failed: %s", e)
+
+    # ---- see() structured error reporting ----
+
+    def see(self, problem: Any) -> "_see._SeeChain":
+        """Report a caught exception (or thrown non-exception). Fire-and-forget;
+        never blocks or throws into the request path. Terminate with
+        ``.to(outcome)``::
+
+            client.see(e).causes_the("checkout").to("use cached prices")
+        """
+        return _see._SeeChain(problem, self._dispatch_see)
+
+    def see_violation(self, name: str) -> "_see._SeeChain":
+        """Report a non-exception problem. The name is a stable fingerprint key —
+        put variable data in ``.extras()``, never the name."""
+        return _see._SeeChain(Violation(name), self._dispatch_see)
+
+    # camelCase alias for cross-SDK muscle memory.
+    seeViolation = see_violation
+
+    def control_flow_exception(self, err: Any) -> "_see._ControlFlowChain":
+        """Mark an exception as expected control flow — reports nothing."""
+        return _see._ControlFlowChain(err)
+
+    controlFlowException = control_flow_exception
+
+    def _dispatch_see(self, built: "_see._BuiltChain") -> None:
+        """Build the wire event and fire-and-forget POST it to /collect. No-op in
+        test mode. Spam-guarded. Never raises into caller code."""
+        if self._test_mode:
+            return
+        try:
+            ev = build_see_event(
+                built.problem,
+                built.subject,
+                built.outcome,
+                self._strip_private(built.extras),
+                side="server",
+                sdk_version=SDK_VERSION,
+                env=self._env,
+            )
+            if not self._see_limiter.should_send(ev):
+                return
+            data = json.dumps({"events": [ev]}).encode("utf-8")
+            threading.Thread(
+                target=self._post_silent,
+                args=("/collect", data),
+                daemon=True,
+            ).start()
+        except Exception as e:  # noqa: BLE001 — reporting must never raise
+            log.warning("see() send failed: %s", e)
 
     def _start_poll(self) -> None:
         def loop() -> None:
