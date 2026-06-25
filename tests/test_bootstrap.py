@@ -1,11 +1,11 @@
 import html
 import json
 
-from shipeasy import Client
+from shipeasy import Engine
 
 
 def _client():
-    return Client.from_snapshot(
+    return Engine.from_snapshot(
         flags={
             "gates": {
                 "new_ui": {"enabled": True, "salt": "s", "rolloutPct": 10000},

@@ -1,7 +1,7 @@
 import json
 
 from shipeasy import (
-    Client,
+    Engine,
     FlagDetail,
     CLIENT_NOT_READY,
     FLAG_NOT_FOUND,
@@ -33,31 +33,31 @@ def _disabled_gate():
 
 def test_get_flag_default_returned_when_not_initialized():
     # A plain (un-init'd) client cannot evaluate → default is returned.
-    client = Client(api_key="k", disable_telemetry=True)
+    client = Engine(api_key="k", disable_telemetry=True)
     assert client.get_flag("any", {"user_id": "u1"}) is False
     assert client.get_flag("any", {"user_id": "u1"}, default=True) is True
 
 
 def test_get_flag_default_returned_when_flag_not_found():
-    client = Client.from_snapshot(flags={"gates": {}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {}}, experiments={})
     assert client.get_flag("missing", {"user_id": "u1"}, default=True) is True
 
 
 def test_get_flag_default_NOT_returned_when_flag_evaluates_false():
     # Flag IS found and evaluable but resolves False → return the real False,
     # NOT the default.
-    client = Client.from_snapshot(flags={"gates": {"g": _zero_gate()}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {"g": _zero_gate()}}, experiments={})
     assert client.get_flag("g", {"user_id": "u1"}, default=True) is False
 
 
 def test_get_config_default_when_absent():
-    client = Client.from_snapshot(flags={"configs": {}}, experiments={})
+    client = Engine.from_snapshot(flags={"configs": {}}, experiments={})
     assert client.get_config("missing") is None
     assert client.get_config("missing", default={"x": 1}) == {"x": 1}
 
 
 def test_get_config_default_on_decode_failure():
-    client = Client.from_snapshot(
+    client = Engine.from_snapshot(
         flags={"configs": {"c": {"value": {"n": 1}}}}, experiments={}
     )
     out = client.get_config("c", decode=lambda v: v["MISSING"], default="fallback")
@@ -70,7 +70,7 @@ def test_get_config_default_on_decode_failure():
 
 
 def test_reason_override_short_circuits_before_telemetry():
-    client = Client.for_testing()
+    client = Engine.for_testing()
     client.override_flag("g", True)
     d = client.get_flag_detail("g", {"user_id": "u1"})
     assert isinstance(d, FlagDetail)
@@ -78,19 +78,19 @@ def test_reason_override_short_circuits_before_telemetry():
 
 
 def test_reason_client_not_ready():
-    client = Client(api_key="k", disable_telemetry=True)  # not initialized
+    client = Engine(api_key="k", disable_telemetry=True)  # not initialized
     d = client.get_flag_detail("g", {"user_id": "u1"})
     assert d.value is False and d.reason == CLIENT_NOT_READY
 
 
 def test_reason_flag_not_found():
-    client = Client.from_snapshot(flags={"gates": {}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {}}, experiments={})
     d = client.get_flag_detail("missing", {"user_id": "u1"})
     assert d.value is False and d.reason == FLAG_NOT_FOUND
 
 
 def test_reason_off_when_disabled():
-    client = Client.from_snapshot(
+    client = Engine.from_snapshot(
         flags={"gates": {"g": _disabled_gate()}}, experiments={}
     )
     d = client.get_flag_detail("g", {"user_id": "u1"})
@@ -98,25 +98,25 @@ def test_reason_off_when_disabled():
 
 
 def test_reason_rule_match_when_on():
-    client = Client.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
     d = client.get_flag_detail("g", {"user_id": "u1"})
     assert d.value is True and d.reason == RULE_MATCH
 
 
 def test_reason_default_when_evaluates_off():
-    client = Client.from_snapshot(flags={"gates": {"g": _zero_gate()}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {"g": _zero_gate()}}, experiments={})
     d = client.get_flag_detail("g", {"user_id": "u1"})
     assert d.value is False and d.reason == DEFAULT
 
 
 def test_get_flag_delegates_to_detail():
-    client = Client.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
     assert client.get_flag("g", {"user_id": "u1"}) is True
 
 
 def test_get_flag_detail_emits_gate_telemetry_once_not_on_override():
     calls = []
-    client = Client.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
+    client = Engine.from_snapshot(flags={"gates": {"g": _on_gate()}}, experiments={})
     client._telemetry.emit = lambda feature, resource: calls.append((feature, resource))
     client.get_flag_detail("g", {"user_id": "u1"})
     assert calls == [("gate", "g")]
@@ -133,7 +133,7 @@ def test_get_flag_detail_emits_gate_telemetry_once_not_on_override():
 
 
 def test_on_change_fires_on_new_data_and_unsubscribe_works():
-    client = Client(api_key="k", disable_telemetry=True)
+    client = Engine(api_key="k", disable_telemetry=True)
 
     # Drive the apply path directly: alternate 200 (new data) then 304.
     responses = iter(
@@ -166,7 +166,7 @@ def test_on_change_fires_on_new_data_and_unsubscribe_works():
 
 
 def test_on_change_listener_error_is_isolated():
-    client = Client(api_key="k", disable_telemetry=True)
+    client = Engine(api_key="k", disable_telemetry=True)
     fired = []
     client.on_change(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
     client.on_change(lambda: fired.append(1))
@@ -181,7 +181,7 @@ def test_on_change_listener_error_is_isolated():
 
 
 def test_from_snapshot_evaluates_with_no_network():
-    client = Client.from_snapshot(
+    client = Engine.from_snapshot(
         flags={"gates": {"g": _on_gate()}}, experiments={}
     )
     # init/init_once/track are no-ops (would raise on real network).
@@ -204,6 +204,6 @@ def test_from_file_loads_both_blobs(tmp_path):
             }
         )
     )
-    client = Client.from_file(str(p))
+    client = Engine.from_file(str(p))
     assert client.get_flag("g", {"user_id": "u1"}) is True
     assert client.get_config("c") == 7

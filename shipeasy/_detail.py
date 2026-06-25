@@ -1,6 +1,6 @@
 """Flag evaluation detail — the value plus *why* it resolved that way.
 
-The reason is computed at the SDK boundary (in ``Client.get_flag_detail``)
+The reason is computed at the SDK boundary (in ``Engine.get_flag_detail``)
 without touching the canonical ``eval_gate`` logic, so it stays a pure,
 additive layer over evaluation. Mirrors the ``reason`` contract in the
 TypeScript reference SDK.

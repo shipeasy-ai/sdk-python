@@ -39,7 +39,7 @@ def is_valid(value: Optional[str]) -> bool:
 def current() -> Optional[str]:
     """The anon id the middleware resolved for the current request, or None.
 
-    ``Client.get_flag`` / ``get_experiment`` fall back to this as the default
+    ``Engine.get_flag`` / ``get_experiment`` fall back to this as the default
     ``anonymous_id``, so evaluations need no per-call wiring.
     """
     return _current.get()

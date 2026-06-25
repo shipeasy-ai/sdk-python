@@ -48,7 +48,7 @@ _DEFAULT_BASE_URL = "https://edge.shipeasy.dev"
 _DEFAULT_POLL_INTERVAL = 30
 
 
-class Client:
+class Engine:
     def __init__(
         self,
         api_key: str,
@@ -104,12 +104,12 @@ class Client:
         # see() structured error reporting. Per-process spam guard; bound here so
         # repeated reports of the same issue collapse to one send.
         self._see_limiter = SeeLimiter()
-        # Register as the default client backing the package-level see() funcs
+        # Register as the default engine backing the package-level see() funcs
         # (last constructed wins — the server-SDK analog of TS's shipeasy({key})).
         _see.set_default_client(self)
 
     @classmethod
-    def for_testing(cls) -> "Client":
+    def for_testing(cls) -> "Engine":
         """Build a no-network client for tests. Telemetry is disabled,
         ``init()``/``init_once()`` are no-ops (never fetch), ``track()`` is a
         no-op, and no api_key is required. The client is immediately usable:
@@ -124,7 +124,7 @@ class Client:
         return client
 
     @classmethod
-    def from_snapshot(cls, flags: Optional[dict], experiments: Optional[dict]) -> "Client":
+    def from_snapshot(cls, flags: Optional[dict], experiments: Optional[dict]) -> "Engine":
         """Build an offline client from in-memory blobs (no network, ever).
 
         ``flags`` is the body of ``/sdk/flags`` (``{"gates": ..., "configs":
@@ -143,7 +143,7 @@ class Client:
         return client
 
     @classmethod
-    def from_file(cls, path: str) -> "Client":
+    def from_file(cls, path: str) -> "Engine":
         """Build an offline client from a JSON file (no network, ever).
 
         The file is ``{"flags": <body of /sdk/flags>, "experiments": <body of
@@ -322,6 +322,25 @@ class Client:
                 log.warning("get_experiment(%s) decode failed: %s", name, e)
                 return ExperimentResult(False, "control", default_params)
         return result
+
+    def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
+        """Return whether kill switch ``name`` is engaged (the feature is
+        killed). In this SDK kill switches ride the flags blob alongside gates
+        and are folded into gate evaluation; ``get_killswitch`` reads that same
+        signal at the boundary. With ``switch_key`` it reports a named per-key
+        override (the dashboard "switches" feature) when present, falling back to
+        the kill switch's top-level value otherwise. Returns ``False`` (not
+        killed) when the client isn't initialized or the switch is absent.
+        """
+        with self._lock:
+            entry = (self._flags_blob or {}).get("killswitches", {}).get(name)
+        if not entry:
+            return False
+        if switch_key is not None:
+            switches = entry.get("switches") or {}
+            if switch_key in switches:
+                return bool(_enabled(switches[switch_key]))
+        return bool(_enabled(entry.get("value", entry.get("enabled"))))
 
     def _strip_private(
         self, properties: Optional[Mapping[str, Any]]
@@ -597,3 +616,140 @@ class Client:
             return resp.status, dict(resp.headers), resp.read()
         except urllib.error.HTTPError as e:
             return e.code, dict(e.headers or {}), e.read() if e.fp else b""
+
+
+# ---------------------------------------------------------------------------
+# Global configure() + the lightweight, user-bound Client.
+#
+# The two-part front door (mirrors the TS reference in
+# packages/ts-sdk/src/server/index.ts):
+#
+#   import shipeasy
+#   shipeasy.configure(api_key="srv_...", attributes=lambda u: {"user_id": u.id})
+#   shipeasy.Client(user).get_flag("new_checkout")
+#
+# ``configure()`` builds ONE Engine (first-config-wins) and stores it as the
+# package-global engine, plus the ``attributes`` transform. ``Client(user)`` is
+# cheap: it reads that global engine, applies the transform + the existing
+# anon-id merge once at construction, and forwards each call with the bound
+# attribute map.
+# ---------------------------------------------------------------------------
+
+AttributesFn = Callable[[Any], Mapping[str, Any]]
+
+
+def _identity_attributes(user: Any) -> Mapping[str, Any]:
+    """Default transform: the user object IS already the attribute map."""
+    return user
+
+
+_global_engine: Optional[Engine] = None
+_global_attributes: AttributesFn = _identity_attributes
+_configure_lock = threading.Lock()
+
+
+def configure(
+    api_key: str,
+    *,
+    attributes: Optional[AttributesFn] = None,
+    init: bool = True,
+    **engine_opts: Any,
+) -> Engine:
+    """Configure the package-global engine and the ``attributes`` transform.
+
+    First-config-wins: the first call builds the engine and stores it (plus the
+    transform); later calls are a no-op and return the already-built engine, the
+    same idempotency the default-engine wiring uses. Pass any ``Engine``
+    constructor option as a keyword (``base_url``, ``env``, ``disable_telemetry``,
+    ``private_attributes``, ``sticky_store`` …).
+
+    ``attributes`` is a function from *your* user object to the Shipeasy
+    attribute map (``{"user_id": ..., "anonymous_id": ..., <targeting attrs>}``)
+    that every bound ``Client`` evaluation uses. Default = identity (the user
+    object is assumed to already be the attribute map).
+
+    Unless ``init=False``, the engine's one-shot fetch is kicked off
+    fire-and-forget (in a daemon thread) so ``Client(user).get_flag(...)``
+    resolves against real rules without an explicit init call. Long-running
+    servers wanting the background poll can call ``engine.init()`` on the
+    returned engine instead (pass ``init=False`` here to avoid the redundant
+    one-shot).
+    """
+    global _global_engine, _global_attributes
+    with _configure_lock:
+        if _global_engine is not None:
+            return _global_engine
+        engine = Engine(api_key, **engine_opts)
+        _global_engine = engine
+        _global_attributes = attributes or _identity_attributes
+    if init:
+        # Fire-and-forget one-shot fetch — never block configure().
+        threading.Thread(target=engine.init_once, daemon=True).start()
+    return engine
+
+
+def get_global_engine() -> Optional[Engine]:
+    """Return the engine built by ``configure()`` (or ``None`` if not yet set)."""
+    return _global_engine
+
+
+def reset_global() -> None:
+    """Drop the package-global engine + transform. Tests only."""
+    global _global_engine, _global_attributes
+    with _configure_lock:
+        _global_engine = None
+        _global_attributes = _identity_attributes
+
+
+class Client:
+    """A cheap, user-bound handle over the global engine built by ``configure()``.
+
+    Construct one per user/request: ``shipeasy.Client(user)``. The configured
+    ``attributes`` transform runs once here, and the request-scoped anon-id is
+    merged in (same rule as the per-call path), so every method takes NO user
+    argument — the user is bound. It owns no HTTP connection, cache, or poll
+    timer: it delegates every evaluation to the single configured engine.
+
+    Raises ``RuntimeError`` if ``configure()`` has not been called.
+    """
+
+    __slots__ = ("_engine", "attributes")
+
+    def __init__(self, user: Any) -> None:
+        engine = _global_engine
+        if engine is None:
+            raise RuntimeError(
+                "shipeasy.Client(user) called before shipeasy.configure(api_key=...)"
+            )
+        self._engine = engine
+        # Run the configured transform, then apply the existing anon-id merge
+        # exactly as the per-call path does. Bound once at construction.
+        self.attributes: Mapping[str, Any] = _with_anon_id(_global_attributes(user))
+
+    def get_flag(self, name: str, default: bool = False) -> bool:
+        return self._engine.get_flag(name, self.attributes, default)
+
+    def get_flag_detail(self, name: str) -> FlagDetail:
+        return self._engine.get_flag_detail(name, self.attributes)
+
+    def get_config(
+        self,
+        name: str,
+        decode: Optional[Callable[[Any], T]] = None,
+        default: Optional[T] = None,
+    ) -> Optional[T]:
+        # Configs are not user-scoped; forward straight to the engine.
+        return self._engine.get_config(name, decode, default)
+
+    def get_experiment(
+        self,
+        name: str,
+        default_params: T,
+        decode: Optional[Callable[[Any], T]] = None,
+    ) -> ExperimentResult:
+        return self._engine.get_experiment(
+            name, self.attributes, default_params, decode
+        )
+
+    def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
+        return self._engine.get_killswitch(name, switch_key)

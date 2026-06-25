@@ -4,17 +4,17 @@ Lets apps standardised on the CNCF OpenFeature API plug Shipeasy in as the
 backing provider::
 
     from openfeature import api
-    from shipeasy import Client
+    from shipeasy import Engine
     from shipeasy.openfeature import ShipeasyProvider
 
-    client = Client(api_key="sdk_server_...")
-    client.init()
-    api.set_provider(ShipeasyProvider(client))
+    engine = Engine(api_key="sdk_server_...")
+    engine.init()
+    api.set_provider(ShipeasyProvider(engine))
 
     of = api.get_client()
     on = of.get_boolean_value("new_checkout", False, EvaluationContext("u1"))
 
-Pure adapter over :class:`shipeasy.Client` — no change to evaluation. The
+Pure adapter over :class:`shipeasy.Engine` — no change to evaluation. The
 ``openfeature-sdk`` package is an OPTIONAL dependency; install the extra::
 
     pip install shipeasy[openfeature]
@@ -38,7 +38,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - exercised without the e
         "Install it with: pip install shipeasy[openfeature]"
     ) from exc
 
-from ._client import Client
+from ._client import Engine
 from ._detail import (
     CLIENT_NOT_READY,
     DEFAULT,
@@ -83,11 +83,11 @@ def _to_user(ctx: Optional[EvaluationContext]) -> dict:
 class ShipeasyProvider(AbstractProvider):
     """Shipeasy OpenFeature provider (server paradigm).
 
-    Wraps a :class:`shipeasy.Client`; evaluation is local against the cached
+    Wraps a :class:`shipeasy.Engine`; evaluation is local against the cached
     blob, so resolution is effectively synchronous.
     """
 
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client: Engine) -> None:
         self._client = client
 
     def get_metadata(self) -> Metadata:

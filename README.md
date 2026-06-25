@@ -6,26 +6,87 @@ Server SDK for [Shipeasy](https://shipeasy.dev) — feature flags, remote config
 pip install shipeasy
 ```
 
+## Quick start — `configure()` once, then `Client(user)` per request
+
+Configure the SDK once at process start with your server key and an optional
+`attributes` transform (your user object → the Shipeasy attribute map). Then
+construct a cheap, user-bound `Client(user)` per request — every call takes **no
+user argument**, because the user is bound at construction.
+
 ```python
-from shipeasy import Client
+import shipeasy
 
-client = Client(api_key="sdk_server_...")
-client.init()  # background poll; use init_once() for serverless
+# Once, at startup. `attributes` maps YOUR user object to the attribute map
+# Shipeasy targets on. Omit it if your user object is already that map.
+shipeasy.configure(
+    api_key="sdk_server_...",
+    attributes=lambda u: {"user_id": u.id, "country": u.country, "plan": u.plan},
+)
 
-if client.get_flag("new_checkout", {"user_id": "u_123", "country": "US"}):
+# Per request — bind the user once, then ask without re-passing it.
+client = shipeasy.Client(current_user)
+
+if client.get_flag("new_checkout"):
     ...
 
 config = client.get_config("billing_copy")
 
-result = client.get_experiment(
+result = client.get_experiment("checkout_button", default_params={"color": "blue"})
+print(result.in_experiment, result.group, result.params)
+```
+
+`configure()` builds a single shared `Engine` (first-config-wins) and kicks off a
+one-shot fetch fire-and-forget, so the first `Client(user).get_flag(...)`
+resolves against real rules. For a long-running server that wants the background
+poll, pass `init=False` and call `init()` on the returned engine:
+
+```python
+engine = shipeasy.configure(api_key="sdk_server_...", init=False)
+engine.init()  # background poll
+```
+
+If your user object is already the attribute map, omit `attributes` (the default
+is identity):
+
+```python
+shipeasy.configure(api_key="sdk_server_...")
+shipeasy.Client({"user_id": "u_123", "country": "US"}).get_flag("new_checkout")
+```
+
+Constructing `Client(user)` before `configure()` raises `RuntimeError`.
+
+### Low-level: the `Engine` directly
+
+`Client(user)` is a thin handle over an `Engine`. You can also use the engine
+directly — it takes the user on each call and owns `track()`, `see()`, the
+`override_*` setters, and the offline factories:
+
+```python
+from shipeasy import Engine
+
+engine = Engine(api_key="sdk_server_...")
+engine.init()  # background poll; use init_once() for serverless
+
+if engine.get_flag("new_checkout", {"user_id": "u_123", "country": "US"}):
+    ...
+
+config = engine.get_config("billing_copy")
+
+result = engine.get_experiment(
     "checkout_button",
     user={"user_id": "u_123"},
     default_params={"color": "blue"},
 )
 print(result.in_experiment, result.group, result.params)
 
-client.track("u_123", "purchase", {"amount": 49})
+engine.track("u_123", "purchase", {"amount": 49})
 ```
+
+> **Breaking change in 0.8.0:** the heavyweight client class was renamed
+> `Client` → `Engine`, and `Client` is now the lightweight user-bound handle
+> above. Replace `Client(api_key=...)` with `Engine(api_key=...)` (and
+> `Client.for_testing()`/`from_snapshot`/`from_file` with `Engine.*`), or adopt
+> `configure()` + `Client(user)`.
 
 ## Anonymous visitors (zero-config bucketing)
 
@@ -47,7 +108,8 @@ app.add_middleware(AnonIdASGIMiddleware)
 
 ```python
 # logged-out request → buckets on the __se_anon_id cookie automatically
-client.get_flag("new_checkout", {})
+shipeasy.Client({}).get_flag("new_checkout")
+# (or, low-level: engine.get_flag("new_checkout", {}))
 ```
 
 An explicit `user_id`/`anonymous_id` always wins. The id is also on the request
@@ -69,11 +131,11 @@ user = {"user_id": "u_123"}
 
 # Two tags for the document <head>. The PUBLIC client key (not the server
 # key) goes on the i18n loader tag.
-head = client.bootstrap_script_tag(user, anon_id=anon_id) \
-     + client.i18n_script_tag(client_key, "en:prod")
+head = engine.bootstrap_script_tag(user, anon_id=anon_id) \
+     + engine.i18n_script_tag(client_key, "en:prod")
 
 # …or get the raw payload ({"flags", "configs", "experiments", "killswitches"}):
-boot = client.evaluate(user)
+boot = engine.evaluate(user)
 ```
 
 `bootstrap_script_tag` also accepts `i18n_profile=` and `base_url=`
@@ -85,13 +147,14 @@ boot = client.evaluate(user)
 value **cannot be evaluated** — never when it simply resolves off:
 
 ```python
-# default is returned only if the client isn't initialized OR the gate isn't
+# default is returned only if the engine isn't initialized OR the gate isn't
 # in the blob. A gate that evaluates to False returns False, not the default.
-client.get_flag("new_checkout", {"user_id": "u_123"}, default=True)
+# Bound:      shipeasy.Client(user).get_flag("new_checkout", default=True)
+engine.get_flag("new_checkout", {"user_id": "u_123"}, default=True)
 
 # default is returned when the config key is absent (or decode raises).
-client.get_config("billing_copy", default={"title": "Welcome"})
-client.get_config("limits", decode=lambda v: v["max"], default=0)
+engine.get_config("billing_copy", default={"title": "Welcome"})
+engine.get_config("limits", decode=lambda v: v["max"], default=0)
 ```
 
 ## Evaluation detail
@@ -104,7 +167,8 @@ from shipeasy import (
     FlagDetail, CLIENT_NOT_READY, FLAG_NOT_FOUND, OFF, OVERRIDE, RULE_MATCH, DEFAULT,
 )
 
-d = client.get_flag_detail("new_checkout", {"user_id": "u_123"})
+d = engine.get_flag_detail("new_checkout", {"user_id": "u_123"})
+# Bound: d = shipeasy.Client(user).get_flag_detail("new_checkout")
 print(d.value, d.reason)  # e.g. True RULE_MATCH
 ```
 
@@ -127,7 +191,7 @@ not a 304). It returns an unsubscribe callable. Listeners never fire in
 test/offline mode.
 
 ```python
-unsubscribe = client.on_change(lambda: print("flags changed, rebuild cache"))
+unsubscribe = engine.on_change(lambda: print("flags changed, rebuild cache"))
 ...
 unsubscribe()  # stop listening
 ```
@@ -141,41 +205,41 @@ no network is ever touched (`init()`/`init_once()`/`track()` are no-ops) and
 
 ```python
 # From a file: { "flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments> }
-client = Client.from_file("shipeasy-snapshot.json")
+engine = Engine.from_file("shipeasy-snapshot.json")
 
 # Or from in-memory blobs
-client = Client.from_snapshot(
+engine = Engine.from_snapshot(
     flags={"gates": {...}, "configs": {...}},
     experiments={"experiments": {...}, "universes": {...}},
 )
 
-client.get_flag("new_checkout", {"user_id": "u_123"})
+engine.get_flag("new_checkout", {"user_id": "u_123"})
 ```
 
 ## Testing
 
-Use `Client.for_testing()` for unit tests: it does **zero network**, needs no
+Use `Engine.for_testing()` for unit tests: it does **zero network**, needs no
 api_key, disables telemetry, and makes `init()`/`init_once()`/`track()` no-ops.
 Seed every entity with the `override_*` setters (Statsig-style local overrides) —
-an override always wins over whatever the client would otherwise resolve.
+an override always wins over whatever the engine would otherwise resolve.
 
 ```python
-from shipeasy import Client
+from shipeasy import Engine
 
-client = Client.for_testing()  # no key, no network, immediately usable
+engine = Engine.for_testing()  # no key, no network, immediately usable
 
 # Flags
-client.override_flag("new_checkout", True)
-assert client.get_flag("new_checkout", {"user_id": "u_123"}) is True
+engine.override_flag("new_checkout", True)
+assert engine.get_flag("new_checkout", {"user_id": "u_123"}) is True
 
 # Configs (decode is optional and still applies)
-client.override_config("billing_copy", {"title": "Welcome"})
-assert client.get_config("billing_copy") == {"title": "Welcome"}
-assert client.get_config("billing_copy", decode=lambda v: v["title"]) == "Welcome"
+engine.override_config("billing_copy", {"title": "Welcome"})
+assert engine.get_config("billing_copy") == {"title": "Welcome"}
+assert engine.get_config("billing_copy", decode=lambda v: v["title"]) == "Welcome"
 
 # Experiments → ExperimentResult(in_experiment=True, group=..., params=...)
-client.override_experiment("checkout_button", group="treatment", params={"color": "green"})
-result = client.get_experiment(
+engine.override_experiment("checkout_button", group="treatment", params={"color": "green"})
+result = engine.get_experiment(
     "checkout_button",
     user={"user_id": "u_123"},
     default_params={"color": "blue"},
@@ -184,14 +248,14 @@ assert result.in_experiment and result.group == "treatment"
 assert result.params == {"color": "green"}
 
 # track() is a no-op in test mode — safe to call, sends nothing
-client.track("u_123", "purchase", {"amount": 49})
+engine.track("u_123", "purchase", {"amount": 49})
 
 # Reset between cases
-client.clear_overrides()
+engine.clear_overrides()
 ```
 
 The same `override_*` / `clear_overrides()` setters also work on a normal
-`Client` if you want to pin a value in a live client.
+`Engine` if you want to pin a value in a live engine.
 
 ## Evaluation
 

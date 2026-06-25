@@ -1,4 +1,12 @@
-from ._client import Client, ExperimentResult
+from ._client import (
+    Engine,
+    Client,
+    ExperimentResult,
+    configure,
+    get_global_engine,
+    reset_global,
+    AttributesFn,
+)
 from ._detail import (
     FlagDetail,
     CLIENT_NOT_READY,
@@ -21,7 +29,12 @@ from ._see import (
 from ._version import SDK_VERSION
 
 __all__ = [
+    "Engine",
     "Client",
+    "configure",
+    "get_global_engine",
+    "reset_global",
+    "AttributesFn",
     "ExperimentResult",
     "FlagDetail",
     "CLIENT_NOT_READY",

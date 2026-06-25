@@ -1,6 +1,6 @@
 import json
 
-from shipeasy import Client, InMemoryStickyStore
+from shipeasy import Engine, InMemoryStickyStore
 from shipeasy._eval import eval_experiment, pick_identifier
 
 
@@ -23,7 +23,7 @@ def _running_exp(salt="s", alloc=10000, groups=None, **extra):
     }
 
 
-class _CaptureClient(Client):
+class _CaptureClient(Engine):
     """A non-test-mode client that captures /collect posts instead of sending
     them over the network. Lets us assert on outbound exposure/metric bodies."""
 
@@ -93,7 +93,7 @@ def test_private_attributes_still_drive_targeting():
         "salt": "s",
         "rules": [{"attr": "email", "op": "contains", "value": "@corp"}],
     }
-    c = Client.from_snapshot(flags={"gates": {"g": gate}}, experiments={})
+    c = Engine.from_snapshot(flags={"gates": {"g": gate}}, experiments={})
     c._private_attributes = ["email"]
     assert c.get_flag("g", {"user_id": "u1", "email": "x@corp.com"}) is True
     assert c.get_flag("g", {"user_id": "u1", "email": "x@other.com"}) is False
@@ -159,7 +159,7 @@ def test_log_exposure_accepts_user_dict():
 
 
 def test_log_exposure_noop_in_test_mode():
-    c = Client.for_testing()
+    c = Engine.for_testing()
     # Even with an enrolled override, test-mode never touches the network.
     c.override_experiment("exp", "treatment", {})
     c.log_exposure("u1", "exp")  # must not raise
@@ -282,7 +282,7 @@ def test_sticky_keyed_by_bucket_by_unit():
 def test_sticky_via_client_get_experiment():
     store = InMemoryStickyStore()
     exps = {"experiments": {"exp": _running_exp(salt="clientsalt00", alloc=10000)}}
-    c = Client.from_snapshot(flags={}, experiments=exps)
+    c = Engine.from_snapshot(flags={}, experiments=exps)
     c._sticky_store = store
     first = c.get_experiment("exp", {"user_id": "u1"}, None)
     assert first.in_experiment

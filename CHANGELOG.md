@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.8.0 (2026-06-25)
+
+- **BREAKING — `Client` → `Engine` rename + new bound `Client(user)` +
+  `configure()`.** The two-part front door, identical across all Shipeasy SDKs:
+
+  ```python
+  import shipeasy
+
+  shipeasy.configure(
+      api_key="srv_...",
+      attributes=lambda u: {"user_id": u.id, "plan": u.plan},
+  )
+
+  flag = shipeasy.Client(user).get_flag("new_checkout")
+  ```
+
+  - The heavyweight class (owns the api key, HTTP, blob cache, poll timer,
+    `init`/`init_once`, `override_*`, `track`, `see`, sticky, private attrs, the
+    `for_testing`/`from_snapshot`/`from_file` factories) is **renamed `Client` →
+    `Engine`**. Its public surface is otherwise unchanged. `see()`'s
+    last-constructed default-client wiring now hooks off `Engine` construction
+    (and therefore off `configure()`).
+  - New module-level `configure(api_key, *, attributes=None, init=True,
+    **engine_opts)` builds **one** `Engine` (first-config-wins), stores it as the
+    package-global engine plus the `attributes` transform, and kicks off the
+    one-shot fetch fire-and-forget (pass `init=False` to skip, then call
+    `engine.init()` yourself for the background poll). `attributes` maps *your*
+    user object to the Shipeasy attribute map; default = identity (the user IS
+    the attribute map).
+  - **`Client` is now the lightweight, user-bound handle.** `Client(user)` reads
+    the global engine (raises `RuntimeError` if `configure()` wasn't called),
+    runs the `attributes` transform + the existing anon-id merge once at
+    construction, and exposes `get_flag(name, default=False)`,
+    `get_flag_detail(name)`, `get_config(name, decode=None, default=None)`,
+    `get_experiment(name, default_params, decode=None)`, and
+    `get_killswitch(name, switch_key=None)` — all with **no user argument**. It
+    owns no HTTP/cache/poll; every call forwards to the engine with the bound
+    attrs.
+  - New `Engine.get_killswitch(name, switch_key=None)` reads the kill switch
+    signal from the flags blob (`switch_key` reports a named per-key override).
+  - Exports: `Engine`, `Client`, `configure`, `get_global_engine`,
+    `reset_global`, `AttributesFn`. The OpenFeature provider now wraps an
+    `Engine`.
+  - **Migration:** replace `Client(api_key=...)` with `Engine(api_key=...)`
+    (and `Client.for_testing()`/`from_snapshot`/`from_file` with `Engine.*`), or
+    adopt `configure()` + `Client(user)`.
+
 ## 0.7.0 (2026-06-20)
 
 - **SSR bootstrap script-tag helpers.** New `Client.evaluate(user)`

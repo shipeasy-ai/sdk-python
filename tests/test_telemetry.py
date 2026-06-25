@@ -52,9 +52,9 @@ def test_disabled_and_empty_emit_nothing(monkeypatch):
 # 1) basic telemetry send works for each entity call, hitting the right URL.
 def test_client_fires_a_beacon_for_each_entity(monkeypatch):
     sent = _capture(monkeypatch)
-    from shipeasy import Client
+    from shipeasy import Engine
 
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     c.get_flag("g", {"user_id": "u"})
     c.get_config("c")
     c.get_experiment("e", {"user_id": "u"}, {})
@@ -67,9 +67,9 @@ def test_client_fires_a_beacon_for_each_entity(monkeypatch):
 # 2) telemetry is not sent when disabled in settings.
 def test_client_disable_telemetry_sends_nothing(monkeypatch):
     sent = _capture(monkeypatch)
-    from shipeasy import Client
+    from shipeasy import Engine
 
-    c = Client("srv_key", base_url="https://e.x", disable_telemetry=True)
+    c = Engine("srv_key", base_url="https://e.x", disable_telemetry=True)
     c.get_flag("g", {"user_id": "u"})
     c.get_config("c")
     c.get_experiment("e", {"user_id": "u"}, {})

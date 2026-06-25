@@ -2,7 +2,7 @@
 
 Drives the provider through the REAL openfeature-sdk (api.set_provider +
 api.get_client). Flags/configs are seeded with the SDK's offline test
-facilities (Client.from_snapshot / override_*), so nothing touches the network.
+facilities (Engine.from_snapshot / override_*), so nothing touches the network.
 """
 import pytest
 
@@ -13,7 +13,7 @@ from openfeature.evaluation_context import EvaluationContext
 from openfeature.exception import ErrorCode
 from openfeature.flag_evaluation import Reason
 
-from shipeasy import Client
+from shipeasy import Engine
 from shipeasy.openfeature import ShipeasyProvider
 
 
@@ -37,7 +37,7 @@ SNAPSHOT_FLAGS = {
 
 @pytest.fixture
 def of_client():
-    client = Client.from_snapshot(SNAPSHOT_FLAGS, {})
+    client = Engine.from_snapshot(SNAPSHOT_FLAGS, {})
     api.set_provider(ShipeasyProvider(client))
     yield api.get_client()
     api.clear_providers()
@@ -51,7 +51,7 @@ def _ctx(uid="u1"):
 
 
 def test_metadata_name():
-    provider = ShipeasyProvider(Client.for_testing())
+    provider = ShipeasyProvider(Engine.for_testing())
     assert provider.get_metadata().name == "shipeasy"
 
 
@@ -87,7 +87,7 @@ def test_boolean_flag_not_found(of_client):
 
 def test_boolean_provider_not_ready():
     # A client that was never initialized → CLIENT_NOT_READY → PROVIDER_NOT_READY.
-    client = Client(api_key="sdk_server_x", disable_telemetry=True)
+    client = Engine(api_key="sdk_server_x", disable_telemetry=True)
     api.set_provider(ShipeasyProvider(client))
     try:
         of = api.get_client()
@@ -100,7 +100,7 @@ def test_boolean_provider_not_ready():
 
 
 def test_boolean_override_static_reason():
-    client = Client.from_snapshot(SNAPSHOT_FLAGS, {})
+    client = Engine.from_snapshot(SNAPSHOT_FLAGS, {})
     client.override_flag("on_gate", True)
     api.set_provider(ShipeasyProvider(client))
     try:
@@ -155,7 +155,7 @@ def test_config_type_mismatch(of_client):
 
 def test_bool_is_not_an_integer():
     # A bool config value must not satisfy an integer request (bool ⊂ int).
-    client = Client.from_snapshot({"configs": {"b": {"value": True}}}, {})
+    client = Engine.from_snapshot({"configs": {"b": {"value": True}}}, {})
     api.set_provider(ShipeasyProvider(client))
     try:
         of = api.get_client()

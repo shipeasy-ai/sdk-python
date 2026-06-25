@@ -1,7 +1,7 @@
 import json
 
 import shipeasy
-from shipeasy import Client, see, see_violation, control_flow_exception
+from shipeasy import Engine, see, see_violation, control_flow_exception
 from shipeasy import _client, _see
 from shipeasy._see import sanitize_extras, is_expected
 
@@ -20,7 +20,7 @@ def _capture(monkeypatch):
     def fake_post(self, path, data):
         sent.append((path, json.loads(data.decode("utf-8"))))
 
-    monkeypatch.setattr(Client, "_post_silent", fake_post)
+    monkeypatch.setattr(Engine, "_post_silent", fake_post)
     return sent
 
 
@@ -30,7 +30,7 @@ def _events(sent):
 
 def test_caught_exception_reports_error_event(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     try:
         raise ValueError("boom")
     except ValueError as e:
@@ -50,7 +50,7 @@ def test_caught_exception_reports_error_event(monkeypatch):
 
 def test_extras_before_to_are_sanitized_and_sent(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     c.see(RuntimeError("x")).causes_the("photo upload").extras(
         {"photo_id": "p1", "size": 42, "ok": True, "skip": None}
     ).to("be rejected")
@@ -60,7 +60,7 @@ def test_extras_before_to_are_sanitized_and_sent(monkeypatch):
 
 def test_violation_uses_violation_kind(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     c.see_violation("large query").causes_the("search results").to("be trimmed")
     ev = _events(sent)[0]
     assert ev["kind"] == "violation"
@@ -72,7 +72,7 @@ def test_violation_uses_violation_kind(monkeypatch):
 
 def test_control_flow_marks_and_reports_nothing(monkeypatch):
     sent = _capture(monkeypatch)
-    Client("srv_key", base_url="https://e.x")
+    Engine("srv_key", base_url="https://e.x")
     e = ValueError("not a Foo")
     control_flow_exception(e).because("because it wasn't an encoded Foo").extras(
         {"tried": "Foo"}
@@ -83,14 +83,14 @@ def test_control_flow_marks_and_reports_nothing(monkeypatch):
 
 def test_to_is_required_no_send_without_terminal(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     c.see(ValueError("x")).causes_the("checkout")  # no .to()
     assert sent == []
 
 
 def test_to_is_idempotent(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     chain = c.see(ValueError("x")).causes_the("checkout")
     chain.to("a")
     chain.to("b")
@@ -99,7 +99,7 @@ def test_to_is_idempotent(monkeypatch):
 
 def test_defaults_when_consequence_omitted(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x")
+    c = Engine("srv_key", base_url="https://e.x")
     c.see(ValueError("x")).to("be incomplete")
     ev = _events(sent)[0]
     assert ev["subject"] == "app"
@@ -107,14 +107,14 @@ def test_defaults_when_consequence_omitted(monkeypatch):
 
 def test_test_mode_is_noop(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client.for_testing()
+    c = Engine.for_testing()
     c.see(ValueError("x")).causes_the("checkout").to("use cached prices")
     assert sent == []
 
 
 def test_global_see_uses_last_constructed_client(monkeypatch):
     sent = _capture(monkeypatch)
-    Client("srv_key", base_url="https://e.x")
+    Engine("srv_key", base_url="https://e.x")
     see(ValueError("global")).causes_the("dashboard").to("show cached data")
     ev = _events(sent)[0]
     assert ev["subject"] == "dashboard"
@@ -136,7 +136,7 @@ def test_sanitize_extras_caps_keys_and_value_length():
 
 def test_private_attributes_stripped_from_extras(monkeypatch):
     sent = _capture(monkeypatch)
-    c = Client("srv_key", base_url="https://e.x", private_attributes=["secret"])
+    c = Engine("srv_key", base_url="https://e.x", private_attributes=["secret"])
     c.see(ValueError("x")).causes_the("checkout").extras(
         {"secret": "shh", "ok": "yes"}
     ).to("use cached prices")
