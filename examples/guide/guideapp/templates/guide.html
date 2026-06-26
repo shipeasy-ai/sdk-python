@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --card: #141416;
+      --code: #0f0f10;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --fg: #f5f5f4;
+      --muted: rgba(245, 245, 244, 0.72);
+      --faint: rgba(245, 245, 244, 0.48);
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 24px 96px;
+    }
+
+    /* ---------- hero ---------- */
+    .hero { margin-bottom: 32px; }
+
+    .hero h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 10px;
+    }
+
+    .hero p.subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      margin: 0 0 24px;
+      max-width: 60ch;
+    }
+
+    .banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(251, 191, 36, 0.10);
+      border: 1px solid rgba(251, 191, 36, 0.30);
+      color: #fbbf24;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* ---------- cards ---------- */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03),
+                  0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+
+    .pill.type {
+      /* accent applied inline per card */
+    }
+
+    .pill.value {
+      font-family: var(--mono);
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      max-width: 55%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: right;
+    }
+
+    .card h2.key {
+      font-family: var(--mono);
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      word-break: break-word;
+    }
+
+    .card p.desc {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 16px;
+    }
+
+    .value-meta {
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 12px;
+      margin: -10px 0 16px;
+    }
+
+    .codeblock {
+      background: var(--code);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 0 0 12px;
+    }
+
+    .codeblock pre {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--fg);
+      white-space: pre;
+    }
+
+    .code-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin: 0 0 8px;
+    }
+
+    .meta {
+      color: var(--faint);
+      font-size: 12px;
+      margin: 0;
+    }
+
+    /* ---------- footer ---------- */
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--faint);
+      font-size: 13px;
+    }
+
+    .footer code {
+      font-family: var(--mono);
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: var(--muted);
+    }
+
+    .footer a { color: var(--muted); text-decoration: none; }
+    .footer a:hover { color: var(--fg); text-decoration: underline; }
+  </style>
+  <script
+    src="https://cdn.shipeasy.ai/se-devtools.js"
+    data-client-api-key="sdk_client_d99cd92e71af8e3b4c5d2f1a9b7e6c3d"
+    data-project-id="e976b15e-3ccc-44d3-821d-87f06d5a0e43"
+  ></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <h1>{{ title }}</h1>
+      <p class="subtitle">{{ subtitle }}</p>
+      <div class="banner" role="alert">{{ banner }}</div>
+    </header>
+
+    <section class="cards">
+      {% for e in entities %}
+      <article class="card">
+        <div class="card-top">
+          <span class="pill type"
+                style="background: {{ e.accent }}24; color: {{ e.accent }};">{{ e.label }}</span>
+          <span class="pill value"
+                style="background: {{ e.accent }}24; color: {{ e.accent }};">{{ e.value }}</span>
+        </div>
+
+        <h2 class="key">{{ e.key }}</h2>
+        <p class="desc">{{ e.description }}</p>
+        {% if e.value_meta %}<p class="value-meta">{{ e.value_meta }}</p>{% endif %}
+
+        <div class="codeblock">
+          <span class="code-label">SDK call (TODO — not wired yet)</span>
+          <pre>{{ e.call }}</pre>
+        </div>
+
+        <p class="meta">{{ e.meta }}</p>
+      </article>
+      {% endfor %}
+    </section>
+
+    <footer class="footer">
+      <p>
+        Run it:
+        <code>python -m venv .venv</code> &middot;
+        <code>source .venv/bin/activate</code> &middot;
+        <code>pip install -r requirements.txt</code> &middot;
+        <code>python manage.py runserver</code>
+        → <code>http://127.0.0.1:8000</code>
+      </p>
+      <p>
+        Next step: <code>pip install shipeasy</code> and replace each
+        <code># TODO</code> in <code>guideapp/views.py</code>.
+      </p>
+      <p>Docs: <a href="https://docs.shipeasy.ai">https://docs.shipeasy.ai</a></p>
+    </footer>
+  </main>
+</body>
+</html>
