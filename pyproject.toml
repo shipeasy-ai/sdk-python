@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shipeasy"
-version = "0.10.0"
+version = "0.11.0"
 description = "Shipeasy server SDK for Python — feature flags, configs, experiments, metrics."
 readme = "README.md"
 license = { text = "MIT" }
@@ -21,9 +21,19 @@ classifiers = [
 # base SDK doesn't force the openfeature-sdk dependency on every consumer.
 openfeature = ["openfeature-sdk>=0.7"]
 
+[project.scripts]
+# Explicit, opt-in installer for the bundled agent skill (no install-time hook):
+#   shipeasy-skill install   →  .claude/skills/shipeasy-python/SKILL.md
+shipeasy-skill = "shipeasy._skill:main"
+
 [project.urls]
 Homepage = "https://shipeasy.dev"
 Source = "https://github.com/shipeasy-ai/sdk-python"
 
 [tool.hatch.build.targets.wheel]
 packages = ["shipeasy"]
+
+# Bundle the agent skill into the wheel so `shipeasy-skill install` can copy it
+# without a network call. The source of truth is docs/skill/SKILL.md.
+[tool.hatch.build.targets.wheel.force-include]
+"docs/skill/SKILL.md" = "shipeasy/_skill_data/SKILL.md"

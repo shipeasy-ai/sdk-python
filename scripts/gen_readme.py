@@ -152,7 +152,9 @@ with links the agent can pull for deeper docs:
 
 - **Skill:** [`docs/skill/SKILL.md`]({BLOB}/docs/skill/SKILL.md) · raw:
   `{PAGES_SITE}/skill/SKILL.md`
-- **Install it** with the Shipeasy CLI: `shipeasy docs skill --sdk {manifest["sdk"]} --install`
+- **Install it** (ships with the package — no network):
+  `shipeasy-skill install` → `.claude/skills/shipeasy-{manifest["sdk"]}/SKILL.md`
+  (or via the Shipeasy CLI: `shipeasy docs skill --sdk {manifest["sdk"]} --install`)
 
 **Humans:** you can copy that skill straight into your own project's agent skills
 directory (e.g. `.claude/skills/shipeasy-{manifest["sdk"]}/SKILL.md`) so your

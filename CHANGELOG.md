@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0 (2026-06-27)
+
+- New package-level on-the-spot override helpers `override_flag()`,
+  `override_config()`, `override_experiment()` and `clear_overrides()` for
+  flipping values mid-test on top of `configure_for_testing` /
+  `configure_for_offline`.
+- New **`shipeasy-skill`** console command — `shipeasy-skill install` copies the
+  bundled agent skill (`SKILL.md`) into your project's skills directory
+  (default `.claude/skills/shipeasy-python/`); `shipeasy-skill print` writes it
+  to stdout. An explicit opt-in (Python packaging has no safe post-install hook).
+
 ## 0.10.0 (2026-06-27)
 
 - Add `configure_for_testing()` and `configure_for_offline()` — drop-in siblings
@@ -10,9 +21,6 @@
   configuration so tests can reconfigure between cases.
 - `configure()` gains a `poll=True` option to start the background poll
   internally (no need to call `init()` on a returned object).
-- New package-level on-the-spot override helpers `override_flag()`,
-  `override_config()`, `override_experiment()` and `clear_overrides()` for
-  flipping values mid-test on top of `configure_for_testing` / `configure_for_offline`.
 - New package-level helpers `on_change()`, `i18n_script_tag()` and
   `bootstrap_script_tag()` delegate to the configured global engine, and
   `ShipeasyProvider()` now resolves it automatically — so the **`Engine` class is
