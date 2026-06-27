@@ -16,6 +16,21 @@ never embed in a browser.
 > 📚 **Full documentation:** **<https://shipeasy-ai.github.io/sdk-python/>** — also browsable under
 > [`docs/`](https://github.com/shipeasy-ai/sdk-python/blob/main/docs). This README is generated from those docs.
 
+## 🤖 Using an AI agent?
+
+This SDK ships an installable **agent skill** — a copy-paste-ready guide to
+`configure()` + `Client(user)`, testing, experiments, error reporting, and more,
+with links the agent can pull for deeper docs:
+
+- **Skill:** [`docs/skill/SKILL.md`](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/skill/SKILL.md) · raw:
+  `https://shipeasy-ai.github.io/sdk-python/skill/SKILL.md`
+- **Install it** with the Shipeasy CLI: `shipeasy docs skill --sdk python --install`
+
+**Humans:** you can copy that skill straight into your own project's agent skills
+directory (e.g. `.claude/skills/shipeasy-python/SKILL.md`) so your
+coding agent always uses the correct Shipeasy patterns. Every doc page and snippet
+is also fetchable by URL — start from the manifest at `https://shipeasy-ai.github.io/sdk-python/manifest.json`.
+
 ## Install
 
 ```bash

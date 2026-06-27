@@ -144,6 +144,21 @@ never embed in a browser.
 > 📚 **Full documentation:** **<{PAGES_SITE}/>** — also browsable under
 > [`docs/`]({BLOB}/docs). This README is generated from those docs.
 
+## 🤖 Using an AI agent?
+
+This SDK ships an installable **agent skill** — a copy-paste-ready guide to
+`configure()` + `Client(user)`, testing, experiments, error reporting, and more,
+with links the agent can pull for deeper docs:
+
+- **Skill:** [`docs/skill/SKILL.md`]({BLOB}/docs/skill/SKILL.md) · raw:
+  `{PAGES_SITE}/skill/SKILL.md`
+- **Install it** with the Shipeasy CLI: `shipeasy docs skill --sdk {manifest["sdk"]} --install`
+
+**Humans:** you can copy that skill straight into your own project's agent skills
+directory (e.g. `.claude/skills/shipeasy-{manifest["sdk"]}/SKILL.md`) so your
+coding agent always uses the correct Shipeasy patterns. Every doc page and snippet
+is also fetchable by URL — start from the manifest at `{PAGES_SITE}/manifest.json`.
+
 ## Install
 
 ```bash

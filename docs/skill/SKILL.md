@@ -6,10 +6,17 @@ description: Use Shipeasy (feature flags, configs, kill switches, A/B experiment
 # Shipeasy Python SDK
 
 Server SDK (`pip install shipeasy`, `import shipeasy`). Server-key only — never
-embed in a browser. Requires Python 3.8+.
+embed in a browser. Requires Python 3.9+.
 
 Two things only: **`configure()`** once at startup, then **`shipeasy.Client(user)`**
 per request.
+
+> **Pulling deeper docs.** Each section below links its full reference page and
+> copy-paste snippets — fetch any of them as raw Markdown when you need more than
+> this summary. Discover the whole tree from the manifest:
+> `https://shipeasy-ai.github.io/sdk-python/manifest.json` (lists every
+> `pages/<key>.md` and `snippets/<group>/<leaf>.md`). All URLs below are
+> `https://shipeasy-ai.github.io/sdk-python/…`.
 
 ## Configure once
 
@@ -24,6 +31,9 @@ shipeasy.configure(
 
 Omit `attributes` if your user object is already the attribute map. For a
 long-running server pass `poll=True` to keep the blob fresh in the background.
+
+→ More: `pages/installation.md` (per-framework setup), `pages/configuration.md`
+(every option).
 
 ## Evaluate (bound `Client(user)`)
 
@@ -41,11 +51,16 @@ result = client.get_experiment("checkout_button", default_params={"color": "blue
 result.in_experiment, result.group, result.params
 
 client.log_exposure("checkout_button")          # at the decision point
-client.track("purchase", {"amount": 49})        # conversion event
+client.track("purchase", {"amount": 49})        # conversion / metric event
 ```
 
 `get_flag_detail` returns `FlagDetail(value, reason)` (reasons: `RULE_MATCH`,
 `DEFAULT`, `OFF`, `OVERRIDE`, `FLAG_NOT_FOUND`, `CLIENT_NOT_READY`).
+
+→ More: pages `pages/flags.md` · `pages/configs.md` · `pages/killswitches.md`
+(incl. named switches) · `pages/experiments.md`. Snippets
+`snippets/release/{flags,configs,killswitches,experiments}.md` and
+`snippets/metrics/track.md` (event tracking).
 
 ## Testing (no network)
 
@@ -58,6 +73,10 @@ shipeasy.configure_for_testing(
     experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
 assert shipeasy.Client({"user_id": "u_123"}).get_flag("new_checkout") is True
+
+# flip a value on the spot, mid-test:
+shipeasy.override_flag("new_checkout", False)
+shipeasy.clear_overrides()
 ```
 
 Offline (real rules from a snapshot / file):
@@ -66,6 +85,9 @@ Offline (real rules from a snapshot / file):
 shipeasy.configure_for_offline(path="snapshot.json")
 # or snapshot={"flags": {...}, "experiments": {...}}, plus optional overrides
 ```
+
+→ More: `pages/testing.md` (override helpers + a working example
+`shipeasy-snapshot.json`).
 
 ## OpenFeature
 
@@ -80,6 +102,8 @@ api.set_provider(ShipeasyProvider())             # uses the configured global
 
 Boolean → gate; string/int/float/object → config.
 
+→ More: `pages/openfeature.md` (reason mapping, type routing).
+
 ## Error reporting — see()
 
 ```python
@@ -90,6 +114,9 @@ except PaymentError as e:
     see(e).causes_the("checkout").to("use the backup processor")
 ```
 
+→ More: `pages/error-reporting.md` · snippets `snippets/ops/see.md`
+(`.extras()`, violations, control-flow exceptions).
+
 ## Other surfaces
 
 - Anon bucketing: `AnonIdMiddleware` (WSGI) / `AnonIdASGIMiddleware` (ASGI) mint
@@ -99,7 +126,11 @@ except PaymentError as e:
 - `client.log_exposure(exp_name)` for manual exposure.
 - SSR: `shipeasy.bootstrap_script_tag(user)` + `shipeasy.i18n_script_tag(client_key, "en:prod")`.
 
+→ More: `pages/advanced.md`.
+
 ## i18n
 
 No server-side `t()`. The browser's Shipeasy **client** SDK renders labels; this
 server SDK only emits the loader tag (public client key) during SSR.
+
+→ More: `pages/i18n.md` · snippets `snippets/i18n/setup.md`.
