@@ -10,6 +10,9 @@
   configuration so tests can reconfigure between cases.
 - `configure()` gains a `poll=True` option to start the background poll
   internally (no need to call `init()` on a returned object).
+- New package-level on-the-spot override helpers `override_flag()`,
+  `override_config()`, `override_experiment()` and `clear_overrides()` for
+  flipping values mid-test on top of `configure_for_testing` / `configure_for_offline`.
 - New package-level helpers `on_change()`, `i18n_script_tag()` and
   `bootstrap_script_tag()` delegate to the configured global engine, and
   `ShipeasyProvider()` now resolves it automatically — so the **`Engine` class is

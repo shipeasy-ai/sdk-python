@@ -808,6 +808,32 @@ def on_change(fn: Callable[[], None]) -> Callable[[], None]:
     return _require_global("on_change").on_change(fn)
 
 
+def override_flag(name: str, value: bool) -> None:
+    """Force ``get_flag(name)`` → ``value`` on the spot, for the current config.
+
+    A quick, in-test override layered on top of whatever
+    :func:`configure_for_testing` / :func:`configure_for_offline` (or
+    :func:`configure`) set up — wins over the blob until :func:`clear_overrides`.
+    """
+    _require_global("override_flag").override_flag(name, value)
+
+
+def override_config(name: str, value: Any) -> None:
+    """Force ``get_config(name)`` → ``value`` on the spot (see :func:`override_flag`)."""
+    _require_global("override_config").override_config(name, value)
+
+
+def override_experiment(name: str, group: str, params: Any) -> None:
+    """Force ``get_experiment(name)`` to report enrolment in ``group`` with
+    ``params`` on the spot (see :func:`override_flag`)."""
+    _require_global("override_experiment").override_experiment(name, group, params)
+
+
+def clear_overrides() -> None:
+    """Drop every on-the-spot flag/config/experiment override."""
+    _require_global("clear_overrides").clear_overrides()
+
+
 def i18n_script_tag(
     client_key: str,
     profile: str = "en:prod",

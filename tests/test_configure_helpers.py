@@ -115,3 +115,78 @@ def test_configure_for_offline_and_testing_are_exported():
     assert hasattr(shipeasy, "configure_for_offline")
     assert "configure_for_testing" in shipeasy.__all__
     assert "configure_for_offline" in shipeasy.__all__
+
+
+def test_on_the_spot_override_helpers():
+    shipeasy.configure_for_testing(flags={"a": True})
+    assert Client({"user_id": "u"}).get_flag("a") is True
+
+    # flip on the spot, no reconfigure
+    shipeasy.override_flag("a", False)
+    shipeasy.override_config("copy", {"title": "Hi"})
+    shipeasy.override_experiment("exp", "treatment", {"color": "green"})
+
+    client = Client({"user_id": "u"})
+    assert client.get_flag("a") is False
+    assert client.get_config("copy") == {"title": "Hi"}
+    r = client.get_experiment("exp", {"color": "blue"})
+    assert r.in_experiment and r.group == "treatment" and r.params == {"color": "green"}
+
+    # clear_overrides() drops EVERY override — including the seed from
+    # configure_for_testing (test mode has no underlying blob), so "a" is gone.
+    shipeasy.clear_overrides()
+    assert Client({"user_id": "u"}).get_flag("a") is False
+    # for offline, clearing reverts to the snapshot rather than to empty:
+    shipeasy.configure_for_offline(
+        snapshot={
+            "flags": {
+                "gates": {
+                    "g": {"enabled": True, "rolloutPct": 10000, "salt": "g", "rules": []}
+                },
+                "configs": {},
+            },
+            "experiments": {},
+        }
+    )
+    shipeasy.override_flag("g", False)
+    assert Client({"user_id": "u"}).get_flag("g") is False
+    shipeasy.clear_overrides()
+    assert Client({"user_id": "u"}).get_flag("g") is True  # back to the snapshot
+
+
+def test_override_helpers_require_configure():
+    with pytest.raises(RuntimeError):
+        shipeasy.override_flag("a", True)
+    with pytest.raises(RuntimeError):
+        shipeasy.clear_overrides()
+
+
+def test_documented_snapshot_shape_evaluates():
+    """The exact snapshot shape documented in docs/pages/testing.md must work."""
+    snapshot = {
+        "flags": {
+            "gates": {
+                "new_checkout": {
+                    "enabled": True,
+                    "rolloutPct": 10000,
+                    "salt": "new_checkout",
+                    "rules": [],
+                },
+                "beta_banner": {
+                    "enabled": False,
+                    "rolloutPct": 0,
+                    "salt": "beta_banner",
+                    "rules": [],
+                },
+            },
+            "configs": {"billing_copy": {"value": {"title": "Welcome back"}}},
+            "killswitches": {"payments_circuit_breaker": {"value": False}},
+        },
+        "experiments": {"experiments": {}, "universes": {}},
+    }
+    shipeasy.configure_for_offline(snapshot=snapshot)
+    client = Client({"user_id": "u_1"})
+    assert client.get_flag("new_checkout") is True
+    assert client.get_flag("beta_banner") is False
+    assert client.get_config("billing_copy") == {"title": "Welcome back"}
+    assert client.get_killswitch("payments_circuit_breaker") is False

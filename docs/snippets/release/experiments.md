@@ -10,10 +10,10 @@ client = shipeasy.Client(current_user)
 # name                          experiment name (required)
 # default_params={...}          params returned when the user isn't enrolled
 # decode=lambda p: ...          optional: transform the params bag (typed)
-result = client.get_experiment("{{RESOURCE_NAME}}", default_params={"color": "blue"})
+result = client.get_experiment("{{EXPERIMENT_KEY}}", default_params={"color": "blue"})
 
 # call where you actually render the treatment (server is stateless — no auto-log)
-client.log_exposure("{{RESOURCE_NAME}}")  # experiment name (required)
+client.log_exposure("{{EXPERIMENT_KEY}}")  # experiment name (required)
 
 if result.params["color"] == "green":
     ...
