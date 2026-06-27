@@ -1,232 +1,102 @@
 # shipeasy (Python)
 
-Server SDK for [Shipeasy](https://shipeasy.dev) — feature flags, remote configs, A/B experiments, and metric tracking. Server-key only, never embed in browsers.
+Server SDK for [Shipeasy](https://shipeasy.dev) — feature flags, remote configs,
+kill switches, A/B experiments, and metric tracking. Server-key only, never embed
+in browsers.
+
+> **Full documentation** lives in [`docs/`](docs/) and is published to
+> **<https://shipeasy-ai.github.io/sdk-python/>**. GitHub can't inline those pages
+> into this README, so the **Documentation** index below links each one.
+
+## Install
 
 ```bash
-pip install shipeasy
+pip install shipeasy      # poetry add shipeasy  ·  uv add shipeasy
 ```
 
-**Documentation:** [Installation & configuration](docs/pages/installation.md) · [full docs](docs/)
+Requires Python 3.8+. See [Installation](docs/pages/installation.md) for the
+per-framework setup (Django / Flask / FastAPI) and the anon-id middleware.
 
-## Quick start — `configure()` once, then `Client(user)` per request
+## Configure once, then `Client(user)` per request
 
-Configure the SDK once at process start with your server key and an optional
-`attributes` transform (your user object → the Shipeasy attribute map). Then
-construct a cheap, user-bound `Client(user)` per request — every call takes **no
-user argument**, because the user is bound at construction.
+Two things only: `configure()` once at startup, then a cheap user-bound
+`shipeasy.Client(user)` per request — every call takes **no user argument**
+because the user is bound at construction.
 
 ```python
 import shipeasy
 
-# Once, at startup. `attributes` maps YOUR user object to the attribute map
-# Shipeasy targets on. Omit it if your user object is already that map.
+# Once, at startup. `attributes` maps YOUR user object → the Shipeasy attribute
+# map (omit it if your user object already is that map). poll=True keeps the blob
+# fresh in the background for a long-running server.
 shipeasy.configure(
     api_key="sdk_server_...",
     attributes=lambda u: {"user_id": u.id, "country": u.country, "plan": u.plan},
 )
 
-# Per request — bind the user once, then ask without re-passing it.
+# Per request — construct once per callsite, then read with no user argument.
 client = shipeasy.Client(current_user)
 
 if client.get_flag("new_checkout"):
     ...
-
 config = client.get_config("billing_copy")
-
 result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-print(result.in_experiment, result.group, result.params)
-
 client.log_exposure("checkout_button")     # at the decision point
 client.track("purchase", {"amount": 49})   # on conversion
 ```
 
-`configure()` is first-config-wins and kicks off a one-shot fetch fire-and-forget,
-so the first `Client(user).get_flag(...)` resolves against real rules. For a
-long-running server that should keep the blob fresh, pass `poll=True` to start the
-background poll — no lower-level object to manage:
+Constructing `Client(user)` before `configure()` raises `RuntimeError`. See
+[Configuration](docs/pages/configuration.md) for every option (`attributes`,
+`init`/`poll`, `base_url`, `private_attributes`, `sticky_store`, …).
 
-```python
-shipeasy.configure(api_key="sdk_server_...", poll=True)  # background poll
-```
+## Documentation
 
-If your user object is already the attribute map, omit `attributes` (the default
-is identity):
+Each page is also served raw at `https://shipeasy-ai.github.io/sdk-python/pages/<name>.md`.
 
-```python
-shipeasy.configure(api_key="sdk_server_...")
-shipeasy.Client({"user_id": "u_123", "country": "US"}).get_flag("new_checkout")
-```
+- [Overview](docs/pages/overview.md) — the `configure()` + `Client(user)` model
+- [Installation](docs/pages/installation.md) — install, frameworks, `configure()` wiring
+- [Configuration](docs/pages/configuration.md) — keys, `attributes`, one-shot vs poll, all options
+- [Feature flags](docs/pages/flags.md) — `get_flag`, `get_flag_detail`, defaults
+- [Dynamic configs](docs/pages/configs.md) — `get_config`, typed decode, defaults
+- [Kill switches](docs/pages/killswitches.md) — `get_killswitch`, named switches
+- [Experiments](docs/pages/experiments.md) — `get_experiment`, `log_exposure`, `track`
+- [Internationalization (i18n)](docs/pages/i18n.md) — SSR loader tag (render is client-side)
+- [Error reporting](docs/pages/error-reporting.md) — `see()` structured reporting
+- [Testing](docs/pages/testing.md) — `configure_for_testing` / `configure_for_offline`, overrides
+- [OpenFeature](docs/pages/openfeature.md) — `ShipeasyProvider`
+- [Advanced](docs/pages/advanced.md) — anon-id middleware, private attrs, sticky bucketing, SSR
 
-Constructing `Client(user)` before `configure()` raises `RuntimeError`.
-
-### The bound `Client`
-
-Everything per request is on `Client(user)` — no user argument on any call:
-`get_flag` / `get_flag_detail` / `get_config` / `get_killswitch` /
-`get_experiment`, plus `log_exposure(experiment_name)` and
-`track(event, properties=None)`. So an experiment is end-to-end Client-only.
-
-For unit tests and offline evaluation, swap `configure()` for its drop-in
-siblings — [`configure_for_testing` / `configure_for_offline`](docs/pages/testing.md)
-(below).
-
-## Anonymous visitors (zero-config bucketing)
-
-For logged-out traffic you need a *stable* unit so a fractional rollout buckets
-the same on the server and in the browser. The middleware mints a first-party
-`__se_anon_id` cookie (shared with every Shipeasy SDK) for any request without
-one; evaluations then **default to it** as `anonymous_id`, so `get_flag` on an
-anonymous request just works — no per-call wiring.
-
-```python
-# WSGI (Flask, Django, ...)
-from shipeasy.middleware import AnonIdMiddleware
-app.wsgi_app = AnonIdMiddleware(app.wsgi_app)
-
-# ASGI (FastAPI, Starlette)
-from shipeasy.middleware import AnonIdASGIMiddleware
-app.add_middleware(AnonIdASGIMiddleware)
-```
-
-```python
-# logged-out request → buckets on the __se_anon_id cookie automatically
-shipeasy.Client({}).get_flag("new_checkout")
-```
-
-An explicit `user_id`/`anonymous_id` always wins. The id is also on the request
-(`environ["shipeasy.anon_id"]`). The cookie is non-`HttpOnly` by design so the
-browser SDK buckets identically; a request with **no** unit still resolves a
-fully-rolled (100%) gate as on. Cookie name + format are a cross-SDK contract —
-see `18-identity-bucketing.md`.
-
-## Server-side rendering (SSR)
-
-Emit the request's evaluated flags as a declarative `<script>` tag so the
-browser SDK has them on first paint. `shipeasy.bootstrap_script_tag` carries the
-payload in `data-*` attributes (**no key**); the static `se-bootstrap.js` loader
-hydrates `window.__SE_BOOTSTRAP` and writes the `__se_anon_id` cookie so the
-browser buckets identically to the server. The tag helpers are package-level and
-delegate to the engine you set up with `configure()`.
-
-```python
-import shipeasy
-
-user = {"user_id": "u_123"}
-
-# Two tags for the document <head>. The PUBLIC client key (not the server
-# key) goes on the i18n loader tag.
-head = shipeasy.bootstrap_script_tag(user, anon_id=anon_id) \
-     + shipeasy.i18n_script_tag(client_key, "en:prod")
-```
-
-`bootstrap_script_tag` also accepts `i18n_profile=` and `base_url=`
-(defaults to `https://cdn.shipeasy.ai`).
-
-## Default values
-
-`get_flag` and `get_config` take a `default` that is returned only when the
-value **cannot be evaluated** — never when it simply resolves off:
-
-```python
-client = shipeasy.Client(current_user)
-
-# default is returned only if Shipeasy isn't ready yet OR the gate isn't in the
-# blob. A gate that evaluates to False returns False, not the default.
-client.get_flag("new_checkout", default=True)
-
-# default is returned when the config key is absent (or decode raises).
-client.get_config("billing_copy", default={"title": "Welcome"})
-client.get_config("limits", decode=lambda v: v["max"], default=0)
-```
-
-## Evaluation detail
-
-`get_flag_detail` returns a `FlagDetail(value, reason)` so you can log *why* a
-flag resolved the way it did. `reason` is one of the exported constants:
-
-```python
-from shipeasy import (
-    FlagDetail, CLIENT_NOT_READY, FLAG_NOT_FOUND, OFF, OVERRIDE, RULE_MATCH, DEFAULT,
-)
-
-d = shipeasy.Client(current_user).get_flag_detail("new_checkout")
-print(d.value, d.reason)  # e.g. True RULE_MATCH
-```
-
-| reason | meaning |
-| --- | --- |
-| `OVERRIDE` | a `configure_for_testing` override forced the value |
-| `CLIENT_NOT_READY` | the first fetch hasn't completed yet → `value=False` |
-| `FLAG_NOT_FOUND` | no gate by that name in the blob → `value=False` |
-| `OFF` | the gate exists but is disabled → `value=False` |
-| `RULE_MATCH` | evaluated **on** (targeting + rollout) |
-| `DEFAULT` | evaluated **off** (fell through) |
-
-`get_flag` delegates to `get_flag_detail` and returns `.value` (substituting
-`default` for `CLIENT_NOT_READY`/`FLAG_NOT_FOUND`).
-
-## Change listeners
-
-Register a callback fired after a background poll (`configure(poll=True)`) fetches
-**new** data (a 200, not a 304). It returns an unsubscribe callable.
-
-```python
-unsubscribe = shipeasy.on_change(lambda: print("flags changed, rebuild cache"))
-...
-unsubscribe()  # stop listening
-```
+Copy-paste snippets live under [`docs/snippets/`](docs/snippets/) (release, metrics,
+i18n, ops); an installable agent skill is at [`docs/skill/SKILL.md`](docs/skill/SKILL.md).
 
 ## Testing
 
-Use `configure_for_testing()` — the test-mode sibling of `configure()`. It does
-**zero network**, needs no api_key, and seeds the values your code under test
-should see via override args. Read them through the ordinary `Client`:
+Swap `configure()` for a drop-in sibling — no api key, no network — then read
+through the same `shipeasy.Client(user)`:
 
 ```python
 import shipeasy
 
+# unit tests: seed values, zero network
 shipeasy.configure_for_testing(
     flags={"new_checkout": True},
     configs={"billing_copy": {"title": "Welcome"}},
     experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
-
 client = shipeasy.Client({"user_id": "u_123"})
 assert client.get_flag("new_checkout") is True
-assert client.get_config("billing_copy") == {"title": "Welcome"}
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-assert result.in_experiment and result.group == "treatment"
 
-# track()/log_exposure() are no-ops in test mode
-client.track("purchase", {"amount": 49})
-```
+# flip values on the spot, mid-test, without reconfiguring:
+shipeasy.override_flag("new_checkout", False)
+shipeasy.clear_overrides()
 
-`configure_for_testing()` **replaces** any prior configuration, so each test
-reconfigures freely.
-
-## Offline snapshot
-
-Run fully offline from a JSON snapshot — handy for local dev or air-gapped CI.
-Use `configure_for_offline()`: evaluations run the **real** eval logic against
-the snapshot; no network is touched, and override args still apply on top.
-
-```python
-import shipeasy
-
-# From a file: { "flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments> }
+# offline: evaluate the REAL rules from a snapshot / file (overrides apply on top)
 shipeasy.configure_for_offline(path="shipeasy-snapshot.json")
-
-# Or from in-memory blobs, with optional overrides on top
-shipeasy.configure_for_offline(
-    snapshot={
-        "flags": {"gates": {...}, "configs": {...}},
-        "experiments": {"experiments": {...}, "universes": {...}},
-    },
-    flags={"new_checkout": True},
-)
-
-shipeasy.Client({"user_id": "u_123"}).get_flag("new_checkout")
 ```
+
+`configure_for_testing()` **replaces** any prior configuration so each test
+reconfigures freely. Full details — the override helpers and a working example
+`shipeasy-snapshot.json` — in [Testing](docs/pages/testing.md).
 
 ## Evaluation
 
