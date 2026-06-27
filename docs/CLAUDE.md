@@ -79,11 +79,19 @@ An installable Claude-Code-style skill: YAML frontmatter (`name`, `description`)
 followed by a tight, copy-paste-runnable usage guide. The frontmatter ships with
 it (a consumer can install it verbatim), so keep it valid.
 
+## The README is generated from these docs
+
+`../README.md` is **generated** by `../scripts/gen_readme.py` — it pulls the
+install block, the quickstart, and the testing section out of these pages and
+builds a documentation table from `manifest.json`. After any doc edit, run
+`python scripts/gen_readme.py` from the repo root and commit the result; CI
+(`tests.yml`) fails if it drifts. Never hand-edit the README.
+
 ## Working on the docs
 
 - **Keep docs in lockstep with the code.** Any public API/behaviour change in
-  `shipeasy/` updates the matching page(s), snippet(s), the skill, and the
-  README in the *same* change (repo-root `CLAUDE.md` hard rule).
+  `shipeasy/` updates the matching page(s), snippet(s), and the skill in the
+  *same* change, then regenerate the README (repo-root `CLAUDE.md` hard rule).
 - After edits: `python3 -c "import json; json.load(open('docs/manifest.json'))"`
   and confirm every `pages`/`snippets`/`skill` path the manifest lists exists.
 - Prefer plain Markdown (fenced code, tables, lists). The central portal compiles

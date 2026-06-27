@@ -37,13 +37,22 @@ affordance, then be documented through that.
 or behaviour**, you MUST update the docs in the same commit:
 
 - New/changed/removed public function, method, argument, default, or return shape
-  → update the relevant `docs/pages/*.md`, the matching `docs/snippets/**`, the
-  `docs/skill/SKILL.md`, and the `README.md`.
+  → update the relevant `docs/pages/*.md`, the matching `docs/snippets/**`, and
+  `docs/skill/SKILL.md`.
 - New page / snippet / placeholder → also update `docs/manifest.json`.
 - See [`docs/CLAUDE.md`](docs/CLAUDE.md) for the docs structure and conventions.
 
-A code change that lands without its doc update is incomplete. When in doubt,
-grep `docs/` and `README.md` for the symbol you touched.
+**`README.md` is generated — do not hand-edit it.** It is assembled from the
+docs by `scripts/gen_readme.py` (install + quickstart pulled from the pages, a
+documentation table, and the testing section). After editing `docs/`, run:
+
+```bash
+python scripts/gen_readme.py
+```
+
+CI (`.github/workflows/tests.yml`) re-runs it and fails if `README.md` is out of
+date, so commit the regenerated file. A code change that lands without its doc
+update is incomplete — when in doubt, grep `docs/` for the symbol you touched.
 
 ## Versioning & release
 
@@ -56,7 +65,9 @@ grep `docs/` and `README.md` for the symbol you touched.
 
 ## Checks before you commit
 
-- `pytest` (fast; the suite is hermetic — no network).
+- `pytest` (fast; the suite is hermetic — no network). CI runs it on Python
+  3.9–3.13 via `.github/workflows/tests.yml`; the README shows the status badge.
 - New public behaviour ships with a test.
 - Docs updated per the hard rule above; `docs/manifest.json` stays valid JSON and
   every path it lists exists.
+- `python scripts/gen_readme.py` and commit the result (CI checks it's in sync).

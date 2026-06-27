@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install (with the openfeature extra) + pytest
+        run: pip install -e ".[openfeature]" pytest
+
+      - name: Run tests
+        run: pytest -q
+
+  readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: README is generated from docs/ — check it's in sync
+        run: |
+          python scripts/gen_readme.py
+          git diff --exit-code README.md \
+            || { echo "::error::README.md is out of date — run 'python scripts/gen_readme.py' and commit."; exit 1; }
