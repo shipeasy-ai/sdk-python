@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0 (2026-06-27)
+
+- Add `track()`/`log_exposure()` to the bound `Client` (experiments are now
+  end-to-end Client-only; the `Engine` forms remain for advanced use).
+
+  ```python
+  client = shipeasy.Client(user)
+  exp = client.get_experiment("checkout_test", default_params={})
+  client.log_exposure("checkout_test")   # at the decision point
+  client.track("purchase", {"amount": 49})  # on conversion
+  ```
+
+  `Client.track(event_name, properties=None)` derives the unit from the bound
+  attribute map (`user_id` else `anonymous_id`); `Client.log_exposure(
+  experiment_name)` forwards the bound attributes. Both delegate to the
+  corresponding `Engine` method.
+
 ## 0.8.0 (2026-06-25)
 
 - **BREAKING — `Client` → `Engine` rename + new bound `Client(user)` +

@@ -70,7 +70,17 @@ attribute is present in the user map you pass.
 The server is stateless and never auto-logs exposures. Call `log_exposure` at the
 real decision point (when you actually present the treatment) for parity with the
 browser's auto-exposure. It re-evaluates the experiment and, if the user is
-enrolled, POSTs a single `exposure` event:
+enrolled, POSTs a single `exposure` event.
+
+The bound `Client` is the primary path — the same handle you read the experiment
+with, no user argument:
+
+```python
+client = shipeasy.Client(current_user)
+client.log_exposure("checkout_button")
+```
+
+The low-level `Engine` form takes the user explicitly:
 
 ```python
 engine.log_exposure("u_123", "checkout_button")

@@ -24,17 +24,22 @@ if client.get_flag("new_checkout"):
     ...
 config = client.get_config("billing_copy")
 result = client.get_experiment("checkout_button", default_params={"color": "blue"})
+client.log_exposure("checkout_button")   # at the decision point
+client.track("purchase", {"amount": 49})  # on conversion
 ```
 
 ## Engine vs Client
 
 - **`Engine`** is the heavyweight object: it owns the cached blob, the background
-  poll, `track()`, `see()`, the `override_*` setters, and the offline factories
+  poll, `see()`, the `override_*` setters, and the offline factories
   (`for_testing` / `from_file` / `from_snapshot`). It takes the user on **each**
-  call.
+  call (`track`/`log_exposure` here are the low-level forms with an explicit
+  user).
 - **`Client(user)`** is a thin, per-request handle over the shared engine built
-  by `configure()`. The user is bound once; calls omit it. Constructing a
-  `Client(user)` before `configure()` raises `RuntimeError`.
+  by `configure()`. The user is bound once; calls omit it — including
+  `track(event, props=None)` and `log_exposure(experiment_name)`, so an
+  experiment is end-to-end Client-only. Constructing a `Client(user)` before
+  `configure()` raises `RuntimeError`.
 
 `configure()` builds one shared engine (first-config-wins) and kicks off a
 one-shot fetch, so the first `Client(user).get_flag(...)` resolves against real
@@ -47,7 +52,7 @@ rules.
 - [flags](flags.md) — `get_flag`, `get_flag_detail`, defaults
 - [configs](configs.md) — `get_config`, typed decode, defaults
 - [killswitches](killswitches.md) — `get_killswitch`
-- [experiments](experiments.md) — `get_experiment`, `ExperimentResult`, `track`
+- [experiments](experiments.md) — `get_experiment`, `ExperimentResult`, `log_exposure`, `track`
 - [i18n](i18n.md) — cross-SDK loader story (server SDK has no `t()`)
 - [error-reporting](error-reporting.md) — `see()` structured reporting
 - [testing](testing.md) — `for_testing`, `from_file`, `override_*`

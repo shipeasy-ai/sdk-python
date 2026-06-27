@@ -141,6 +141,72 @@ def test_bound_client_forwards_config_and_experiment(monkeypatch):
     assert r.params == {"d": True}
 
 
+def test_bound_client_track_reaches_engine_with_bound_id(monkeypatch):
+    _seed_engine_with(monkeypatch)
+    configure(api_key="srv_key", init=False)
+
+    seen = {}
+
+    def spy_track(self, user_id, event_name, properties=None):
+        seen["user_id"] = user_id
+        seen["event"] = event_name
+        seen["props"] = properties
+
+    monkeypatch.setattr(Engine, "track", spy_track)
+
+    Client({"user_id": "u1"}).track("checkout", {"amount": 9})
+    assert seen == {"user_id": "u1", "event": "checkout", "props": {"amount": 9}}
+
+
+def test_bound_client_track_falls_back_to_anonymous_id(monkeypatch):
+    _seed_engine_with(monkeypatch)
+    configure(api_key="srv_key", init=False)
+
+    seen = {}
+
+    def spy_track(self, user_id, event_name, properties=None):
+        seen["user_id"] = user_id
+
+    monkeypatch.setattr(Engine, "track", spy_track)
+
+    Client({"anonymous_id": "anon-7"}).track("signup")
+    assert seen["user_id"] == "anon-7"
+
+
+def test_bound_client_track_noop_without_unit(monkeypatch):
+    _seed_engine_with(monkeypatch)
+    configure(api_key="srv_key", init=False)
+
+    called = {"n": 0}
+
+    def spy_track(self, *a, **k):
+        called["n"] += 1
+
+    monkeypatch.setattr(Engine, "track", spy_track)
+
+    # No user_id/anonymous_id and no middleware anon ⇒ no unit ⇒ no call.
+    Client({"plan": "pro"}).track("checkout")
+    assert called["n"] == 0
+
+
+def test_bound_client_log_exposure_forwards_bound_attributes(monkeypatch):
+    _seed_engine_with(monkeypatch)
+    configure(api_key="srv_key", init=False)
+
+    seen = {}
+
+    def spy_log(self, user_or_user_id, experiment_name):
+        seen["user"] = user_or_user_id
+        seen["exp"] = experiment_name
+
+    monkeypatch.setattr(Engine, "log_exposure", spy_log)
+
+    client = Client({"user_id": "u1"})
+    client.log_exposure("homepage_test")
+    assert seen["user"] is client.attributes
+    assert seen["exp"] == "homepage_test"
+
+
 def test_engine_and_bound_client_get_killswitch():
     engine = Engine.from_snapshot(
         flags={

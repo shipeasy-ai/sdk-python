@@ -753,3 +753,25 @@ class Client:
 
     def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
         return self._engine.get_killswitch(name, switch_key)
+
+    def track(
+        self, event_name: str, properties: Optional[Mapping[str, Any]] = None
+    ) -> None:
+        """Record a conversion/metric event for the bound user. The unit is
+        derived from the bound attribute map (``user_id`` else ``anonymous_id``),
+        so callers never pass a user — the same handle used for
+        ``get_experiment`` records the conversion. Delegates to ``Engine.track``;
+        no-op in test/offline mode.
+        """
+        unit = self.attributes.get("user_id") or self.attributes.get("anonymous_id")
+        if unit is None:
+            return
+        self._engine.track(unit, event_name, properties)
+
+    def log_exposure(self, experiment_name: str) -> None:
+        """Emit an exposure event for ``experiment_name`` against the bound user
+        (parity with the browser's auto-exposure). Re-evaluates and, if the bound
+        user is enrolled, POSTs a single ``exposure`` event. Delegates to
+        ``Engine.log_exposure``; no-op in test/offline mode or when not enrolled.
+        """
+        self._engine.log_exposure(self.attributes, experiment_name)
