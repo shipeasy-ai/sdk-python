@@ -3,13 +3,12 @@
 Lets apps standardised on the CNCF OpenFeature API plug Shipeasy in as the
 backing provider::
 
+    import shipeasy
     from openfeature import api
-    from shipeasy import Engine
     from shipeasy.openfeature import ShipeasyProvider
 
-    engine = Engine(api_key="sdk_server_...")
-    engine.init()
-    api.set_provider(ShipeasyProvider(engine))
+    shipeasy.configure(api_key="sdk_server_...", poll=True)
+    api.set_provider(ShipeasyProvider())  # uses the configured global
 
     of = api.get_client()
     on = of.get_boolean_value("new_checkout", False, EvaluationContext("u1"))
@@ -87,7 +86,18 @@ class ShipeasyProvider(AbstractProvider):
     blob, so resolution is effectively synchronous.
     """
 
-    def __init__(self, client: Engine) -> None:
+    def __init__(self, client: Optional[Engine] = None) -> None:
+        # Default to the engine configured via ``shipeasy.configure(...)`` so
+        # callers never construct an Engine themselves.
+        if client is None:
+            from ._client import get_global_engine
+
+            client = get_global_engine()
+            if client is None:
+                raise RuntimeError(
+                    "ShipeasyProvider() needs shipeasy.configure(api_key=...) to "
+                    "have run first (or pass an explicit engine)."
+                )
         self._client = client
 
     def get_metadata(self) -> Metadata:

@@ -19,12 +19,14 @@ shipeasy.configure(
 
   ```python
   shipeasy.configure(api_key="sdk_server_...")
-  shipeasy.Client({"user_id": "u_123", "country": "US"}).get_flag("new_checkout")
+  # construct once per callsite (cheap; binds the user)
+  client = shipeasy.Client({"user_id": "u_123", "country": "US"})
+  client.get_flag("new_checkout")
   ```
 
-`configure()` returns the single shared `Engine` (first-config-wins) and kicks
-off a one-shot fetch fire-and-forget, so the first
-`Client(user).get_flag(...)` resolves against real rules.
+`configure()` is first-config-wins: the first call wires everything up; later
+calls are a no-op. By default it kicks off a one-shot fetch fire-and-forget, so
+the first `Client(user).get_flag(...)` resolves against real rules.
 
 ## Identity default
 
@@ -35,33 +37,35 @@ always wins.
 
 ## One-shot vs background poll
 
-For a long-running server that wants the background poll (instead of the
-one-shot fetch), pass `init=False` and call `init()` on the returned engine:
+- **default** (`init=True`) — a one-shot fetch. Ideal for serverless / short-lived
+  processes.
+- **`poll=True`** — start the **background poll** (initial fetch + periodic
+  refresh) for a long-running server, so flags stay fresh without a redeploy.
+  Configuration owns the lifecycle; you never touch a lower-level object:
 
 ```python
-engine = shipeasy.configure(api_key="sdk_server_...", init=False)
-engine.init()  # start the background poll thread
+shipeasy.configure(api_key="sdk_server_...", poll=True)
 ```
 
-## Low-level: constructing an `Engine` directly
+## `configure()` options
 
-`Client(user)` is a thin handle over an `Engine`. You can also build and own the
-engine yourself — it takes the user on each call:
+Any of these pass straight through `configure(...)` as keyword arguments:
 
-```python
-from shipeasy import Engine
+| keyword | type | default | what it does |
+| --- | --- | --- | --- |
+| `attributes` | `Callable` | identity | YOUR user object → the Shipeasy attribute map. |
+| `init` | `bool` | `True` | Fire the one-shot fetch fire-and-forget. |
+| `poll` | `bool` | `False` | Start the background poll (refreshes the blob over time). |
+| `base_url` | `str` | `https://api.shipeasy.ai` | API base URL for the blobs. Override for a self-hosted edge or in tests. |
+| `env` | `str` | `"prod"` | Deployment environment tag, attached to `see()` error events and usage telemetry. |
+| `disable_telemetry` | `bool` | `False` | Opt out of per-evaluation usage telemetry. Evaluation itself is unaffected. |
+| `telemetry_url` | `str` | built-in | Override the telemetry endpoint (rarely needed). |
+| `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event before it leaves the process. They still drive **targeting** locally. See [advanced](advanced.md). |
+| `sticky_store` | `StickyBucketStore` | `None` | Pin a user's experiment group across re-buckets. See [advanced](advanced.md). |
 
-engine = Engine(api_key="sdk_server_...")
-engine.init()        # background poll; use init_once() for serverless/one-shot
+## Tests and offline
 
-engine.get_flag("new_checkout", {"user_id": "u_123", "country": "US"})
-```
-
-`Engine(...)` also accepts: `base_url`, `env` (deployment env tag, default
-`"prod"`), `disable_telemetry`, `telemetry_url`,
-`private_attributes` (see [advanced](advanced.md)), and `sticky_store`.
-
-> **Breaking change in 0.8.0:** the heavyweight client class was renamed
-> `Client` → `Engine`, and `Client` is now the lightweight user-bound handle.
-> Replace `Client(api_key=...)` with `Engine(api_key=...)`, or adopt
-> `configure()` + `Client(user)`.
+For unit tests and offline evaluation, use the drop-in siblings of `configure()`
+— [`configure_for_testing` / `configure_for_offline`](testing.md). They take the
+same `attributes` transform (and override args), skip the api key, and let
+`shipeasy.Client(user)` read without ever touching the network.

@@ -1,58 +1,69 @@
 # Testing
 
-Use `Engine.for_testing()` in unit tests: it does **zero network**, needs no
-api_key, disables telemetry, and makes `init()`/`init_once()`/`track()` no-ops.
-Seed every entity with the `override_*` setters (Statsig-style local overrides) —
-an override always wins over whatever the engine would otherwise resolve.
+Use **`configure_for_testing()`** — the test-mode sibling of
+[`configure()`](configuration.md). It does **zero network**, needs no api_key,
+and seeds the values your code under test should see via override arguments. Then
+read through the ordinary `shipeasy.Client(user)` — the *same* call your
+production code uses.
 
 ```python
-from shipeasy import Engine
+import shipeasy
+from shipeasy import Client
 
-engine = Engine.for_testing()  # no key, no network, immediately usable
-
-# Flags
-engine.override_flag("new_checkout", True)
-assert engine.get_flag("new_checkout", {"user_id": "u_123"}) is True
-
-# Configs (decode is optional and still applies)
-engine.override_config("billing_copy", {"title": "Welcome"})
-assert engine.get_config("billing_copy") == {"title": "Welcome"}
-assert engine.get_config("billing_copy", decode=lambda v: v["title"]) == "Welcome"
-
-# Experiments → ExperimentResult(in_experiment=True, group=..., params=...)
-engine.override_experiment("checkout_button", group="treatment", params={"color": "green"})
-result = engine.get_experiment(
-    "checkout_button",
-    user={"user_id": "u_123"},
-    default_params={"color": "blue"},
+shipeasy.configure_for_testing(
+    flags={"new_checkout": True},
+    configs={"billing_copy": {"title": "Welcome"}},
+    experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
+
+# construct once per callsite (cheap; binds the user)
+client = Client({"user_id": "u_123"})
+
+assert client.get_flag("new_checkout") is True
+assert client.get_config("billing_copy") == {"title": "Welcome"}
+
+result = client.get_experiment("checkout_button", default_params={"color": "blue"})
 assert result.in_experiment and result.group == "treatment"
 assert result.params == {"color": "green"}
 
-# track() is a no-op in test mode — safe to call, sends nothing
-engine.track("u_123", "purchase", {"amount": 49})
-
-# Reset between cases
-engine.clear_overrides()
+# track()/log_exposure() are no-ops in test mode — safe to call, send nothing
+client.track("purchase", {"amount": 49})
 ```
 
-The same `override_*` / `clear_overrides()` setters work on a normal `Engine`
-too, if you want to pin a value in a live engine.
+Override argument shapes:
+
+- `flags` — `{name: bool}` forced `get_flag` results.
+- `configs` — `{name: value}` forced `get_config` results (a `decode` still applies).
+- `experiments` — `{name: (group, params)}` forced enrolments.
+
+`configure_for_testing()` **replaces** any previously-configured engine, so each
+test can reconfigure freely (no reset boilerplate, unlike `configure()`'s
+first-config-wins).
 
 ## Offline snapshot
 
-Run fully offline against a JSON snapshot — evaluations run the **real** eval
-logic, no network is touched, and `override_*` still applies on top:
+Use **`configure_for_offline()`** to run fully offline against a real blob —
+evaluations run the **real** eval logic (targeting, rollout, bucketing), no
+network is touched, and the override args still apply on top:
 
 ```python
-# From a file: {"flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments>}
-engine = Engine.from_file("shipeasy-snapshot.json")
+import shipeasy
 
-# Or from in-memory blobs
-engine = Engine.from_snapshot(
-    flags={"gates": {...}, "configs": {...}},
-    experiments={"experiments": {...}, "universes": {...}},
+# From a file: {"flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments>}
+shipeasy.configure_for_offline(path="shipeasy-snapshot.json")
+
+# …or from in-memory blobs, with optional overrides layered on top:
+shipeasy.configure_for_offline(
+    snapshot={
+        "flags": {"gates": {...}, "configs": {...}},
+        "experiments": {"experiments": {...}, "universes": {...}},
+    },
+    flags={"new_checkout": True},
 )
 
-engine.get_flag("new_checkout", {"user_id": "u_123"})
+client = shipeasy.Client({"user_id": "u_123"})
+client.get_flag("new_checkout")
 ```
+
+Both helpers take the same `attributes` transform as `configure()`, so your
+user-object mapping is exercised in tests exactly as in production.

@@ -653,27 +653,33 @@ def configure(
     *,
     attributes: Optional[AttributesFn] = None,
     init: bool = True,
+    poll: bool = False,
     **engine_opts: Any,
 ) -> Engine:
-    """Configure the package-global engine and the ``attributes`` transform.
+    """Configure Shipeasy: store the api key + the ``attributes`` transform once
+    at process start, then read per request with ``shipeasy.Client(user)``.
 
-    First-config-wins: the first call builds the engine and stores it (plus the
-    transform); later calls are a no-op and return the already-built engine, the
-    same idempotency the default-engine wiring uses. Pass any ``Engine``
-    constructor option as a keyword (``base_url``, ``env``, ``disable_telemetry``,
-    ``private_attributes``, ``sticky_store`` …).
+    First-config-wins: the first call wires everything up; later calls are a
+    no-op and return the same handle. Pass any advanced option as a keyword
+    (``base_url``, ``env``, ``disable_telemetry``, ``private_attributes``,
+    ``sticky_store`` …) — see the configuration docs.
 
     ``attributes`` is a function from *your* user object to the Shipeasy
     attribute map (``{"user_id": ..., "anonymous_id": ..., <targeting attrs>}``)
     that every bound ``Client`` evaluation uses. Default = identity (the user
     object is assumed to already be the attribute map).
 
-    Unless ``init=False``, the engine's one-shot fetch is kicked off
-    fire-and-forget (in a daemon thread) so ``Client(user).get_flag(...)``
-    resolves against real rules without an explicit init call. Long-running
-    servers wanting the background poll can call ``engine.init()`` on the
-    returned engine instead (pass ``init=False`` here to avoid the redundant
-    one-shot).
+    Fetch behaviour:
+
+    - default (``init=True``) — a one-shot fetch is kicked off fire-and-forget so
+      the first ``Client(user).get_flag(...)`` resolves against real rules. Ideal
+      for serverless / short-lived processes.
+    - ``poll=True`` — start the **background poll** (initial fetch + periodic
+      refresh) for a long-running server, so flags stay fresh without a redeploy.
+      No need to touch any lower-level object — configuration owns the lifecycle.
+
+    (For tests use :func:`configure_for_testing`; for an offline snapshot use
+    :func:`configure_for_offline` — both are drop-in siblings of this function.)
     """
     global _global_engine, _global_attributes
     with _configure_lock:
@@ -682,10 +688,155 @@ def configure(
         engine = Engine(api_key, **engine_opts)
         _global_engine = engine
         _global_attributes = attributes or _identity_attributes
-    if init:
+    if poll:
+        # Background poll: initial fetch + periodic refresh (daemon thread).
+        threading.Thread(target=engine.init, daemon=True).start()
+    elif init:
         # Fire-and-forget one-shot fetch — never block configure().
         threading.Thread(target=engine.init_once, daemon=True).start()
     return engine
+
+
+def _install_global(engine: Engine, attributes: Optional[AttributesFn]) -> Engine:
+    """Replace the package-global engine + transform (used by the
+    ``configure_for_*`` siblings, which — unlike ``configure`` — replace so a
+    test suite can reconfigure between cases)."""
+    global _global_engine, _global_attributes
+    with _configure_lock:
+        _global_engine = engine
+        _global_attributes = attributes or _identity_attributes
+    return engine
+
+
+def _apply_overrides(
+    engine: Engine,
+    flags: Optional[Mapping[str, bool]],
+    configs: Optional[Mapping[str, Any]],
+    experiments: Optional[Mapping[str, Any]],
+) -> None:
+    for name, value in (flags or {}).items():
+        engine.override_flag(name, value)
+    for name, value in (configs or {}).items():
+        engine.override_config(name, value)
+    for name, spec in (experiments or {}).items():
+        # spec is (group, params)
+        group, params = spec
+        engine.override_experiment(name, group, params)
+
+
+def configure_for_testing(
+    *,
+    attributes: Optional[AttributesFn] = None,
+    flags: Optional[Mapping[str, bool]] = None,
+    configs: Optional[Mapping[str, Any]] = None,
+    experiments: Optional[Mapping[str, Any]] = None,
+) -> Engine:
+    """Configure Shipeasy in **test mode** — a drop-in sibling of
+    :func:`configure` with no network, ever (no api key needed).
+
+    Seed the values your code under test should see via the override args, then
+    read them through the ordinary ``shipeasy.Client(user)`` — the same call your
+    production code uses:
+
+    >>> shipeasy.configure_for_testing(flags={"new_checkout": True})
+    >>> client = shipeasy.Client({"user_id": "u_1"})
+    >>> client.get_flag("new_checkout")
+    True
+
+    Args:
+        attributes: same transform as ``configure`` (default identity).
+        flags: ``{name: bool}`` forced ``get_flag`` results.
+        configs: ``{name: value}`` forced ``get_config`` results.
+        experiments: ``{name: (group, params)}`` forced enrolments.
+
+    Replaces any previously-configured engine, so tests can reconfigure freely.
+    """
+    engine = Engine.for_testing()
+    _apply_overrides(engine, flags, configs, experiments)
+    return _install_global(engine, attributes)
+
+
+def configure_for_offline(
+    snapshot: Optional[Mapping[str, Any]] = None,
+    path: Optional[str] = None,
+    *,
+    attributes: Optional[AttributesFn] = None,
+    flags: Optional[Mapping[str, bool]] = None,
+    configs: Optional[Mapping[str, Any]] = None,
+    experiments: Optional[Mapping[str, Any]] = None,
+) -> Engine:
+    """Configure Shipeasy **offline** — evaluate the *real* rules from an
+    in-memory snapshot or a JSON file, with no network. A drop-in sibling of
+    :func:`configure` (no api key needed).
+
+    Provide exactly one source:
+
+    - ``snapshot={"flags": <body of /sdk/flags>, "experiments": <body of /sdk/experiments>}``
+    - ``path="snapshot.json"`` — a JSON file ``{"flags": ..., "experiments": ...}``
+
+    Optional ``flags`` / ``configs`` / ``experiments`` overrides are layered on
+    top (same shapes as :func:`configure_for_testing`). Then read with
+    ``shipeasy.Client(user)``. Replaces any previously-configured engine.
+    """
+    if path is not None:
+        engine = Engine.from_file(path)
+    elif snapshot is not None:
+        engine = Engine.from_snapshot(
+            snapshot.get("flags"), snapshot.get("experiments")
+        )
+    else:
+        raise ValueError("configure_for_offline requires either snapshot= or path=")
+    _apply_overrides(engine, flags, configs, experiments)
+    return _install_global(engine, attributes)
+
+
+def _require_global(fn_name: str) -> Engine:
+    engine = _global_engine
+    if engine is None:
+        raise RuntimeError(
+            f"shipeasy.{fn_name}(...) called before shipeasy.configure(api_key=...)"
+        )
+    return engine
+
+
+def on_change(fn: Callable[[], None]) -> Callable[[], None]:
+    """Register a listener fired after a background poll fetches NEW data.
+
+    Returns an unsubscribe callable. Requires ``configure(poll=True)`` (no poll
+    thread runs otherwise). Configuration owns the engine; you never touch it.
+    """
+    return _require_global("on_change").on_change(fn)
+
+
+def i18n_script_tag(
+    client_key: str,
+    profile: str = "en:prod",
+    *,
+    base_url: Optional[str] = None,
+) -> str:
+    """Return the i18n loader ``<script>`` tag (public client key) for SSR.
+
+    Delegates to the configured global engine — call ``configure(...)`` first.
+    """
+    return _require_global("i18n_script_tag").i18n_script_tag(
+        client_key, profile, base_url=base_url
+    )
+
+
+def bootstrap_script_tag(
+    user: Mapping[str, Any],
+    *,
+    anon_id: Optional[str] = None,
+    i18n_profile: str = "en:prod",
+    base_url: Optional[str] = None,
+) -> str:
+    """Return the SSR bootstrap ``<script>`` tag for a request (no key embedded).
+
+    Delegates to the configured global engine — call ``configure(...)`` first.
+    """
+    return _require_global("bootstrap_script_tag").bootstrap_script_tag(
+        user, anon_id=anon_id, i18n_profile=i18n_profile, base_url=base_url
+    )
 
 
 def get_global_engine() -> Optional[Engine]:

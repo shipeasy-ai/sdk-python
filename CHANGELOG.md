@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0 (2026-06-27)
+
+- Add `configure_for_testing()` and `configure_for_offline()` — drop-in siblings
+  of `configure()` for unit tests and offline evaluation. Both take the same
+  `attributes` transform (no api key needed) and accept `flags` / `configs` /
+  `experiments` override args, then register the global engine so
+  `shipeasy.Client(user)` reads against them. They **replace** any prior
+  configuration so tests can reconfigure between cases.
+- `configure()` gains a `poll=True` option to start the background poll
+  internally (no need to call `init()` on a returned object).
+- New package-level helpers `on_change()`, `i18n_script_tag()` and
+  `bootstrap_script_tag()` delegate to the configured global engine, and
+  `ShipeasyProvider()` now resolves it automatically — so the **`Engine` class is
+  an internal detail**: the docs are written entirely around `configure()` +
+  `shipeasy.Client(user)`. The `Engine` class and its methods remain available
+  for advanced use (no breaking change).
+
 ## 0.9.0 (2026-06-27)
 
 - Add `track()`/`log_exposure()` to the bound `Client` (experiments are now

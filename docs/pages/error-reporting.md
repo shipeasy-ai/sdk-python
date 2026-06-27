@@ -26,9 +26,8 @@ is the terminal:
 see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
 ```
 
-Use the package-level `see()` to target the **default** engine (last engine
-constructed wins — the server-SDK analog of TS's `shipeasy({key})`), or
-`client_or_engine.see(e)` to target a specific engine.
+Use the package-level `see()` — it reports against the engine you set up with
+[`configure()`](configuration.md). No object to construct or pass around.
 
 ## Non-exception violations
 
@@ -54,5 +53,5 @@ except StopIteration as e:
 
 ## Spam guard
 
-Each engine carries a per-process limiter, so repeated reports of the same issue
+The SDK carries a per-process limiter, so repeated reports of the same issue
 collapse to a single send.

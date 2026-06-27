@@ -27,7 +27,7 @@ Import the package:
 ```python
 import shipeasy
 # or pull specific symbols:
-from shipeasy import Engine, Client, configure
+from shipeasy import Client, configure, configure_for_testing
 ```
 
 ### Optional extras
@@ -57,7 +57,7 @@ shipeasy.configure(
         "user_id": u.id, "country": u.country, "plan": u.plan,
     },
     init=True,                                       # one-shot fetch (default); see below
-    # plus any Engine option below (base_url, env, private_attributes, …)
+    # plus any option below (poll, base_url, env, private_attributes, …)
 )
 ```
 
@@ -76,17 +76,17 @@ shipeasy.configure(
   ```
 - **`init`** *(optional, default `True`)* — fire a one-shot fetch (in a daemon
   thread) so the first `Client(user).get_flag(...)` resolves against real rules.
-  For a long-running server that wants the **background poll** instead, pass
-  `init=False` and call `init()` on the returned engine:
+  Ideal for serverless / short-lived processes.
+- **`poll`** *(optional, default `False`)* — for a long-running server, pass
+  `poll=True` to start the **background poll** (initial fetch + periodic refresh)
+  so flags stay fresh without a redeploy. Configuration owns the lifecycle:
 
   ```python
-  engine = shipeasy.configure(api_key="sdk_server_...", init=False)
-  engine.init()  # start the background poll thread
+  shipeasy.configure(api_key="sdk_server_...", poll=True)
   ```
 
-**Engine options.** Beyond `api_key`, `attributes` and `init`, any keyword you
-pass to `configure()` is forwarded verbatim to the underlying `Engine`
-constructor (`shipeasy.Engine(api_key, **engine_opts)`). The full set:
+**`configure()` options.** Beyond `api_key`, `attributes`, `init` and `poll`,
+`configure()` accepts the following advanced keywords:
 
 | keyword | type | default | what it does |
 | --- | --- | --- | --- |
@@ -237,25 +237,18 @@ cookie automatically; the id is also on the request
 (`environ["shipeasy.anon_id"]` for WSGI). Cookie name + format are a cross-SDK
 contract — see `18-identity-bucketing.md`.
 
-## Low-level: the `Engine` directly
+## Tests and offline
 
-`Client(user)` is a thin handle over a single shared `Engine`. You can build and
-own the engine yourself — it takes the user on each call:
+For unit tests and offline evaluation, swap `configure()` for one of its drop-in
+siblings — no api key, no network — then read through the same
+`shipeasy.Client(user)`:
 
 ```python
-from shipeasy import Engine
+# unit tests: seed values, zero network
+shipeasy.configure_for_testing(flags={"new_checkout": True})
 
-engine = Engine(api_key="sdk_server_...")
-engine.init()        # background poll; use init_once() for serverless/one-shot
-
-engine.get_flag("new_checkout", {"user_id": "u_123", "country": "US"})
+# offline: evaluate the real rules from a snapshot / file
+shipeasy.configure_for_offline(path="shipeasy-snapshot.json")
 ```
 
-`Engine(...)` also accepts: `base_url`, `env` (deployment env tag, default
-`"prod"`), `disable_telemetry`, `telemetry_url`, `private_attributes`
-(see [advanced](advanced.md)), and `sticky_store`.
-
-> **Breaking change in 0.8.0:** the heavyweight client class was renamed
-> `Client` → `Engine`, and `Client` is now the lightweight user-bound handle.
-> Replace `Client(api_key=...)` with `Engine(api_key=...)`, or adopt
-> `configure()` + `Client(user)`.
+See [testing](testing.md) for the full override args.

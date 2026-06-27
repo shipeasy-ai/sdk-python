@@ -8,6 +8,9 @@ description: Use Shipeasy (feature flags, configs, kill switches, A/B experiment
 Server SDK (`pip install shipeasy`, `import shipeasy`). Server-key only — never
 embed in a browser. Requires Python 3.8+.
 
+Two things only: **`configure()`** once at startup, then **`shipeasy.Client(user)`**
+per request.
+
 ## Configure once
 
 ```python
@@ -19,12 +22,13 @@ shipeasy.configure(
 )
 ```
 
-`configure()` builds one shared `Engine` and returns it. Omit `attributes` if
-your user object is already the attribute map.
+Omit `attributes` if your user object is already the attribute map. For a
+long-running server pass `poll=True` to keep the blob fresh in the background.
 
 ## Evaluate (bound `Client(user)`)
 
-Bind the user once per request, then call without re-passing it:
+Bind the user once per request, then call without re-passing it — `track` and
+`log_exposure` are on the bound client too, so experiments are end-to-end here:
 
 ```python
 client = shipeasy.Client(current_user)
@@ -35,49 +39,43 @@ client.get_killswitch("payments_breaker")       # bool kill switch
 
 result = client.get_experiment("checkout_button", default_params={"color": "blue"})
 result.in_experiment, result.group, result.params
+
+client.log_exposure("checkout_button")          # at the decision point
+client.track("purchase", {"amount": 49})        # conversion event
 ```
 
 `get_flag_detail` returns `FlagDetail(value, reason)` (reasons: `RULE_MATCH`,
 `DEFAULT`, `OFF`, `OVERRIDE`, `FLAG_NOT_FOUND`, `CLIENT_NOT_READY`).
 
-## Low-level Engine + track
-
-`Engine` takes the user on each call and owns `track()`:
-
-```python
-from shipeasy import Engine
-
-engine = Engine(api_key="sdk_server_...")
-engine.init()  # background poll; init_once() for serverless
-
-engine.get_flag("new_checkout", {"user_id": "u_123"})
-engine.track("u_123", "purchase", {"amount": 49})   # conversion event
-```
-
 ## Testing (no network)
 
-```python
-from shipeasy import Engine
+Use the `configure()` siblings — seed overrides, read through the same `Client`:
 
-engine = Engine.for_testing()
-engine.override_flag("new_checkout", True)
-engine.override_config("billing_copy", {"title": "Welcome"})
-engine.override_experiment("checkout_button", group="treatment", params={"color": "green"})
-assert engine.get_flag("new_checkout", {"user_id": "u_123"}) is True
-engine.clear_overrides()
+```python
+shipeasy.configure_for_testing(
+    flags={"new_checkout": True},
+    configs={"billing_copy": {"title": "Welcome"}},
+    experiments={"checkout_button": ("treatment", {"color": "green"})},
+)
+assert shipeasy.Client({"user_id": "u_123"}).get_flag("new_checkout") is True
 ```
 
-Offline: `Engine.from_file(path)` / `Engine.from_snapshot(flags=..., experiments=...)`.
+Offline (real rules from a snapshot / file):
+
+```python
+shipeasy.configure_for_offline(path="snapshot.json")
+# or snapshot={"flags": {...}, "experiments": {...}}, plus optional overrides
+```
 
 ## OpenFeature
 
 ```python
-from openfeature import api                       # pip install "shipeasy[openfeature]"
-from shipeasy import Engine
+import shipeasy                                   # pip install "shipeasy[openfeature]"
+from openfeature import api
 from shipeasy.openfeature import ShipeasyProvider
 
-engine = Engine(api_key="sdk_server_..."); engine.init()
-api.set_provider(ShipeasyProvider(engine))
+shipeasy.configure(api_key="sdk_server_...", poll=True)
+api.set_provider(ShipeasyProvider())             # uses the configured global
 ```
 
 Boolean → gate; string/int/float/object → config.
@@ -96,10 +94,10 @@ except PaymentError as e:
 
 - Anon bucketing: `AnonIdMiddleware` (WSGI) / `AnonIdASGIMiddleware` (ASGI) mint
   the shared `__se_anon_id` cookie; anonymous `get_flag` then just works.
-- `Engine(private_attributes=[...])` strips keys from outbound events.
-- `Engine(sticky_store=InMemoryStickyStore())` pins experiment assignment.
-- `engine.log_exposure(user_or_id, exp_name)` for manual exposure.
-- SSR: `engine.bootstrap_script_tag(user)` + `engine.i18n_script_tag(client_key, "en:prod")`.
+- `configure(private_attributes=[...])` strips keys from outbound events.
+- `configure(sticky_store=InMemoryStickyStore())` pins experiment assignment.
+- `client.log_exposure(exp_name)` for manual exposure.
+- SSR: `shipeasy.bootstrap_script_tag(user)` + `shipeasy.i18n_script_tag(client_key, "en:prod")`.
 
 ## i18n
 

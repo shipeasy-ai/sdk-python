@@ -3,8 +3,8 @@
 The Python SDK ships an **OpenFeature server provider**,
 `shipeasy.openfeature.ShipeasyProvider`, so apps standardised on the CNCF
 OpenFeature API can plug Shipeasy in as the backing provider. It is a pure
-adapter over `shipeasy.Engine` — evaluation is unchanged and runs locally
-against the cached blob (effectively synchronous).
+adapter over the engine you set up with `shipeasy.configure(...)` — evaluation is
+unchanged and runs locally against the cached blob (effectively synchronous).
 
 ## Install the extra
 
@@ -20,18 +20,20 @@ importing `shipeasy.openfeature` does.
 ## Wiring
 
 ```python
+import shipeasy
 from openfeature import api
 from openfeature.evaluation_context import EvaluationContext
-from shipeasy import Engine
 from shipeasy.openfeature import ShipeasyProvider
 
-engine = Engine(api_key="sdk_server_...")
-engine.init()
-api.set_provider(ShipeasyProvider(engine))
+shipeasy.configure(api_key="sdk_server_...", poll=True)
+api.set_provider(ShipeasyProvider())  # uses the configured global engine
 
 of = api.get_client()
 on = of.get_boolean_value("new_checkout", False, EvaluationContext("u1"))
 ```
+
+(`ShipeasyProvider()` resolves automatically from `configure()` — construct it
+after your `configure(...)` call.)
 
 The `EvaluationContext` `targeting_key` becomes `user_id`; every attribute is
 carried through verbatim for targeting.

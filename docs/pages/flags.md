@@ -1,36 +1,26 @@
 # Feature flags — `get_flag`
 
-A flag (gate) evaluates to a boolean for a given user.
-
-## Bound `Client(user)` form
+A flag (gate) evaluates to a boolean for a given user. After
+[`configure()`](configuration.md) has run once at startup, bind a user with
+`shipeasy.Client(user)` and read with **no user argument**.
 
 ```python
+# construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
+
 if client.get_flag("new_checkout"):
-    ...
-```
-
-## Low-level `Engine` form
-
-The engine takes the user on each call:
-
-```python
-if engine.get_flag("new_checkout", {"user_id": "u_123", "country": "US"}):
     ...
 ```
 
 ## Default / fallback behaviour
 
-`get_flag` takes a `default` that is returned **only when the value cannot be
+`get_flag(name, default=False)` returns `default` **only when the value cannot be
 evaluated** — never when the gate simply resolves off:
 
 ```python
-# default is returned only if the engine isn't initialized OR the gate isn't
-# in the blob. A gate that evaluates to False returns False, NOT the default.
-engine.get_flag("new_checkout", {"user_id": "u_123"}, default=True)
-
-# Bound form:
-shipeasy.Client(user).get_flag("new_checkout", default=True)
+# default is returned only if Shipeasy isn't ready yet OR the gate isn't in the
+# blob. A gate that evaluates to False returns False, NOT the default.
+client.get_flag("new_checkout", default=True)
 ```
 
 ## Evaluation detail — `get_flag_detail`
@@ -43,15 +33,14 @@ from shipeasy import (
     FlagDetail, CLIENT_NOT_READY, FLAG_NOT_FOUND, OFF, OVERRIDE, RULE_MATCH, DEFAULT,
 )
 
-d = engine.get_flag_detail("new_checkout", {"user_id": "u_123"})
-# Bound: d = shipeasy.Client(user).get_flag_detail("new_checkout")
+d = client.get_flag_detail("new_checkout")
 print(d.value, d.reason)   # e.g. True RULE_MATCH
 ```
 
 | reason | meaning |
 | --- | --- |
-| `OVERRIDE` | a local `override_flag` forced the value (no telemetry) |
-| `CLIENT_NOT_READY` | `init()`/`init_once()` hasn't run yet → `value=False` |
+| `OVERRIDE` | a [`configure_for_testing`](testing.md) override forced the value |
+| `CLIENT_NOT_READY` | the first fetch hasn't completed yet → `value=False` |
 | `FLAG_NOT_FOUND` | no gate by that name in the blob → `value=False` |
 | `OFF` | the gate exists but is disabled → `value=False` |
 | `RULE_MATCH` | evaluated **on** (targeting + rollout) |
@@ -62,12 +51,14 @@ print(d.value, d.reason)   # e.g. True RULE_MATCH
 
 ## Change listeners
 
-Register a callback fired after a background poll fetches **new** data (a 200,
-not a 304). It returns an unsubscribe callable; listeners never fire in
-test/offline mode.
+When you run a long-lived server with `configure(poll=True)`, register a callback
+fired after a background poll fetches **new** data (a 200, not a 304). It returns
+an unsubscribe callable:
 
 ```python
-unsubscribe = engine.on_change(lambda: print("flags changed, rebuild cache"))
+import shipeasy
+
+unsubscribe = shipeasy.on_change(lambda: print("flags changed, rebuild cache"))
 ...
 unsubscribe()  # stop listening
 ```

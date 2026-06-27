@@ -18,7 +18,7 @@ client.log_exposure("{{RESOURCE_NAME}}")  # experiment name (required)
 if result.params["color"] == "green":
     ...
 
-# track the conversion — Client.track (NOT the Engine); unit is the bound user
+# track the conversion on the same bound client; unit is the bound user
 # event_name                    success event (required)
 # properties={...}              optional event properties bag
 client.track("{{SUCCESS_EVENT}}", {"amount": 49})

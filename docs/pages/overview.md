@@ -6,10 +6,13 @@ and must never be embedded in a browser.
 
 ## Mental model: `configure()` once, then `Client(user)` per request
 
-Configure the SDK **once** at process start with your server key and an optional
-`attributes` transform (your user object → the Shipeasy attribute map). Then
-construct a cheap, **user-bound** `Client(user)` per request — every call takes
-**no user argument** because the user is bound at construction.
+There are exactly two things to learn:
+
+1. **`configure()`** — call it **once** at process start with your server key and
+   an optional `attributes` transform (your user object → the Shipeasy attribute
+   map). This is the whole setup story.
+2. **`shipeasy.Client(user)`** — construct a cheap, **user-bound** handle per
+   request and read with **no user argument** (the user is bound at construction).
 
 ```python
 import shipeasy
@@ -19,42 +22,51 @@ shipeasy.configure(
     attributes=lambda u: {"user_id": u.id, "country": u.country, "plan": u.plan},
 )
 
+# construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
+
 if client.get_flag("new_checkout"):
     ...
 config = client.get_config("billing_copy")
 result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-client.log_exposure("checkout_button")   # at the decision point
+client.log_exposure("checkout_button")    # at the decision point
 client.track("purchase", {"amount": 49})  # on conversion
 ```
 
-## Engine vs Client
+## What the bound `Client` does
 
-- **`Engine`** is the heavyweight object: it owns the cached blob, the background
-  poll, `see()`, the `override_*` setters, and the offline factories
-  (`for_testing` / `from_file` / `from_snapshot`). It takes the user on **each**
-  call (`track`/`log_exposure` here are the low-level forms with an explicit
-  user).
-- **`Client(user)`** is a thin, per-request handle over the shared engine built
-  by `configure()`. The user is bound once; calls omit it — including
-  `track(event, props=None)` and `log_exposure(experiment_name)`, so an
-  experiment is end-to-end Client-only. Constructing a `Client(user)` before
-  `configure()` raises `RuntimeError`.
+Everything you need per request is on `Client(user)` — no user argument on any
+call:
 
-`configure()` builds one shared engine (first-config-wins) and kicks off a
-one-shot fetch, so the first `Client(user).get_flag(...)` resolves against real
-rules.
+- `get_flag(name, default=False)` · `get_flag_detail(name)`
+- `get_config(name, decode=None, default=None)`
+- `get_killswitch(name, switch_key=None)`
+- `get_experiment(name, default_params, decode=None)`
+- `log_exposure(experiment_name)` · `track(event, properties=None)`
+
+So an experiment is **end-to-end Client-only**. Constructing a `Client(user)`
+before `configure()` raises `RuntimeError`.
+
+## The configure family
+
+| call | when |
+| --- | --- |
+| [`configure(api_key=...)`](configuration.md) | production — your server key |
+| [`configure_for_testing(...)`](testing.md) | unit tests — no network, seed overrides |
+| [`configure_for_offline(...)`](testing.md) | evaluate real rules from a snapshot / file |
+
+After any of them, you read the same way: `shipeasy.Client(user)`.
 
 ## Feature pages
 
-- [installation](installation.md) — `pip install shipeasy`, runtime, import line
-- [configuration](configuration.md) — `configure()`, keys, `attributes`, init/poll
+- [installation](installation.md) — `pip install shipeasy`, frameworks, `configure()`
+- [configuration](configuration.md) — `configure()`, keys, `attributes`, one-shot vs poll, options
 - [flags](flags.md) — `get_flag`, `get_flag_detail`, defaults
 - [configs](configs.md) — `get_config`, typed decode, defaults
 - [killswitches](killswitches.md) — `get_killswitch`
 - [experiments](experiments.md) — `get_experiment`, `ExperimentResult`, `log_exposure`, `track`
 - [i18n](i18n.md) — cross-SDK loader story (server SDK has no `t()`)
 - [error-reporting](error-reporting.md) — `see()` structured reporting
-- [testing](testing.md) — `for_testing`, `from_file`, `override_*`
+- [testing](testing.md) — `configure_for_testing`, `configure_for_offline`, overrides
 - [openfeature](openfeature.md) — `ShipeasyProvider`
 - [advanced](advanced.md) — anon-id middleware, private attrs, sticky bucketing, manual exposure, SSR
