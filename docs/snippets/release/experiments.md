@@ -1,15 +1,25 @@
-Read an experiment, then track its success event.
+Read an experiment, log exposure where you present the treatment, then track its
+success event. Assumes `configure()` ran at startup — see Installation.
 
 ```python
 import shipeasy
 
-shipeasy.configure(api_key="sdk_server_...")
-
+# construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
+
+# name                          experiment name (required)
+# default_params={...}          params returned when the user isn't enrolled
+# decode=lambda p: ...          optional: transform the params bag (typed)
 result = client.get_experiment("{{RESOURCE_NAME}}", default_params={"color": "blue"})
-client.log_exposure("{{RESOURCE_NAME}}")
+
+# call where you actually render the treatment (server is stateless — no auto-log)
+client.log_exposure("{{RESOURCE_NAME}}")  # experiment name (required)
+
 if result.params["color"] == "green":
     ...
 
+# track the conversion — Client.track (NOT the Engine); unit is the bound user
+# event_name                    success event (required)
+# properties={...}              optional event properties bag
 client.track("{{SUCCESS_EVENT}}", {"amount": 49})
 ```

@@ -1,10 +1,16 @@
-Configure once, then read a flag on a user-bound client.
+Read a feature flag on a user-bound client. Assumes `configure()` ran at
+startup — see Installation.
 
 ```python
 import shipeasy
 
-shipeasy.configure(api_key="sdk_server_...")
+# construct once per callsite (cheap; binds the user)
+client = shipeasy.Client(current_user)
 
-if shipeasy.Client(current_user).get_flag("{{RESOURCE_NAME}}"):
+# name                          flag name (required)
+# default=False                 returned ONLY when the flag can't be evaluated
+#                               (client not ready / flag absent) — never when it
+#                               simply resolves off
+if client.get_flag("{{RESOURCE_NAME}}", default=False):
     ...
 ```

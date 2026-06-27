@@ -1,10 +1,16 @@
-Check a kill switch on a user-bound client.
+Check a kill switch on a user-bound client. Assumes `configure()` ran at
+startup — see Installation.
 
 ```python
 import shipeasy
 
-shipeasy.configure(api_key="sdk_server_...")
+# construct once per callsite (cheap; binds the user)
+client = shipeasy.Client(current_user)
 
-if shipeasy.Client(current_user).get_killswitch("{{RESOURCE_NAME}}"):
+# name                          kill switch name (required)
+# switch_key="..."              optional: read a named per-key override
+#                               (the dashboard "switches" feature); falls back
+#                               to the top-level value when absent
+if client.get_killswitch("{{RESOURCE_NAME}}"):  # True == engaged (feature killed)
     return fallback()
 ```

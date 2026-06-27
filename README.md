@@ -6,6 +6,8 @@ Server SDK for [Shipeasy](https://shipeasy.dev) — feature flags, remote config
 pip install shipeasy
 ```
 
+**Documentation:** [Installation & configuration](docs/pages/installation.md) · [full docs](docs/)
+
 ## Quick start — `configure()` once, then `Client(user)` per request
 
 Configure the SDK once at process start with your server key and an optional
