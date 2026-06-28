@@ -128,8 +128,83 @@ browser; evaluations then default to it as `anonymous_id`.
 
 ### Django
 
-Configure once in `AppConfig.ready()`, and add the WSGI middleware to your
-WSGI app (Django serves over WSGI by default).
+Shipeasy ships a Django app (`shipeasy.django`) that calls `configure()` for you
+from a `SHIPEASY` settings dict — the settings-driven, "configure once at boot"
+equivalent of a Rails railtie. The fastest path:
+
+```bash
+pip install shipeasy
+```
+
+1. Add the app to `INSTALLED_APPS`:
+
+   ```python
+   # settings.py
+   INSTALLED_APPS = [
+       # ...
+       "shipeasy.django",
+   ]
+   ```
+
+2. Run the installer — it idempotently adds the anon-id middleware to
+   `MIDDLEWARE`, appends a `SHIPEASY = {...}` config block to your settings, and
+   (if a `.env` exists) appends `SHIPEASY_SERVER_KEY=`:
+
+   ```bash
+   python manage.py shipeasy_install
+   ```
+
+   It's safe to re-run (each edit is anchored + idempotent), and if it can't
+   confidently edit a list it prints the exact lines to paste instead of
+   corrupting the file. Flags: `--settings-file PATH` (override auto-detection
+   from `DJANGO_SETTINGS_MODULE`), `--force`, `--no-env`.
+
+3. Set your server key and (optionally) tune the config block:
+
+   ```python
+   # settings.py  (added by shipeasy_install)
+   import os
+
+   SHIPEASY = {
+       # Required — your Shipeasy SERVER key (sdk_server_...); never a browser.
+       "SERVER_KEY": os.environ.get("SHIPEASY_SERVER_KEY"),
+       # Optional — map YOUR user object to the Shipeasy attribute map. A dotted
+       # import path to a callable, OR a callable.
+       "ATTRIBUTES": "myapp.shipeasy.user_attributes",
+       # Optional engine knobs: "ENV", "DISABLE_TELEMETRY",
+       # "PRIVATE_ATTRIBUTES", "BASE_URL".
+       # Long-running server? set "POLL": True to keep flags fresh in the
+       # background. Default False (serverless / short-lived).
+       "POLL": False,
+   }
+   ```
+
+   The `shipeasy.django` AppConfig reads this dict in `ready()` and calls
+   `configure()` once at boot. If `SERVER_KEY` is missing it warns and no-ops
+   (reads then raise until you set it). The `MIDDLEWARE` entry
+   (`"shipeasy.django.middleware.AnonIdMiddleware"`) mints the shared
+   `__se_anon_id` cookie for logged-out traffic and exposes it as
+   `request.shipeasy_anon_id`.
+
+Then read flags anywhere, per request:
+
+```python
+# views.py — bind the request user once, then read
+import shipeasy
+
+
+def checkout(request):
+    # construct once per request (cheap; binds the user)
+    client = shipeasy.Client(request.user)
+    if client.get_flag("new_checkout"):
+        ...
+```
+
+#### Manual wiring (no app / no installer)
+
+Prefer not to use the `shipeasy.django` app? Call `configure()` yourself in any
+`AppConfig.ready()` and wrap your WSGI app with the framework-agnostic
+middleware:
 
 ```python
 # myapp/apps.py
@@ -157,18 +232,6 @@ from shipeasy.middleware import AnonIdMiddleware
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "myproject.settings")
 
 application = AnonIdMiddleware(get_wsgi_application())
-```
-
-```python
-# views.py — bind the request user once, then read
-import shipeasy
-
-
-def checkout(request):
-    # construct once per request (cheap; binds the user)
-    client = shipeasy.Client(request.user)
-    if client.get_flag("new_checkout"):
-        ...
 ```
 
 On ASGI (`asgi.py`), wrap with `AnonIdASGIMiddleware` instead — see FastAPI.

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.12.0 (2026-06-28)
+
+- **Django integration** — a new `shipeasy.django` app + a
+  `python manage.py shipeasy_install` management command, the Django-native
+  equivalent of the Rails install generator.
+  - Add `"shipeasy.django"` to `INSTALLED_APPS` and the app's
+    `ShipeasyConfig.ready()` reads a `SHIPEASY` settings dict and calls
+    `configure()` once at boot (keys: `SERVER_KEY` required, `ATTRIBUTES`
+    (dotted import path or callable), `ENV`, `DISABLE_TELEMETRY`,
+    `PRIVATE_ATTRIBUTES`, `BASE_URL`, `POLL` (default `False`)). Missing
+    `SERVER_KEY` warns and no-ops.
+  - `shipeasy.django.middleware.AnonIdMiddleware` — a Django-style middleware
+    (add to `MIDDLEWARE`) that mints/reads the shared `__se_anon_id` cookie,
+    reusing the cross-SDK anon-id helpers.
+  - `python manage.py shipeasy_install` idempotently patches the settings file
+    (adds the app to `INSTALLED_APPS`, the middleware to `MIDDLEWARE`, and a
+    `SHIPEASY = {...}` block) and appends `SHIPEASY_SERVER_KEY=` to an existing
+    `.env` / `.env.example`. Anchored edits with a safe print-to-paste fallback;
+    flags `--settings-file`, `--force`, `--no-env`.
+  - Django is a dev/optional dependency only (a `django` extra) — the base SDK
+    never imports Django, and `shipeasy.django` imports it lazily.
+
 ## 0.11.0 (2026-06-27)
 
 - New package-level on-the-spot override helpers `override_flag()`,

@@ -32,8 +32,14 @@ shipeasy.configure(
 Omit `attributes` if your user object is already the attribute map. For a
 long-running server pass `poll=True` to keep the blob fresh in the background.
 
-→ More: `pages/installation.md` (per-framework setup), `pages/configuration.md`
-(every option).
+**Django:** add `"shipeasy.django"` to `INSTALLED_APPS`, run
+`python manage.py shipeasy_install` (idempotently wires the anon-id middleware +
+a `SHIPEASY = {...}` settings block + `.env`), then set `SHIPEASY["SERVER_KEY"]`.
+The app's AppConfig calls `configure()` from that dict at boot — no manual
+`configure()` call needed.
+
+→ More: `pages/installation.md` (per-framework setup, incl. the Django app),
+`pages/configuration.md` (every option).
 
 ## Evaluate (bound `Client(user)`)
 

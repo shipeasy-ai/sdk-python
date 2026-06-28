@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shipeasy"
-version = "0.11.0"
+version = "0.12.0"
 description = "Shipeasy server SDK for Python — feature flags, configs, experiments, metrics."
 readme = "README.md"
 license = { text = "MIT" }
@@ -20,6 +20,10 @@ classifiers = [
 # OpenFeature provider (`shipeasy.openfeature.ShipeasyProvider`). Optional so the
 # base SDK doesn't force the openfeature-sdk dependency on every consumer.
 openfeature = ["openfeature-sdk>=0.7"]
+# Django integration (`shipeasy.django` app + `manage.py shipeasy_install`).
+# Django apps already depend on Django themselves; this extra is for discovery —
+# the base SDK never imports Django (shipeasy.django imports it lazily).
+django = ["django>=3.2"]
 
 [project.scripts]
 # Explicit, opt-in installer for the bundled agent skill (no install-time hook):
