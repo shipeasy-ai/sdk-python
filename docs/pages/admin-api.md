@@ -73,7 +73,7 @@ the API contract changes, refresh the vendored spec and regenerate — only the
 generated subpackage is rewritten, never the `AdminClient` shim:
 
 ```bash
-cp <monorepo>/packages/openapi/openapi.json admin/openapi.json
+cp <monorepo>/marketplace/openapi/openapi.json admin/openapi.json
 bash scripts/gen_admin.sh
 ```
 
