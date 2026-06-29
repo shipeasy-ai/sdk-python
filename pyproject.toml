@@ -51,3 +51,10 @@ packages = ["shipeasy"]
 # without a network call. The source of truth is docs/skill/SKILL.md.
 [tool.hatch.build.targets.wheel.force-include]
 "docs/skill/SKILL.md" = "shipeasy/_skill_data/SKILL.md"
+
+[tool.pytest.ini_options]
+# Collect only our own tests. The generated Admin API client ships a legitimate
+# model file named `test_connector_response.py` (schema TestConnectorResponse for
+# the connector-test endpoint) which pytest would otherwise auto-collect and fail
+# to import without the optional `admin` extra installed.
+testpaths = ["tests"]
