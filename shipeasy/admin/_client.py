@@ -13,37 +13,47 @@ from __future__ import annotations
 from typing import Optional
 
 from .generated import (
-    AlertRulesApi,
+    AlertsApi,
     ApiClient,
+    APIKeysApi,
     AttributesApi,
     Configuration,
     ConfigsApi,
+    ConnectorsApi,
+    DraftsApi,
+    ErrorsApi,
     EventsApi,
     ExperimentsApi,
-    GatesApi,
-    I18nApi,
-    KillswitchesApi,
+    FlagsApi,
+    KeysApi,
+    KillswitchApi,
     MetricsApi,
     OpsApi,
+    ProfilesApi,
     ProjectsApi,
     UniversesApi,
 )
 
-# Friendly attribute name -> generated Api class. Mirrors the resource modules of
+# Friendly attribute name -> generated Api class. Mirrors the resource tags of
 # the Admin API (and the CLI/MCP `release`/`metrics`/`events`/... groups).
 _APIS = {
-    "gates": GatesApi,
+    "flags": FlagsApi,
     "configs": ConfigsApi,
-    "killswitches": KillswitchesApi,
+    "killswitch": KillswitchApi,
     "experiments": ExperimentsApi,
     "universes": UniversesApi,
+    "attributes": AttributesApi,
     "metrics": MetricsApi,
     "events": EventsApi,
-    "alert_rules": AlertRulesApi,
-    "attributes": AttributesApi,
-    "projects": ProjectsApi,
     "ops": OpsApi,
-    "i18n": I18nApi,
+    "alerts": AlertsApi,
+    "projects": ProjectsApi,
+    "profiles": ProfilesApi,
+    "keys": KeysApi,
+    "drafts": DraftsApi,
+    "errors": ErrorsApi,
+    "connectors": ConnectorsApi,
+    "api_keys": APIKeysApi,
 }
 
 
@@ -58,7 +68,7 @@ class AdminClient:
 
         admin = AdminClient(api_key=os.environ["SHIPEASY_ADMIN_KEY"],
                             project_id=os.environ["SHIPEASY_PROJECT_ID"])
-        admin.gates.list_gates()
+        admin.flags.list_gates()
         admin.experiments.create_experiment(...)
 
     :param api_key: Admin SDK key sent as ``Authorization: Bearer <api_key>``.

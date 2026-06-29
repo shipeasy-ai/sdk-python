@@ -14,7 +14,7 @@ For flag/config/experiment *evaluation* keep using ``shipeasy.configure()`` +
     from shipeasy.admin import AdminClient
 
     admin = AdminClient(api_key=..., project_id=...)
-    admin.gates.list_gates()
+    admin.flags.list_gates()
 """
 from __future__ import annotations
 

@@ -31,13 +31,15 @@ def test_admin_client_constructs_and_wires_auth_and_scope():
 
 def test_admin_client_exposes_resource_groups():
     client = _client()
-    # A representative slice of the 12 generated resource groups.
-    assert type(client.gates).__name__ == "GatesApi"
+    # A representative slice of the 17 generated resource groups.
+    assert type(client.flags).__name__ == "FlagsApi"
     assert type(client.experiments).__name__ == "ExperimentsApi"
-    assert hasattr(client.gates, "list_gates")
+    assert type(client.connectors).__name__ == "ConnectorsApi"
+    assert type(client.errors).__name__ == "ErrorsApi"
+    assert hasattr(client.flags, "list_gates")
     assert hasattr(client.experiments, "create_experiment")
     # Lazily constructed but cached: same instance on repeat access.
-    assert client.gates is client.gates
+    assert client.flags is client.flags
 
 
 def test_admin_client_unknown_group_raises_attribute_error():

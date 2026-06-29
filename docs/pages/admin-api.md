@@ -45,16 +45,17 @@ the OpenAPI operations:
 
 ```python
 # list and create gates
-gates = admin.gates.list_gates()
-admin.gates.create_gate(...)
+flags = admin.flags.list_gates()
+admin.flags.create_gate(...)
 
 # start an experiment
 admin.experiments.create_experiment(...)
 admin.experiments.start_experiment(...)
 ```
 
-Available groups: `gates`, `configs`, `killswitches`, `experiments`, `universes`,
-`metrics`, `events`, `alert_rules`, `attributes`, `projects`, `ops`, `i18n`.
+Available groups: `flags`, `configs`, `killswitch`, `experiments`, `universes`,
+`attributes`, `metrics`, `events`, `ops`, `alerts`, `projects`, `profiles`,
+`keys`, `drafts`, `errors`, `connectors`, `api_keys`.
 
 The exact method names, request models, and response shapes come straight from
 the spec — explore them with `dir(admin.gates)` or your editor's autocomplete,
