@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shipeasy"
-version = "0.12.0"
+version = "0.13.0"
 description = "Shipeasy server SDK for Python — feature flags, configs, experiments, metrics."
 readme = "README.md"
 license = { text = "MIT" }
@@ -24,6 +24,16 @@ openfeature = ["openfeature-sdk>=0.7"]
 # Django apps already depend on Django themselves; this extra is for discovery —
 # the base SDK never imports Django (shipeasy.django imports it lazily).
 django = ["django>=3.2"]
+# Admin API client (`shipeasy.admin.AdminClient`) — a raw client generated from
+# the Shipeasy OpenAPI spec for *administering* resources (create gates, start
+# experiments, …). Off by default; the base SDK never imports `shipeasy.admin`.
+# Regenerate with `scripts/gen_admin.sh`. Install: pip install "shipeasy[admin]"
+admin = [
+  "urllib3>=2.1.0,<3.0.0",
+  "python-dateutil>=2.8.2",
+  "pydantic>=2.11",
+  "typing-extensions>=4.7.1",
+]
 
 [project.scripts]
 # Explicit, opt-in installer for the bundled agent skill (no install-time hook):

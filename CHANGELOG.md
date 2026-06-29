@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.13.0 (2026-06-28)
+
+- **Optional Admin API client** — a new opt-in `shipeasy.admin` subpackage for
+  *administering* resources (create gates, start experiments, manage configs/
+  killswitches/universes/metrics/events, …) from server code. It is a raw client
+  **generated from the Shipeasy OpenAPI spec** (1:1 with the REST API — id-based,
+  basis-points, snake_case; no name->id or percent->bp ergonomics, which stay in
+  the CLI/MCP).
+  - Off by default: the base SDK never imports it. Opt in with
+    `pip install "shipeasy[admin]"` (pulls `urllib3`/`pydantic`/`python-dateutil`).
+  - `from shipeasy.admin import AdminClient` — a thin auth/scoping wrapper:
+    `AdminClient(api_key=..., project_id=...)` then `admin.gates.list_gates()`,
+    `admin.experiments.create_experiment(...)`, etc. (resource groups: gates,
+    configs, killswitches, experiments, universes, metrics, events, alert_rules,
+    attributes, projects, ops, i18n).
+  - Regenerate after a contract change: refresh `admin/openapi.json` then run
+    `bash scripts/gen_admin.sh` (only `shipeasy/admin/generated/` is rewritten;
+    the `AdminClient` shim is preserved). Generator pinned via `openapitools.json`.
+
 ## 0.12.0 (2026-06-28)
 
 - **Django integration** — a new `shipeasy.django` app + a

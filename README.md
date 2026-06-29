@@ -88,6 +88,7 @@ Constructing `Client(user)` before `configure()` raises `RuntimeError`.
 | [Testing](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/pages/testing.md) | `configure_for_testing` / `configure_for_offline`, overrides. |
 | [OpenFeature](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/pages/openfeature.md) | `ShipeasyProvider` (OpenFeature server provider). |
 | [Advanced](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/pages/advanced.md) | Anon-id middleware, private attributes, sticky bucketing, SSR. |
+| [Admin API client](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/pages/admin-api.md) | Optional `shipeasy.admin` client for administering resources (generated from the OpenAP… |
 
 Copy-paste snippets live under [`docs/snippets/`](https://github.com/shipeasy-ai/sdk-python/blob/main/docs/snippets)
 (release · metrics · i18n · ops); an installable agent skill is at

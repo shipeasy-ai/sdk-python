@@ -41,6 +41,7 @@ PAGE_BLURB = {
     "testing": "`configure_for_testing` / `configure_for_offline`, overrides.",
     "openfeature": "`ShipeasyProvider` (OpenFeature server provider).",
     "advanced": "Anon-id middleware, private attributes, sticky bucketing, SSR.",
+    "admin-api": "Optional `shipeasy.admin` client for administering resources (generated from the OpenAPI spec).",
 }
 PAGE_TITLE = {
     "overview": "Overview",
@@ -55,6 +56,7 @@ PAGE_TITLE = {
     "testing": "Testing",
     "openfeature": "OpenFeature",
     "advanced": "Advanced",
+    "admin-api": "Admin API client",
 }
 
 
