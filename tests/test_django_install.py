@@ -11,6 +11,10 @@ from pathlib import Path
 
 import pytest
 
+# Importing the command module pulls in Django, so the whole file is skipped when
+# Django isn't installed (the SDK's normal CI installs only the openfeature extra).
+pytest.importorskip("django")
+
 from shipeasy.django.management.commands import shipeasy_install as cmd
 
 
