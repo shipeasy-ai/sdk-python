@@ -1,6 +1,6 @@
 ---
 name: shipeasy-python
-description: Use Shipeasy (feature flags, configs, kill switches, A/B experiments, i18n) from Python. Covers configure() + Client(user), get_flag/get_config/get_experiment, track, testing, OpenFeature.
+description: Use Shipeasy (feature flags, configs, kill switches, A/B experiments, i18n) from Python. Covers configure() + Client(user), get_flag/get_config/universe(name).assign(), track, testing, OpenFeature.
 ---
 
 # Shipeasy Python SDK
@@ -43,8 +43,8 @@ The app's AppConfig calls `configure()` from that dict at boot — no manual
 
 ## Evaluate (bound `Client(user)`)
 
-Bind the user once per request, then call without re-passing it — `track` and
-`log_exposure` are on the bound client too, so experiments are end-to-end here:
+Bind the user once per request, then call without re-passing it — `assign` and
+`track` are on the bound client too, so experiments are end-to-end here:
 
 ```python
 client = shipeasy.Client(current_user)
@@ -53,10 +53,13 @@ client.get_flag("new_checkout")                 # bool; default= only on un-eval
 client.get_config("billing_copy", default={})   # typed JSON; default= on absent
 client.get_killswitch("payments_breaker")       # bool kill switch
 
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-result.in_experiment, result.group, result.params
+# A universe is a mutual-exclusion pool: a unit lands in <=1 experiment.
+# assign() auto-logs one exposure when enrolled; a.get() resolves
+# variant override -> universe default -> fallback (works even when not enrolled).
+a = client.universe("checkout").assign()
+a.name, a.group, a.enrolled                     # None/None/False when not enrolled
+a.get("color", "blue")
 
-client.log_exposure("checkout_button")          # at the decision point
 client.track("purchase", {"amount": 49})        # conversion / metric event
 ```
 
@@ -76,13 +79,28 @@ Use the `configure()` siblings — seed overrides, read through the same `Client
 shipeasy.configure_for_testing(
     flags={"new_checkout": True},
     configs={"billing_copy": {"title": "Welcome"}},
-    experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
 assert shipeasy.Client({"user_id": "u_123"}).get_flag("new_checkout") is True
 
 # flip a value on the spot, mid-test:
 shipeasy.override_flag("new_checkout", False)
 shipeasy.clear_overrides()
+```
+
+An `experiments={name: (group, params)}` override is a **pure override** — it wins
+over blob eval but only surfaces through `universe(name).assign()` for an
+experiment already in the loaded blob. Pair it with a real experiment blob offline:
+
+```python
+shipeasy.configure_for_offline(
+    snapshot={"flags": {"gates": {}, "configs": {}},
+              "experiments": {"experiments": {"exp": {"universe": "u", "status": "running",
+                              "salt": "s", "allocationPct": 10000,
+                              "groups": [{"name": "control", "weight": 10000, "params": {}}]}},
+                              "universes": {"u": {}}}},
+    experiments={"exp": ("treatment", {"color": "green"})},   # override wins over the variant
+)
+assert shipeasy.Client({"user_id": "u_123"}).universe("u").assign().group == "treatment"
 ```
 
 Offline (real rules from a snapshot / file):
@@ -129,7 +147,8 @@ except PaymentError as e:
   the shared `__se_anon_id` cookie; anonymous `get_flag` then just works.
 - `configure(private_attributes=[...])` strips keys from outbound events.
 - `configure(sticky_store=InMemoryStickyStore())` pins experiment assignment.
-- `client.log_exposure(exp_name)` for manual exposure.
+- Exposure is automatic: an enrolled `client.universe(name).assign()` logs one
+  deduped exposure — there is no manual `log_exposure`.
 - SSR: `shipeasy.bootstrap_script_tag(user)` + `shipeasy.i18n_script_tag(client_key, "en:prod")`.
 
 → More: `pages/advanced.md`.

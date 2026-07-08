@@ -23,19 +23,49 @@ def _clean_global():
     reset_global()
 
 
-def test_configure_for_testing_seeds_overrides():
+def _running_exp_snapshot():
+    # A real experiment blob so an experiment override can surface through
+    # universe(name).assign() (a pure override needs a loaded experiment).
+    return {
+        "flags": {"gates": {}, "configs": {}},
+        "experiments": {
+            "experiments": {
+                "exp": {
+                    "universe": "u",
+                    "status": "running",
+                    "salt": "s",
+                    "allocationPct": 10000,
+                    "groups": [{"name": "control", "weight": 10000, "params": {}}],
+                }
+            },
+            "universes": {"u": {}},
+        },
+    }
+
+
+def test_configure_for_testing_seeds_flag_and_config_overrides():
     shipeasy.configure_for_testing(
         flags={"new_checkout": True},
         configs={"copy": {"title": "Hi"}},
-        experiments={"exp": ("treatment", {"color": "red"})},
     )
     client = Client({"user_id": "u_1"})
     assert client.get_flag("new_checkout") is True
     assert client.get_config("copy") == {"title": "Hi"}
-    result = client.get_experiment("exp", {"color": "blue"})
-    assert result.in_experiment is True
-    assert result.group == "treatment"
-    assert result.params == {"color": "red"}
+
+
+def test_configure_for_offline_experiment_override_surfaces_through_assign():
+    # An experiment override is a pure override — it wins over blob eval for an
+    # experiment already present + running in the loaded blob. Layer it on an
+    # offline snapshot that actually contains the experiment.
+    shipeasy.configure_for_offline(
+        snapshot=_running_exp_snapshot(),
+        experiments={"exp": ("treatment", {"color": "red"})},
+    )
+    client = Client({"user_id": "u_1"})
+    a = client.universe("u").assign()
+    assert a.enrolled is True
+    assert a.group == "treatment"  # override group wins over the blob's variant
+    assert a.get("color") == "red"
 
 
 def test_configure_for_testing_no_network_and_default_off():
@@ -124,19 +154,18 @@ def test_on_the_spot_override_helpers():
     # flip on the spot, no reconfigure
     shipeasy.override_flag("a", False)
     shipeasy.override_config("copy", {"title": "Hi"})
-    shipeasy.override_experiment("exp", "treatment", {"color": "green"})
 
     client = Client({"user_id": "u"})
     assert client.get_flag("a") is False
     assert client.get_config("copy") == {"title": "Hi"}
-    r = client.get_experiment("exp", {"color": "blue"})
-    assert r.in_experiment and r.group == "treatment" and r.params == {"color": "green"}
 
     # clear_overrides() drops EVERY override — including the seed from
     # configure_for_testing (test mode has no underlying blob), so "a" is gone.
     shipeasy.clear_overrides()
     assert Client({"user_id": "u"}).get_flag("a") is False
-    # for offline, clearing reverts to the snapshot rather than to empty:
+    # for offline, clearing reverts to the snapshot rather than to empty. The
+    # snapshot carries a real running experiment so the on-the-spot experiment
+    # override (a pure override) can surface through universe(name).assign().
     shipeasy.configure_for_offline(
         snapshot={
             "flags": {
@@ -145,13 +174,31 @@ def test_on_the_spot_override_helpers():
                 },
                 "configs": {},
             },
-            "experiments": {},
+            "experiments": {
+                "experiments": {
+                    "exp": {
+                        "universe": "u",
+                        "status": "running",
+                        "salt": "s",
+                        "allocationPct": 10000,
+                        "groups": [{"name": "control", "weight": 10000, "params": {}}],
+                    }
+                },
+                "universes": {"u": {}},
+            },
         }
     )
+    # on-the-spot experiment override wins over the blob's variant.
+    shipeasy.override_experiment("exp", "treatment", {"color": "green"})
+    a = Client({"user_id": "u"}).universe("u").assign()
+    assert a.enrolled and a.group == "treatment" and a.get("color") == "green"
+
     shipeasy.override_flag("g", False)
     assert Client({"user_id": "u"}).get_flag("g") is False
     shipeasy.clear_overrides()
     assert Client({"user_id": "u"}).get_flag("g") is True  # back to the snapshot
+    # clearing the experiment override reverts to blob eval (the real variant).
+    assert Client({"user_id": "u"}).universe("u").assign().group == "control"
 
 
 def test_override_helpers_require_configure():

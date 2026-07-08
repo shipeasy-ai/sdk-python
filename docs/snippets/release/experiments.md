@@ -1,5 +1,6 @@
-Read an experiment, log exposure where you present the treatment, then track its
-success event. Assumes `configure()` ran at startup — see Installation.
+Ask a universe for an assignment (a unit lands in ≤1 experiment; exposure is
+auto-logged on an enrolled assign), then track its success event. Assumes
+`configure()` ran at startup — see Installation.
 
 ```python
 import shipeasy
@@ -7,15 +8,15 @@ import shipeasy
 # construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
 
-# name                          experiment name (required)
-# default_params={...}          params returned when the user isn't enrolled
-# decode=lambda p: ...          optional: transform the params bag (typed)
-result = client.get_experiment("{{EXPERIMENT_KEY}}", default_params={"color": "blue"})
+# universe name (required) — a mutual-exclusion pool of experiments.
+# assign() takes NO user arg: it uses the bound user and auto-logs one exposure.
+a = client.universe("{{EXPERIMENT_KEY}}").assign()
 
-# call where you actually render the treatment (server is stateless — no auto-log)
-client.log_exposure("{{EXPERIMENT_KEY}}")  # experiment name (required)
-
-if result.params["color"] == "green":
+# a.name      -> the experiment the unit landed in, or None
+# a.group     -> the assigned variant, or None
+# a.enrolled  -> bool (group is not None)
+# a.get(field, fallback) -> variant override -> universe default -> fallback
+if a.get("color") == "green":
     ...
 
 # track the conversion on the same bound client; unit is the bound user

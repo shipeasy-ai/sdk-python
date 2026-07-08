@@ -100,19 +100,26 @@ def test_private_attributes_still_drive_targeting():
 
 
 # ===========================================================================
-# FEATURE B — manual exposure (server)
+# FEATURE B — auto-exposure on assign() (server)
 # ===========================================================================
 
 
-def test_log_exposure_once_when_enrolled():
-    exps = {"experiments": {"exp": _running_exp(alloc=10000)}}
+def _universe_exp(**extra):
+    # A running experiment in universe "u" with 100% allocation by default.
+    return {"experiments": {"exp": _running_exp(universe="u", **extra)}, "universes": {"u": {}}}
+
+
+def test_assign_auto_logs_exposure_once_when_enrolled():
     c, cm = _make_capture_client()
     c._test_mode = False
-    c._exps_blob = exps
+    c._exps_blob = _universe_exp(alloc=10000)
     c._flags_blob = {}
     c._initialized = True
     try:
-        c.log_exposure("u1", "exp")
+        a = c.universe("u").assign({"user_id": "u1"})
+        assert a.enrolled is True
+        # A second assign for the SAME (uid, exp, group) is deduped — no 2nd post.
+        c.universe("u").assign({"user_id": "u1"})
     finally:
         cm.threading.Thread = c._orig_thread
 
@@ -127,30 +134,29 @@ def test_log_exposure_once_when_enrolled():
     assert "ts" in ev
 
 
-def test_log_exposure_noop_when_not_enrolled():
+def test_assign_no_exposure_when_not_enrolled():
     # allocationPct = 0 → nobody enrolled → no exposure posted.
-    exps = {"experiments": {"exp": _running_exp(alloc=0)}}
     c, cm = _make_capture_client()
     c._test_mode = False
-    c._exps_blob = exps
+    c._exps_blob = _universe_exp(alloc=0)
     c._flags_blob = {}
     c._initialized = True
     try:
-        c.log_exposure("u1", "exp")
+        a = c.universe("u").assign({"user_id": "u1"})
+        assert a.enrolled is False
     finally:
         cm.threading.Thread = c._orig_thread
     assert c.posts == []
 
 
-def test_log_exposure_accepts_user_dict():
-    exps = {"experiments": {"exp": _running_exp(alloc=10000)}}
+def test_assign_exposure_carries_user_dict_attrs():
     c, cm = _make_capture_client()
     c._test_mode = False
-    c._exps_blob = exps
+    c._exps_blob = _universe_exp(alloc=10000)
     c._flags_blob = {}
     c._initialized = True
     try:
-        c.log_exposure({"user_id": "u9", "plan": "pro"}, "exp")
+        c.universe("u").assign({"user_id": "u9", "plan": "pro"})
     finally:
         cm.threading.Thread = c._orig_thread
     assert len(c.posts) == 1
@@ -158,11 +164,13 @@ def test_log_exposure_accepts_user_dict():
     assert ev["user_id"] == "u9"
 
 
-def test_log_exposure_noop_in_test_mode():
+def test_assign_noop_network_in_test_mode():
     c = Engine.for_testing()
     # Even with an enrolled override, test-mode never touches the network.
+    c._exps_blob = {"experiments": {"exp": _running_exp(universe="u")}, "universes": {"u": {}}}
     c.override_experiment("exp", "treatment", {})
-    c.log_exposure("u1", "exp")  # must not raise
+    a = c.universe("u").assign({"user_id": "u1"})  # must not raise, no network
+    assert a.enrolled is True
 
 
 # ===========================================================================
@@ -279,11 +287,14 @@ def test_sticky_keyed_by_bucket_by_unit():
     assert store.get("u1") is None
 
 
-def test_sticky_via_client_get_experiment():
+def test_sticky_via_universe_assign():
     store = InMemoryStickyStore()
-    exps = {"experiments": {"exp": _running_exp(salt="clientsalt00", alloc=10000)}}
+    exps = {
+        "experiments": {"exp": _running_exp(salt="clientsalt00", alloc=10000, universe="u")},
+        "universes": {"u": {}},
+    }
     c = Engine.from_snapshot(flags={}, experiments=exps)
     c._sticky_store = store
-    first = c.get_experiment("exp", {"user_id": "u1"}, None)
-    assert first.in_experiment
+    first = c.universe("u").assign({"user_id": "u1"})
+    assert first.enrolled
     assert store.get("u1")["exp"]["g"] == first.group

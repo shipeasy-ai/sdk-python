@@ -6,9 +6,17 @@ import threading
 import time
 import urllib.request
 import urllib.error
-from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar
 
-from ._eval import ExperimentResult, eval_experiment, eval_gate, _enabled
+from ._eval import (
+    ExperimentResult,
+    Assignment,
+    eval_gate,
+    classify_experiment,
+    merge_params,
+    param_defaults_from_schema,
+    _enabled,
+)
 from ._bootstrap import render_bootstrap_tag, render_i18n_tag
 from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from ._detail import (
@@ -110,6 +118,10 @@ class Engine:
         # returns NEW data (a 200, not a 304). Guarded by _lock. Never fired in
         # test/offline mode (no poll thread runs there).
         self._change_listeners: list[Callable[[], None]] = []
+        # Bounded per-process exposure dedup (``uid:exp:group``) so auto-exposure
+        # from repeated assign() calls doesn't spam /collect. Cleared past a soft
+        # cap. Guarded by _lock.
+        self._exposure_seen: set = set()
         # see() structured error reporting. Per-process spam guard; bound here so
         # repeated reports of the same issue collapse to one send.
         self._see_limiter = SeeLimiter()
@@ -189,8 +201,13 @@ class Engine:
         self._config_overrides[name] = value
 
     def override_experiment(self, name: str, group: str, params: Any) -> None:
-        """Force ``get_experiment(name)`` to report the caller as enrolled in
-        ``group`` with ``params``, regardless of the blob."""
+        """Force the experiment ``name`` to report the unit as enrolled in
+        ``group`` with ``params``. A pure override seam (mirrors ts-sdk and the
+        other SDKs): it wins over blob evaluation in the override→classify path,
+        so it surfaces through ``universe(name).assign()`` **only for an
+        experiment that already exists and is running in the loaded blob** — the
+        universe's candidate list drives assignment. It does not synthesize an
+        experiment or universe into the blob."""
         self._experiment_overrides[name] = (group, params)
 
     def clear_overrides(self) -> None:
@@ -262,7 +279,7 @@ class Engine:
             return FlagDetail(value=False, reason=CLIENT_NOT_READY)
 
     def _get_flag_detail(self, name: str, user: Mapping[str, Any]) -> FlagDetail:
-        # 1. Override wins — short-circuit before telemetry, like get_experiment.
+        # 1. Override wins — short-circuit before telemetry (like the override path).
         if name in self._flag_overrides:
             return FlagDetail(value=self._flag_overrides[name], reason=OVERRIDE)
 
@@ -355,59 +372,119 @@ class Engine:
             _log.warn("get_config(%s) decode failed: %s", name, e)
             return default
 
-    def get_experiment(
-        self,
-        name: str,
-        user: Mapping[str, Any],
-        default_params: T,
-        decode: Optional[Callable[[Any], T]] = None,
-    ) -> ExperimentResult:
-        """Evaluate experiment ``name`` for ``user``.
-
-        Fail-safe: a ``decode`` failure logs at warn; any other unexpected
-        internal error logs at error. Either way the caller gets a safe
-        not-enrolled control result (``in_experiment=False``, ``group="control"``,
-        ``params=default_params``) — this runtime read never raises.
+    def _eval_experiment_standing(
+        self, name: str, exp: Mapping[str, Any], user: Mapping[str, Any]
+    ):
+        """Evaluate one experiment by name for ``user`` — override → full classify
+        pipeline (targeting → universe holdout → holdout gate → sticky →
+        allocation → group), merging the universe defaults under the assigned
+        variant (§B2). Internal: the public surface is
+        ``universe(name).assign(user)``. Reused by the SSR ``evaluate()`` bootstrap
+        (keyed by experiment name) and by ``assign_universe``. Returns an
+        ``ExpStanding``.
         """
-        try:
-            return self._get_experiment(name, user, default_params, decode)
-        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
-            _log.error("get_experiment(%s) failed: %s", name, e)
-            report_internal_error("experiments.get", e)
-            return ExperimentResult(False, "control", default_params)
+        from ._eval import ExpStanding
 
-    def _get_experiment(
-        self,
-        name: str,
-        user: Mapping[str, Any],
-        default_params: T,
-        decode: Optional[Callable[[Any], T]] = None,
-    ) -> ExperimentResult:
-        if name in self._experiment_overrides:
-            group, params = self._experiment_overrides[name]
-            return ExperimentResult(in_experiment=True, group=group, params=params)
-        self._telemetry.emit("experiment", name)
         with self._lock:
             flags_blob = self._flags_blob
             exps_blob = self._exps_blob
-        exp = (exps_blob or {}).get("experiments", {}).get(name)
-        result = eval_experiment(
+        universe_name = exp.get("universe")
+        universe = (
+            (exps_blob or {}).get("universes", {}).get(universe_name)
+            if universe_name
+            else None
+        )
+        param_defaults = param_defaults_from_schema(
+            universe.get("param_schema") if universe else None
+        )
+        if name in self._experiment_overrides:
+            group, params = self._experiment_overrides[name]
+            return ExpStanding(
+                state="group", group=group, params=merge_params(param_defaults, params)
+            )
+        if flags_blob is None or exps_blob is None:
+            return ExpStanding(state="out")
+        if exp.get("status") != "running":
+            return ExpStanding(state="out")
+
+        holdout_range = universe.get("holdout_range") if universe else None
+
+        def _eval_gate_fn(gname: str) -> bool:
+            gate = (flags_blob or {}).get("gates", {}).get(gname)
+            return bool(gate and eval_gate(gate, user))
+
+        return classify_experiment(
             exp,
-            flags_blob,
-            exps_blob,
-            _with_anon_id(user),
+            user,
+            holdout_range,
+            param_defaults,
+            _eval_gate_fn,
             exp_name=name,
             sticky_store=self._sticky_store,
         )
-        if result.params is None:
-            result.params = default_params
-        if result.in_experiment and decode is not None:
-            try:
-                result.params = decode(result.params)
-            except Exception as e:  # noqa: BLE001
-                _log.warn("get_experiment(%s) decode failed: %s", name, e)
-                return ExperimentResult(False, "control", default_params)
-        return result
+
+    def assign_universe(self, universe_name: str, user: Mapping[str, Any]) -> Assignment:
+        """Assign ``user`` within ``universe_name``. A universe is a
+        mutual-exclusion pool, so a unit lands in **at most one** experiment; the
+        returned :class:`Assignment` exposes the variant + resolved params and
+        auto-logs a single exposure when enrolled. An un-enrolled unit still
+        resolves ``get()`` to the universe defaults. Never throws. This is the
+        sole experiment read path (there is no ``get_experiment`` — a caller asks
+        a universe, not an experiment).
+        """
+        try:
+            return self._assign_universe(universe_name, _with_anon_id(user))
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("assign(%s) failed: %s", universe_name, e)
+            report_internal_error("experiments.assign", e)
+            return Assignment(None, None, {})
+
+    def _assign_universe(self, universe_name: str, user: Mapping[str, Any]) -> Assignment:
+        self._telemetry.emit("experiment", universe_name)
+        with self._lock:
+            exps_blob = self._exps_blob
+        universe = (
+            (exps_blob or {}).get("universes", {}).get(universe_name)
+            if universe_name
+            else None
+        )
+        param_defaults = param_defaults_from_schema(
+            universe.get("param_schema") if universe else None
+        )
+
+        def _not_enrolled() -> Assignment:
+            return Assignment(None, None, param_defaults or {})
+
+        if exps_blob is None:
+            return _not_enrolled()
+
+        # Candidate running experiments in this universe. Deterministic order:
+        # pool-slice offset asc (slices are disjoint so ≤1 matches under pooling),
+        # then name. A universe-held-out or unallocated unit falls through to the
+        # defaults-only handle.
+        candidates = [
+            (n, e)
+            for n, e in (exps_blob.get("experiments") or {}).items()
+            if e.get("universe") == universe_name and e.get("status") == "running"
+        ]
+        candidates.sort(key=lambda item: (item[1].get("poolOffsetBp") or 0, item[0]))
+
+        for name, exp in candidates:
+            standing = self._eval_experiment_standing(name, exp, user)
+            if standing.state == "group":
+                self._post_exposure(user, name, standing.group or "control")
+                return Assignment(name, standing.group, standing.params or {})
+            # "holdout"/"out": try the next candidate — under pooling only one
+            # slice can match, so the loop naturally lands on the winner.
+        return _not_enrolled()
+
+    def universe(self, name: str) -> "_UniverseHandle":
+        """The universe-first experiment read entry point:
+        ``engine.universe("checkout").assign(user)``. Returns a reusable handle
+        bound to one universe; ``assign(user)`` picks the ≤1 experiment the unit
+        is pooled into and auto-logs a single exposure. See ``assign_universe``.
+        """
+        return _UniverseHandle(self, name)
 
     def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
         """Return whether kill switch ``name`` is engaged (the feature is
@@ -461,8 +538,6 @@ class Engine:
             exps_blob = self._exps_blob or {}
             flag_ov = dict(self._flag_overrides)
             config_ov = dict(self._config_overrides)
-            exp_ov = dict(self._experiment_overrides)
-            sticky = self._sticky_store
 
         flags: dict = {}
         for name, gate in (flags_blob.get("gates") or {}).items():
@@ -474,30 +549,43 @@ class Engine:
                 config_ov[name] if name in config_ov else (entry or {}).get("value")
             )
 
+        # Per-universe param defaults so the client can resolve
+        # ``universe(name).get()`` to a default even when the unit is not enrolled
+        # anywhere in the universe. Only universes with running experiments listed.
+        universes: dict = {}
         experiments: dict = {}
         for name, exp in (exps_blob.get("experiments") or {}).items():
-            if name in exp_ov:
-                group, params = exp_ov[name]
+            uni_name = exp.get("universe")
+            if uni_name is not None and uni_name not in universes:
+                uni = (exps_blob.get("universes") or {}).get(uni_name)
+                universes[uni_name] = {
+                    "defaults": param_defaults_from_schema(
+                        uni.get("param_schema") if uni else None
+                    )
+                    or {}
+                }
+            standing = self._eval_experiment_standing(name, exp, user)
+            if standing.state == "group":
                 experiments[name] = {
                     "inExperiment": True,
-                    "group": group,
-                    "params": params,
+                    "group": standing.group,
+                    "params": standing.params or {},
+                    "universe": uni_name,
                 }
-                continue
-            r = eval_experiment(
-                exp, flags_blob, exps_blob, user, exp_name=name, sticky_store=sticky
-            )
-            experiments[name] = {
-                "inExperiment": r.in_experiment,
-                "group": r.group,
-                "params": r.params,
-            }
+            else:
+                experiments[name] = {
+                    "inExperiment": False,
+                    "group": "control",
+                    "params": {},
+                    "universe": uni_name,
+                }
 
         return {
             "flags": flags,
             "configs": configs,
             "experiments": experiments,
             "killswitches": {},
+            "universes": universes,
         }
 
     def bootstrap_script_tag(
@@ -555,42 +643,36 @@ class Engine:
             _log.error("track(%s) failed: %s", event_name, e)
             report_internal_error("track", e)
 
-    def log_exposure(
-        self, user_or_user_id: Union[str, Mapping[str, Any]], experiment_name: str
+    def _post_exposure(
+        self, user: Mapping[str, Any], experiment: str, group: str
     ) -> None:
-        """Emit an exposure event for an experiment at the server-side decision
-        point (parity with the browser's auto-exposure). The server is stateless
-        and never auto-logs, so call this when you actually present the
-        treatment. ``user_or_user_id`` is a bare ``user_id`` string (wrapped as
-        ``{"user_id": ...}``) or a full user dict. Re-evaluates the experiment;
-        if the user is enrolled, POSTs a single ``exposure`` event to /collect.
-        No-op in test mode or when the user isn't enrolled.
-
-        Fail-safe: any unexpected internal error is logged and swallowed — this
-        runtime method never raises.
+        """POST a single exposure for an enrolled ``(user, experiment, group)``.
+        Deduped per process (bounded set) so repeated ``assign()`` calls in one
+        server don't spam ``/collect``. Fire-and-forget; no-op in test mode. This
+        is how ``assign_universe`` auto-logs — the browser's auto-exposure parity
+        for SSR. Fail-safe: any unexpected internal error is logged and swallowed.
         """
         try:
             if self._test_mode:
                 return
-            user: Mapping[str, Any] = (
-                {"user_id": user_or_user_id}
-                if isinstance(user_or_user_id, str)
-                else user_or_user_id
-            )
-            result = self.get_experiment(experiment_name, user, None)
-            if not result.in_experiment:
-                return
-            u = _with_anon_id(user)
+            uid = user.get("user_id") or user.get("anonymous_id")
+            dedup_key = f"{uid or ''}:{experiment}:{group}"
+            with self._lock:
+                if dedup_key in self._exposure_seen:
+                    return
+                if len(self._exposure_seen) > 5000:
+                    self._exposure_seen.clear()
+                self._exposure_seen.add(dedup_key)
             event: dict = {
                 "type": "exposure",
-                "experiment": experiment_name,
-                "group": result.group,
+                "experiment": experiment,
+                "group": group,
                 "ts": int(time.time() * 1000),
             }
-            if u.get("user_id") is not None:
-                event["user_id"] = u["user_id"]
-            if u.get("anonymous_id") is not None:
-                event["anonymous_id"] = u["anonymous_id"]
+            if user.get("user_id") is not None:
+                event["user_id"] = user["user_id"]
+            if user.get("anonymous_id") is not None:
+                event["anonymous_id"] = user["anonymous_id"]
             body = {"events": [event]}
             data = json.dumps(body).encode("utf-8")
             threading.Thread(
@@ -598,8 +680,8 @@ class Engine:
                 args=("/collect", data),
                 daemon=True,
             ).start()
-        except Exception as e:  # noqa: BLE001 — log_exposure must never raise
-            _log.error("log_exposure(%s) failed: %s", experiment_name, e)
+        except Exception as e:  # noqa: BLE001 — exposure must never raise
+            _log.error("exposure(%s) failed: %s", experiment, e)
             report_internal_error("exposure", e)
 
     def _post_silent(self, path: str, data: bytes) -> None:
@@ -944,8 +1026,9 @@ def override_config(name: str, value: Any) -> None:
 
 
 def override_experiment(name: str, group: str, params: Any) -> None:
-    """Force ``get_experiment(name)`` to report enrolment in ``group`` with
-    ``params`` on the spot (see :func:`override_flag`)."""
+    """Force the experiment ``name`` to report enrolment in ``group`` with
+    ``params`` on the spot; it surfaces through ``universe(name).assign()`` (see
+    :func:`override_flag` and :meth:`Engine.override_experiment`)."""
     _require_global("override_experiment").override_experiment(name, group, params)
 
 
@@ -996,6 +1079,45 @@ def reset_global() -> None:
     with _configure_lock:
         _global_engine = None
         _global_attributes = _identity_attributes
+
+
+class _UniverseHandle:
+    """A reusable handle bound to one universe on an :class:`Engine`. Returned by
+    ``engine.universe(name)``; ``assign(user)`` picks the ≤1 experiment the unit
+    is pooled into and returns an :class:`Assignment`, auto-logging one exposure
+    when enrolled. See ``Engine.assign_universe``.
+    """
+
+    __slots__ = ("_engine", "_name")
+
+    def __init__(self, engine: "Engine", name: str) -> None:
+        self._engine = engine
+        self._name = name
+
+    def assign(self, user: Mapping[str, Any]) -> Assignment:
+        return self._engine.assign_universe(self._name, user)
+
+
+class _BoundUniverseHandle:
+    """A reusable handle bound to one universe AND the ``Client``'s pre-bound
+    user. Returned by ``Client.universe(name)``; ``assign()`` takes no user arg —
+    it forwards the bound attributes. See :class:`Client`.
+    """
+
+    __slots__ = ("_engine", "_name", "_attributes")
+
+    def __init__(self, engine: "Engine", name: str, attributes: Mapping[str, Any]) -> None:
+        self._engine = engine
+        self._name = name
+        self._attributes = attributes
+
+    def assign(self) -> Assignment:
+        try:
+            return self._engine.assign_universe(self._name, self._attributes)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.universe(%s).assign() failed: %s", self._name, e)
+            report_internal_error("Client.assign", e)
+            return Assignment(None, None, {})
 
 
 class Client:
@@ -1053,20 +1175,21 @@ class Client:
             report_internal_error("Client.get_config", e)
             return default
 
-    def get_experiment(
-        self,
-        name: str,
-        default_params: T,
-        decode: Optional[Callable[[Any], T]] = None,
-    ) -> ExperimentResult:
-        try:
-            return self._engine.get_experiment(
-                name, self.attributes, default_params, decode
-            )
-        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
-            _log.error("Client.get_experiment(%s) failed: %s", name, e)
-            report_internal_error("Client.get_experiment", e)
-            return ExperimentResult(False, "control", default_params)
+    def universe(self, name: str) -> "_BoundUniverseHandle":
+        """Return a reusable handle bound to universe ``name`` AND this client's
+        user. ``universe(name).assign()`` takes no user arg — it picks the ≤1
+        experiment the bound unit is pooled into within the universe, auto-logs a
+        single exposure when enrolled, and returns an :class:`Assignment`::
+
+            a = client.universe("checkout").assign()
+            if a.get("button_color") == "green":
+                ...
+
+        A not-enrolled unit still resolves ``a.get(field, fallback)`` to the
+        universe default. This is the sole experiment read path (there is no
+        ``get_experiment`` — a caller asks a universe, not an experiment).
+        """
+        return _BoundUniverseHandle(self._engine, name, self.attributes)
 
     def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
         try:
@@ -1082,8 +1205,8 @@ class Client:
         """Record a conversion/metric event for the bound user. The unit is
         derived from the bound attribute map (``user_id`` else ``anonymous_id``),
         so callers never pass a user — the same handle used for
-        ``get_experiment`` records the conversion. Delegates to ``Engine.track``;
-        no-op in test/offline mode.
+        ``universe(name).assign()`` records the conversion. Delegates to
+        ``Engine.track``; no-op in test/offline mode.
         """
         try:
             unit = self.attributes.get("user_id") or self.attributes.get("anonymous_id")
@@ -1093,15 +1216,3 @@ class Client:
         except Exception as e:  # noqa: BLE001 — track must never raise into the caller
             _log.error("Client.track(%s) failed: %s", event_name, e)
             report_internal_error("Client.track", e)
-
-    def log_exposure(self, experiment_name: str) -> None:
-        """Emit an exposure event for ``experiment_name`` against the bound user
-        (parity with the browser's auto-exposure). Re-evaluates and, if the bound
-        user is enrolled, POSTs a single ``exposure`` event. Delegates to
-        ``Engine.log_exposure``; no-op in test/offline mode or when not enrolled.
-        """
-        try:
-            self._engine.log_exposure(self.attributes, experiment_name)
-        except Exception as e:  # noqa: BLE001 — log_exposure must never raise
-            _log.error("Client.log_exposure(%s) failed: %s", experiment_name, e)
-            report_internal_error("Client.log_exposure", e)

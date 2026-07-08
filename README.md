@@ -65,8 +65,9 @@ client = shipeasy.Client(current_user)
 if client.get_flag("new_checkout"):
     ...
 config = client.get_config("billing_copy")
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-client.log_exposure("checkout_button")    # at the decision point
+a = client.universe("checkout").assign()  # ≤1 experiment; auto-logs exposure
+if a.get("button_color") == "green":
+    ...
 client.track("purchase", {"amount": 49})  # on conversion
 ```
 
@@ -105,7 +106,6 @@ from shipeasy import Client
 shipeasy.configure_for_testing(
     flags={"new_checkout": True},
     configs={"billing_copy": {"title": "Welcome"}},
-    experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
 
 # construct once per callsite (cheap; binds the user)
@@ -114,11 +114,7 @@ client = Client({"user_id": "u_123"})
 assert client.get_flag("new_checkout") is True
 assert client.get_config("billing_copy") == {"title": "Welcome"}
 
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-assert result.in_experiment and result.group == "treatment"
-assert result.params == {"color": "green"}
-
-# track()/log_exposure() are no-ops in test mode — safe to call, send nothing
+# track()/assign() auto-exposure are no-ops in test mode — safe to call, send nothing
 client.track("purchase", {"amount": 49})
 ```
 

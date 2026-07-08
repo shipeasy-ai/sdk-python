@@ -57,7 +57,7 @@ def test_client_fires_a_beacon_for_each_entity(monkeypatch):
     c = Engine("srv_key", base_url="https://e.x")
     c.get_flag("g", {"user_id": "u"})
     c.get_config("c")
-    c.get_experiment("e", {"user_id": "u"}, {})
+    c.universe("e").assign({"user_id": "u"})
     assert len(sent) == 3
     assert any(u.endswith("/gate/g") for u in sent)
     assert any(u.endswith("/config/c") for u in sent)
@@ -72,5 +72,5 @@ def test_client_disable_telemetry_sends_nothing(monkeypatch):
     c = Engine("srv_key", base_url="https://e.x", disable_telemetry=True)
     c.get_flag("g", {"user_id": "u"})
     c.get_config("c")
-    c.get_experiment("e", {"user_id": "u"}, {})
+    c.universe("e").assign({"user_id": "u"})
     assert sent == []

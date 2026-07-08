@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.16.0 (2026-07-08)
+
+### Breaking — experiments are now read by universe, not by name
+
+The whole experiment read surface is replaced. A **universe is a mutual-exclusion
+pool**: a unit is enrolled in **at most one** experiment in it, so you ask a
+universe for an assignment instead of naming an experiment. `get_experiment`,
+`log_exposure`, and `Client.log_exposure` are **removed** on both the `Engine`
+and the bound `Client`.
+
+```python
+# Before (removed):
+result = client.get_experiment("checkout_color", default_params={"button_color": "red"})
+if result.in_experiment and result.params["button_color"] == "green":
+    ...
+client.log_exposure("checkout_color")
+
+# After — bound Client (the documented surface):
+a = client.universe("checkout").assign()          # no user arg; the user is bound
+if a.get("button_color") == "green":
+    ...
+
+# After — Engine (advanced): pass the user explicitly:
+a = engine.universe("checkout").assign(user)
+```
+
+- **`universe(name).assign()`** (bound `Client`) / **`universe(name).assign(user)`**
+  (`Engine`) returns an `Assignment`:
+  - `.name` — the experiment the unit landed in, or `None` when not enrolled.
+  - `.group` — the assigned variant, or `None` when not enrolled.
+  - `.enrolled` — `bool` (computed: `group is not None`).
+  - `.get(field, fallback=None)` — resolves **variant override → universe default
+    → fallback**. Works even when not enrolled (you get the universe default),
+    because the universe now owns the param schema + defaults. No more
+    `decode` / `default_params`.
+- **Auto-exposure.** `assign()` logs a single exposure when the unit is enrolled
+  (deduped per process). The manual `log_exposure` primitive is gone — reading
+  *is* the exposure.
+- **Mutual exclusion (pooled assignment), per-experiment holdout gates, reserved
+  headroom, and universe-default⊕variant param merge** are now honoured by local
+  eval, matching the edge. The `evaluate()` SSR bootstrap now carries a
+  top-level `universes` defaults map and a `universe` field per experiment entry.
+
+Migration: replace each `get_experiment("<exp>", default_params=...)` with
+`universe("<the experiment's universe>").assign()` and read fields via
+`.get("field", fallback)`; delete `log_exposure` calls (exposure is automatic on
+an enrolled `assign()`). The `override_experiment` test seam still exists and
+surfaces through `assign()` when the experiment is present in the loaded blob.
+
 ## 0.15.0 (2026-07-08)
 
 ### Added

@@ -25,6 +25,7 @@ from ._detail import (
     RULE_MATCH,
     DEFAULT,
 )
+from ._eval import Assignment
 from ._hash import murmur3
 from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from .middleware import AnonIdMiddleware, AnonIdASGIMiddleware
@@ -54,6 +55,7 @@ __all__ = [
     "reset_global",
     "AttributesFn",
     "ExperimentResult",
+    "Assignment",
     "FlagDetail",
     "CLIENT_NOT_READY",
     "FLAG_NOT_FOUND",

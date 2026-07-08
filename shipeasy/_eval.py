@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 import re
 
 from ._hash import murmur3
@@ -122,7 +122,154 @@ def eval_gate(gate: Mapping[str, Any], user: Mapping[str, Any]) -> bool:
     return murmur3(f"{salt}:{uid}") % 10000 < (gate.get("rolloutPct") or 0)
 
 
-_NOT_IN = ExperimentResult(in_experiment=False, group="control", params=None)
+# ---- Universe assignment (mutual-exclusion pool eval) ----
+
+
+def param_defaults_from_schema(
+    schema: Optional[Any],
+) -> Optional[Dict[str, Any]]:
+    """Flatten a universe param schema to a plain ``name → default`` map — the
+    defaults ``assign()`` layers under a variant's override map (§B2). Returns
+    ``None`` for a null/empty schema so the merge short-circuits. Mirrors
+    ``@shipeasy/core``.
+    """
+    if not schema:
+        return None
+    out: Dict[str, Any] = {}
+    for p in schema:
+        out[p.get("name")] = p.get("default")
+    return out
+
+
+def merge_params(
+    param_defaults: Optional[Mapping[str, Any]],
+    group_params: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """``universeDefaults ⊕ variantOverride`` — a variant inherits every universe
+    default it doesn't explicitly override (§B2)."""
+    merged: Dict[str, Any] = dict(param_defaults) if param_defaults else {}
+    if group_params:
+        merged.update(group_params)
+    return merged
+
+
+@dataclass
+class ExpStanding:
+    """A unit's standing in one experiment: an assigned ``group`` (with merged
+    params), ``holdout`` (universe carve-out or holdout gate — never assigned),
+    or ``out``."""
+
+    state: str  # "group" | "holdout" | "out"
+    group: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+
+
+_OUT = ExpStanding(state="out")
+_HOLDOUT = ExpStanding(state="holdout")
+
+
+def classify_experiment(
+    exp: Mapping[str, Any],
+    user: Mapping[str, Any],
+    holdout_range: Optional[Any],
+    param_defaults: Optional[Mapping[str, Any]],
+    eval_gate_fn,
+    *,
+    exp_name: Optional[str] = None,
+    sticky_store: Optional[StickyBucketStore] = None,
+) -> ExpStanding:
+    """Targeting → universe holdout → holdout gate → sticky → allocation (pooled
+    or legacy) → weighted group split. The single local mirror of
+    ``@shipeasy/core``'s ``classifyExperiment`` — keep the two in sync (see
+    experiment-platform/04). ``eval_gate_fn`` is a gate-name → bool lookup over
+    the flags blob so the two gate checks reuse the SDK's real gate evaluation.
+    """
+    groups = exp.get("groups") or []
+
+    def _as_group(g: Mapping[str, Any]) -> ExpStanding:
+        return ExpStanding(
+            state="group",
+            group=g.get("name", "control"),
+            params=merge_params(param_defaults, g.get("params")),
+        )
+
+    targeting_gate = exp.get("targetingGate")
+    if targeting_gate and not eval_gate_fn(targeting_gate):
+        return _OUT
+
+    uid = pick_identifier(user, exp.get("bucketBy"))
+    if not uid:
+        return _OUT
+
+    # One segment in the universe's shared ``[0, 10000)`` hash space. The holdout
+    # carve-out AND every experiment's pool slice are disjoint ranges of THIS
+    # segment — that's what makes "held out / taken / free" a real partition.
+    universe_seg = murmur3(f"{exp.get('universe')}:{uid}") % 10000
+
+    if holdout_range:
+        lo, hi = holdout_range[0], holdout_range[1]
+        if lo <= universe_seg <= hi:
+            return _HOLDOUT
+
+    holdout_gate = exp.get("holdoutGate")
+    if holdout_gate and eval_gate_fn(holdout_gate):
+        return _HOLDOUT
+
+    salt = exp.get("salt") or ""
+    salt8 = salt[:8]
+
+    # Sticky short-circuit (doc 20 §2): an enrolled unit whose stored salt prefix
+    # still matches skips the allocation gate (so a shrinking allocation keeps it
+    # in) and returns the stored group without re-running the pick. A salt change
+    # (prefix mismatch) or a stored group that no longer exists falls through to
+    # re-bucket + overwrite.
+    if sticky_store is not None and exp_name is not None:
+        unit_entries = sticky_store.get(uid)
+        entry = unit_entries.get(exp_name) if unit_entries else None
+        if entry and entry.get("s") == salt8:
+            for g in groups:
+                if g.get("name") == entry.get("g"):
+                    return _as_group(g)
+            # Stored group gone — fall through to re-bucket + overwrite.
+
+    # Allocation. Pooled (hashVersion ≥ 2 with a slice) gives real mutual
+    # exclusion: the unit's universe segment must fall in the claimed range.
+    # Legacy falls back to an independent per-experiment salt so siblings overlap.
+    pool_offset = exp.get("poolOffsetBp")
+    pool_size = exp.get("poolSizeBp")
+    pooled = (
+        (exp.get("hashVersion") or 1) >= 2
+        and pool_offset is not None
+        and pool_size is not None
+        and pool_size > 0
+    )
+    if pooled:
+        lo = pool_offset
+        hi = lo + pool_size
+        if universe_seg < lo or universe_seg >= hi:
+            return _OUT
+    else:
+        alloc_pct = exp.get("allocationPct") or 0
+        if murmur3(f"{salt}:alloc:{uid}") % 10000 >= alloc_pct:
+            return _OUT
+
+    # Group split over ``[0, usable)`` where ``usable = 10000 − reserved``; a unit
+    # in the reserved tail is left unassigned so an appended variant can absorb it
+    # (§B5).
+    reserved = max(0, min(10000, exp.get("reservedHeadroomBp") or 0))
+    usable = 10000 - reserved
+    group_hash = murmur3(f"{salt}:group:{uid}") % 10000
+    if group_hash >= usable:
+        return _OUT
+    cumulative = 0
+    for i, g in enumerate(groups):
+        cumulative += g.get("weight", 0)
+        if group_hash < cumulative or i == len(groups) - 1:
+            if sticky_store is not None and exp_name is not None:
+                sticky_store.set(uid, exp_name, {"g": g.get("name", "control"), "s": salt8})
+            return _as_group(g)
+
+    return _OUT
 
 
 def eval_experiment(
@@ -134,64 +281,75 @@ def eval_experiment(
     exp_name: Optional[str] = None,
     sticky_store: Optional[StickyBucketStore] = None,
 ) -> ExperimentResult:
+    """Evaluate a single running experiment to an :class:`ExperimentResult`
+    (in-experiment + group + merged params). Internal seam: the public read path
+    is ``universe(name).assign(user)``. A ``holdout``/``out`` standing collapses
+    to the not-enrolled control result. Reused by the sticky-bucketing tests.
+    """
     if not exp or exp.get("status") != "running":
-        return _NOT_IN
-
-    targeting_gate = exp.get("targetingGate")
-    if targeting_gate:
-        gate = (flags_blob or {}).get("gates", {}).get(targeting_gate)
-        if not gate or not eval_gate(gate, user):
-            return _NOT_IN
-
-    # Bucket on exp.bucketBy (e.g. company_id) when set, else
-    # user_id/anonymous_id. Holdout, allocation, and group all hash on the SAME
-    # unit so a whole org moves together. No resolvable unit ⇒ not enrolled.
-    uid = pick_identifier(user, exp.get("bucketBy"))
-    if not uid:
-        return _NOT_IN
+        return ExperimentResult(in_experiment=False, group="control", params=None)
 
     universe_name = exp.get("universe")
-    universe = (exps_blob or {}).get("universes", {}).get(universe_name) if universe_name else None
-    holdout = universe.get("holdout_range") if universe else None
-    if holdout:
-        seg = murmur3(f"{universe_name}:{uid}") % 10000
-        if holdout[0] <= seg <= holdout[1]:
-            return _NOT_IN
+    universe = (
+        (exps_blob or {}).get("universes", {}).get(universe_name) if universe_name else None
+    )
+    holdout_range = universe.get("holdout_range") if universe else None
+    param_defaults = param_defaults_from_schema(universe.get("param_schema") if universe else None)
 
-    salt = exp.get("salt") or ""
-    groups = exp.get("groups") or []
+    def _eval_gate_fn(gname: str) -> bool:
+        gate = (flags_blob or {}).get("gates", {}).get(gname)
+        return bool(gate and eval_gate(gate, user))
 
-    def _result_for_group(g: Mapping[str, Any]) -> ExperimentResult:
+    standing = classify_experiment(
+        exp,
+        user,
+        holdout_range,
+        param_defaults,
+        _eval_gate_fn,
+        exp_name=exp_name,
+        sticky_store=sticky_store,
+    )
+    if standing.state == "group":
         return ExperimentResult(
-            in_experiment=True, group=g.get("name", "control"), params=g.get("params")
+            in_experiment=True, group=standing.group or "control", params=standing.params
         )
+    return ExperimentResult(in_experiment=False, group="control", params=None)
 
-    # Sticky short-circuit (doc 20 §2): an enrolled unit whose stored salt prefix
-    # still matches skips the allocation gate (so a shrinking allocation keeps it
-    # in) and returns the stored group without re-running the pick. A salt change
-    # (prefix mismatch) or a stored group that no longer exists falls through to
-    # re-bucket + overwrite.
-    salt8 = salt[:8]
-    if sticky_store is not None and exp_name is not None:
-        unit_entries = sticky_store.get(uid)
-        entry = unit_entries.get(exp_name) if unit_entries else None
-        if entry and entry.get("s") == salt8:
-            for g in groups:
-                if g.get("name") == entry.get("g"):
-                    return _result_for_group(g)
-            # Stored group gone — fall through to re-bucket + overwrite.
 
-    alloc_pct = exp.get("allocationPct") or 0
-    if murmur3(f"{salt}:alloc:{uid}") % 10000 >= alloc_pct:
-        return _NOT_IN
+class Assignment:
+    """The result of ``universe(name).assign(user)`` — a user's standing in a
+    universe. A universe is a mutual-exclusion pool, so a unit lands in **at most
+    one** experiment. Never throws: an un-enrolled unit still resolves ``get()``
+    to the universe defaults (or your fallback). Reading is side-effect free — the
+    single exposure is logged once by ``assign()`` when the unit is enrolled.
+    """
 
-    group_hash = murmur3(f"{salt}:group:{uid}") % 10000
-    cumulative = 0
-    for i, g in enumerate(groups):
-        cumulative += g.get("weight", 0)
-        if group_hash < cumulative or i == len(groups) - 1:
-            if sticky_store is not None and exp_name is not None:
-                sticky_store.set(uid, exp_name, {"g": g.get("name", "control"), "s": salt8})
-            return _result_for_group(g)
+    __slots__ = ("name", "group", "_params")
 
-    return _NOT_IN
+    def __init__(
+        self,
+        name: Optional[str],
+        group: Optional[str],
+        # Already merged (universeDefaults ⊕ variantOverride) when enrolled;
+        # defaults-only (or {}) when not.
+        params: Optional[Mapping[str, Any]],
+    ) -> None:
+        self.name = name
+        self.group = group
+        self._params: Dict[str, Any] = dict(params) if params else {}
+
+    @property
+    def enrolled(self) -> bool:
+        """True iff the unit is enrolled in an experiment in this universe."""
+        return self.group is not None
+
+    def get(self, field: str, fallback: Any = None) -> Any:
+        """Read a resolved param: the assigned variant's override, else the
+        universe default, else ``fallback``. Works even when not enrolled (the
+        variant layer is absent, so you get ``universeDefault ?? fallback``)."""
+        if field in self._params:
+            return self._params[field]
+        return fallback
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return f"Assignment(name={self.name!r}, group={self.group!r})"

@@ -2,8 +2,8 @@
 
 When the SDK swallows one of its OWN internal errors (the last-resort
 ``try/except`` guard wrapping every public runtime read in ``_client.py`` —
-``get_flag`` / ``get_config`` / ``get_experiment`` / ``get_killswitch`` /
-``track`` / ``log_exposure``, which keep a read from raising into product code
+``get_flag`` / ``get_config`` / ``assign`` / ``get_killswitch`` /
+``track``, which keep a read from raising into product code
 even when an internal invariant is violated), it ALSO ships a structured see
 event here — to Shipeasy's OWN project, NOT the consumer's — so the SDK team
 can track SDK-internal failures across every app the SDK runs in.

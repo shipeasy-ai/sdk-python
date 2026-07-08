@@ -64,22 +64,22 @@ dashboard, and the SDK reads it from the experiment definition
 (`exp.bucketBy`) — falling back to `user_id` then `anonymous_id`. Make sure that
 attribute is present in the user map you pass.
 
-## Manual exposure — `log_exposure`
+## Automatic exposure on `assign()`
 
-The server is stateless and never auto-logs exposures. Call `log_exposure` at the
-real decision point (when you actually present the treatment) for parity with the
-browser's auto-exposure. It re-evaluates the experiment and, if the user is
-enrolled, POSTs a single `exposure` event — on the same bound `Client`, no user
-argument:
+There is no manual exposure primitive. Reading an assignment **is** the exposure:
+`universe(name).assign()` logs a single `exposure` event when the unit is enrolled
+— on the same bound `Client`, no user argument:
 
 ```python
 # construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
 
-client.log_exposure("checkout_button")
+a = client.universe("checkout").assign()   # auto-logs one exposure if enrolled
 ```
 
-No-op in test mode or when the user isn't enrolled.
+Exposures are deduped per process (by unit + experiment + group), so repeated
+`assign()` calls don't spam the collector. No-op in test/offline mode or when the
+unit isn't enrolled.
 
 ## Server-side rendering (SSR)
 

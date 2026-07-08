@@ -1,44 +1,58 @@
-# A/B experiments — `get_experiment` + `track`
+# A/B experiments — `universe(name).assign()` + `track`
 
 After [`configure()`](configuration.md), an experiment is **end-to-end through
-the bound `shipeasy.Client(user)`** — read the assignment, log exposure, and
-track the conversion, all on the same handle, with no user argument.
+the bound `shipeasy.Client(user)`** — read the assignment (which auto-logs
+exposure) and track the conversion, all on the same handle, with no user
+argument.
 
-## Reading an experiment
+## Universes, not experiment names
 
-`get_experiment` returns an `ExperimentResult` with three fields:
-
-- `in_experiment` (`bool`) — is the user enrolled?
-- `group` (`str | None`) — the assigned variation group.
-- `params` (`dict`) — the variation parameters (falls back to `default_params`
-  when the user isn't enrolled or no params are set).
+A **universe is a mutual-exclusion pool**: a unit is enrolled in **at most one**
+experiment in it. You no longer read an experiment by name — you ask a universe
+for an assignment:
 
 ```python
 # construct once per callsite (cheap; binds the user)
 client = shipeasy.Client(current_user)
 
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-print(result.in_experiment, result.group, result.params)
+a = client.universe("checkout").assign()
+if a.get("button_color") == "green":
+    ...
 ```
 
-Pass `decode=` to project `params` into a typed shape (applied only when the
-user is enrolled; failures fall back to `default_params`).
+`universe(name)` returns a reusable handle; `assign()` picks the ≤1 experiment the
+bound unit is pooled into within the universe and returns an `Assignment`.
 
-## Logging exposure — `log_exposure`
+## The `Assignment` handle
 
-The server is stateless and never auto-logs exposure. Call `log_exposure` at the
-point you actually present the treatment (parity with the browser's
-auto-exposure). The bound `Client` derives the user from the same bound
-attributes you read the experiment with — no user argument:
+`assign()` never throws. The returned `Assignment` exposes:
+
+- `.name` (`str | None`) — the experiment the unit landed in, or `None` when not
+  enrolled.
+- `.group` (`str | None`) — the assigned variation group, or `None` when not
+  enrolled.
+- `.enrolled` (`bool`) — `True` iff enrolled (`group is not None`).
+- `.get(field, fallback=None)` — the resolved param: the assigned variant's
+  override, else the **universe default**, else `fallback`. It works even when the
+  unit is not enrolled — you get `universe default → fallback` — because the
+  universe owns the param schema and its defaults.
 
 ```python
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-client.log_exposure("checkout_button")   # at the decision point
+a = client.universe("checkout").assign()
+a.name        # "checkout_button" or None
+a.group       # "treatment" or None
+a.enrolled    # True / False
+a.get("button_color", "red")   # variant override → universe default → "red"
 ```
 
-It re-evaluates and, if the bound user is enrolled, POSTs a single `exposure`
-event; otherwise it's a no-op (also a no-op under
-[`configure_for_testing` / `configure_for_offline`](testing.md)).
+## Auto-exposure
+
+Reading *is* the exposure. When the unit is enrolled, `assign()` logs a single
+exposure event automatically (deduped per process, so repeated `assign()` calls
+for the same unit + experiment + group don't spam the collector). There is no
+manual `log_exposure` primitive — just call `assign()` where you present the
+treatment. Exposure is a no-op under
+[`configure_for_testing` / `configure_for_offline`](testing.md).
 
 ## Tracking conversion events — `track`
 

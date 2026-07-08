@@ -40,24 +40,28 @@ def test_get_config_bad_decode_returns_default_no_raise():
     assert client.get_config("cfg", decode=_boom, default="fallback") == "fallback"
 
 
-def test_get_experiment_bad_decode_returns_control_no_raise(monkeypatch):
-    """A ``decode`` failure on an enrolled experiment returns a safe control
-    result and never raises. The enrolled result is faked via ``eval_experiment``
-    (the override path deliberately skips decode)."""
+def test_assign_never_raises_on_internal_error(monkeypatch):
+    """An unexpected internal error inside the assignment pipeline is swallowed
+    and a safe not-enrolled ``Assignment`` is returned — ``assign()`` never
+    raises."""
     from shipeasy import _client as client_mod
 
     engine = Engine.for_testing()
-    # Force enrolment so the decode path is reached.
-    monkeypatch.setattr(
-        client_mod,
-        "eval_experiment",
-        lambda *a, **k: ExperimentResult(in_experiment=True, group="treatment", params={"raw": 1}),
-    )
-    result = engine.get_experiment("exp", {"user_id": "u1"}, default_params={"d": 0}, decode=_boom)
-    assert isinstance(result, ExperimentResult)
-    assert result.in_experiment is False
-    assert result.group == "control"
-    assert result.params == {"d": 0}
+    engine._exps_blob = {"experiments": {}, "universes": {}}
+
+    def blow_up(*_a, **_k):
+        raise RuntimeError("classify blew up")
+
+    monkeypatch.setattr(client_mod, "classify_experiment", blow_up)
+    # Seed a running exp so the (patched) classify path is reached.
+    engine._exps_blob = {
+        "experiments": {"exp": {"universe": "u", "status": "running", "salt": "s", "groups": []}},
+        "universes": {"u": {}},
+    }
+    a = engine.universe("u").assign({"user_id": "u1"})
+    assert a.enrolled is False
+    assert a.group is None
+    assert a.name is None
 
 
 def test_engine_runtime_never_raises_on_unexpected_internal_error(monkeypatch):

@@ -68,13 +68,13 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 ## Fail-safe reads & the `log_level` option
 
 The runtime read/track methods on `shipeasy.Client(user)` —
-`get_flag` / `get_flag_detail` / `get_config` / `get_experiment` /
-`get_killswitch` / `track` / `log_exposure`, and the `see()` reporting chain —
+`get_flag` / `get_flag_detail` / `get_config` / `universe(name).assign()` /
+`get_killswitch` / `track`, and the `see()` reporting chain —
 **never raise into your request path.** If anything goes wrong internally (a bad
 `decode` callback, an unexpected error), the SDK logs it and returns the safe
 default instead: your `default` for `get_flag`/`get_config`, a not-enrolled
-`control` result for `get_experiment`, `False` for `get_killswitch`, and a no-op
-for `track`/`log_exposure`. A feature-flag lookup can't be the thing that takes
+`Assignment` for `assign()`, `False` for `get_killswitch`, and a no-op for
+`track`. A feature-flag lookup can't be the thing that takes
 down a request.
 
 Setup still raises loudly — that's boot-time misconfiguration you want to see:

@@ -17,7 +17,7 @@ Users are taught exactly **two** things, and the docs must never drift from them
    `configure_for_offline()` — for setup.
 2. **`shipeasy.Client(user)`** — the cheap, user-bound handle for *all* reads
    (`get_flag` / `get_flag_detail` / `get_config` / `get_killswitch` /
-   `get_experiment` / `log_exposure` / `track`).
+   `track`, plus universe assignment via `universe(name).assign()`).
 
 Plus the package-level helpers that let users avoid the heavyweight object:
 `override_flag/override_config/override_experiment/clear_overrides`, `on_change`,

@@ -1,4 +1,4 @@
-from shipeasy import Engine, ExperimentResult
+from shipeasy import Engine
 
 
 # Engine.for_testing() builds a no-network, immediately-usable client: no api_key,
@@ -14,8 +14,10 @@ def test_for_testing_needs_no_key_or_network():
     # Getters resolve against the empty blob with no overrides.
     assert client.get_flag("anything", {"user_id": "u1"}) is False
     assert client.get_config("anything") is None
-    result = client.get_experiment("anything", {"user_id": "u1"}, default_params={"k": 1})
-    assert result.in_experiment is False
+    # No experiments loaded → not enrolled; get() falls back to the caller value.
+    a = client.universe("anything").assign({"user_id": "u1"})
+    assert a.enrolled is False
+    assert a.get("k", 1) == 1
 
 
 def test_override_flag_wins():
@@ -39,29 +41,48 @@ def test_override_config_honors_decode():
     assert decoded == 10
 
 
-def test_override_experiment_returns_in_experiment():
-    client = Engine.for_testing()
-    client.override_experiment("checkout_button", group="treatment", params={"color": "green"})
-    result = client.get_experiment(
-        "checkout_button",
-        user={"user_id": "u1"},
-        default_params={"color": "blue"},
-    )
-    assert isinstance(result, ExperimentResult)
-    assert result.in_experiment is True
-    assert result.group == "treatment"
-    assert result.params == {"color": "green"}
+def _running_exp(universe="u", group="treatment", params=None):
+    # A minimal running experiment in a real blob. A pure override needs a loaded
+    # experiment to surface through universe(name).assign().
+    return {
+        "experiments": {
+            "checkout_button": {
+                "universe": universe,
+                "status": "running",
+                "salt": "s",
+                "allocationPct": 10000,
+                "groups": [{"name": group, "weight": 10000, "params": params or {}}],
+            }
+        },
+        "universes": {universe: {}},
+    }
+
+
+def test_override_experiment_surfaces_through_assign():
+    # A pure override wins over blob eval for an experiment already present +
+    # running in the loaded blob. Seed a real blob, then layer the override.
+    client = Engine.from_snapshot(flags={}, experiments=_running_exp())
+    client.override_experiment("checkout_button", group="control", params={"color": "green"})
+    a = client.universe("u").assign({"user_id": "u1"})
+    assert a.enrolled is True
+    assert a.group == "control"  # the override group wins over the blob's variant
+    assert a.get("color") == "green"
 
 
 def test_clear_overrides_resets():
-    client = Engine.for_testing()
+    client = Engine.from_snapshot(flags={}, experiments=_running_exp())
     client.override_flag("f", True)
     client.override_config("c", 42)
-    client.override_experiment("e", group="t", params={"x": 1})
+    client.override_experiment("checkout_button", group="control", params={"color": "green"})
+    # The override forces group "control" over the blob's variant.
+    assert client.universe("u").assign({"user_id": "u1"}).group == "control"
     client.clear_overrides()
     assert client.get_flag("f", {"user_id": "u1"}) is False
     assert client.get_config("c") is None
-    assert client.get_experiment("e", {"user_id": "u1"}, default_params=None).in_experiment is False
+    # Override dropped → blob eval decides (the real variant, not the forced one).
+    a = client.universe("u").assign({"user_id": "u1"})
+    assert a.enrolled is True
+    assert a.group == "treatment"
 
 
 def test_track_is_a_noop_in_test_mode():

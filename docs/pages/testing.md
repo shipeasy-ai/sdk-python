@@ -13,7 +13,6 @@ from shipeasy import Client
 shipeasy.configure_for_testing(
     flags={"new_checkout": True},
     configs={"billing_copy": {"title": "Welcome"}},
-    experiments={"checkout_button": ("treatment", {"color": "green"})},
 )
 
 # construct once per callsite (cheap; binds the user)
@@ -22,11 +21,7 @@ client = Client({"user_id": "u_123"})
 assert client.get_flag("new_checkout") is True
 assert client.get_config("billing_copy") == {"title": "Welcome"}
 
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-assert result.in_experiment and result.group == "treatment"
-assert result.params == {"color": "green"}
-
-# track()/log_exposure() are no-ops in test mode — safe to call, send nothing
+# track()/assign() auto-exposure are no-ops in test mode — safe to call, send nothing
 client.track("purchase", {"amount": 49})
 ```
 
@@ -34,7 +29,12 @@ Override argument shapes:
 
 - `flags` — `{name: bool}` forced `get_flag` results.
 - `configs` — `{name: value}` forced `get_config` results (a `decode` still applies).
-- `experiments` — `{name: (group, params)}` forced enrolments.
+- `experiments` — `{name: (group, params)}` forced enrolments. This is a **pure
+  override**: it wins over blob evaluation, but it only surfaces through
+  `universe(name).assign()` for an experiment that actually exists (and is
+  running) in the loaded blob. On an empty test-mode blob there is nothing to
+  assign, so pair experiment overrides with a real experiment blob via
+  [`configure_for_offline`](#offline-snapshot) (see below).
 
 `configure_for_testing()` **replaces** any previously-configured engine, so each
 test can reconfigure freely (no reset boilerplate, unlike `configure()`'s
@@ -66,7 +66,7 @@ shipeasy.clear_overrides()   # drop every on-the-spot override
 | --- | --- |
 | `override_flag(name, value)` | force `get_flag(name)` → `value` |
 | `override_config(name, value)` | force `get_config(name)` → `value` |
-| `override_experiment(name, group, params)` | force enrolment in `group` with `params` |
+| `override_experiment(name, group, params)` | force enrolment in `group` with `params` — a pure override that wins over blob eval, surfacing through `universe(name).assign()` only when the experiment exists in the loaded blob |
 | `clear_overrides()` | drop all of the above |
 
 (These require a prior `configure*` call — they raise `RuntimeError` otherwise.)

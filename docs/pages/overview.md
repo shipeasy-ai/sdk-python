@@ -28,8 +28,9 @@ client = shipeasy.Client(current_user)
 if client.get_flag("new_checkout"):
     ...
 config = client.get_config("billing_copy")
-result = client.get_experiment("checkout_button", default_params={"color": "blue"})
-client.log_exposure("checkout_button")    # at the decision point
+a = client.universe("checkout").assign()  # ≤1 experiment; auto-logs exposure
+if a.get("button_color") == "green":
+    ...
 client.track("purchase", {"amount": 49})  # on conversion
 ```
 
@@ -41,8 +42,9 @@ call:
 - `get_flag(name, default=False)` · `get_flag_detail(name)`
 - `get_config(name, decode=None, default=None)`
 - `get_killswitch(name, switch_key=None)`
-- `get_experiment(name, default_params, decode=None)`
-- `log_exposure(experiment_name)` · `track(event, properties=None)`
+- `universe(name).assign()` → `Assignment` (`.name` / `.group` / `.enrolled` /
+  `.get(field, fallback=None)`); auto-logs one exposure when enrolled
+- `track(event, properties=None)`
 
 So an experiment is **end-to-end Client-only**. Constructing a `Client(user)`
 before `configure()` raises `RuntimeError`.
@@ -64,7 +66,7 @@ After any of them, you read the same way: `shipeasy.Client(user)`.
 - [flags](flags.md) — `get_flag`, `get_flag_detail`, defaults
 - [configs](configs.md) — `get_config`, typed decode, defaults
 - [killswitches](killswitches.md) — `get_killswitch`
-- [experiments](experiments.md) — `get_experiment`, `ExperimentResult`, `log_exposure`, `track`
+- [experiments](experiments.md) — `universe(name).assign()`, `Assignment`, auto-exposure, `track`
 - [i18n](i18n.md) — cross-SDK loader story (server SDK has no `t()`)
 - [error-reporting](error-reporting.md) — `see()` structured reporting
 - [testing](testing.md) — `configure_for_testing`, `configure_for_offline`, overrides

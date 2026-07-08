@@ -135,10 +135,10 @@ def test_bound_client_forwards_config_and_experiment(monkeypatch):
 
     bound = Client({"user_id": "u1"})
     assert bound.get_config("c") == {"x": 1}
-    # Experiment with no rule resolves not-in-experiment → default params.
-    r = bound.get_experiment("nope", default_params={"d": True})
-    assert r.in_experiment is False
-    assert r.params == {"d": True}
+    # Unknown universe resolves not-enrolled → get() falls back to the caller value.
+    a = bound.universe("nope").assign()
+    assert a.enrolled is False
+    assert a.get("d", True) is True
 
 
 def test_bound_client_track_reaches_engine_with_bound_id(monkeypatch):
@@ -189,22 +189,25 @@ def test_bound_client_track_noop_without_unit(monkeypatch):
     assert called["n"] == 0
 
 
-def test_bound_client_log_exposure_forwards_bound_attributes(monkeypatch):
+def test_bound_client_universe_assign_forwards_bound_attributes(monkeypatch):
     _seed_engine_with(monkeypatch)
     configure(api_key="srv_key", init=False)
 
     seen = {}
 
-    def spy_log(self, user_or_user_id, experiment_name):
-        seen["user"] = user_or_user_id
-        seen["exp"] = experiment_name
+    def spy_assign(self, universe_name, user):
+        seen["user"] = user
+        seen["universe"] = universe_name
+        from shipeasy import Assignment
 
-    monkeypatch.setattr(Engine, "log_exposure", spy_log)
+        return Assignment(None, None, {})
+
+    monkeypatch.setattr(Engine, "assign_universe", spy_assign)
 
     client = Client({"user_id": "u1"})
-    client.log_exposure("homepage_test")
+    client.universe("homepage").assign()  # no user arg — uses bound attributes
     assert seen["user"] is client.attributes
-    assert seen["exp"] == "homepage_test"
+    assert seen["universe"] == "homepage"
 
 
 def test_engine_and_bound_client_get_killswitch():
