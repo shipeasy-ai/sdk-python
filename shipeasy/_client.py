@@ -46,7 +46,7 @@ def _with_anon_id(user: Mapping[str, Any]) -> Mapping[str, Any]:
     merged["anonymous_id"] = anon
     return merged
 
-_DEFAULT_BASE_URL = "https://edge.shipeasy.dev"
+_DEFAULT_BASE_URL = "https://api.shipeasy.ai"
 _DEFAULT_POLL_INTERVAL = 30
 
 

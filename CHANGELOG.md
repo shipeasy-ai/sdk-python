@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.1 (2026-07-07)
+
+### Fixed
+
+- **Default API host now resolves.** The default `base_url` pointed at the
+  unregistered domain `https://edge.shipeasy.dev`, so every `configure()`
+  one-shot fetch and every `get_flag`/`get_config`/`get_experiment`/`track`/
+  `see()` call failed with a DNS error unless `base_url` was set explicitly.
+  Corrected to the real edge origin `https://api.shipeasy.ai` — the host the
+  docs, CLI, and curl snippets already use. Explicit `base_url` overrides are
+  unaffected.
+
 ## 0.14.0 (2026-07-07)
 
 - **Runtime methods never raise into the caller.** Every runtime read/track/see
