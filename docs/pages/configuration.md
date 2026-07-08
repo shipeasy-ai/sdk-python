@@ -62,6 +62,40 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 | `telemetry_url` | `str` | built-in | Override the telemetry endpoint (rarely needed). |
 | `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event before it leaves the process. They still drive **targeting** locally. See [advanced](advanced.md). |
 | `sticky_store` | `StickyBucketStore` | `None` | Pin a user's experiment group across re-buckets. See [advanced](advanced.md). |
+| `log_level` | `str` | `"warn"` | Verbosity of the SDK's own internal diagnostics. See below. |
+
+## Fail-safe reads & the `log_level` option
+
+The runtime read/track methods on `shipeasy.Client(user)` —
+`get_flag` / `get_flag_detail` / `get_config` / `get_experiment` /
+`get_killswitch` / `track` / `log_exposure`, and the `see()` reporting chain —
+**never raise into your request path.** If anything goes wrong internally (a bad
+`decode` callback, an unexpected error), the SDK logs it and returns the safe
+default instead: your `default` for `get_flag`/`get_config`, a not-enrolled
+`control` result for `get_experiment`, `False` for `get_killswitch`, and a no-op
+for `track`/`log_exposure`. A feature-flag lookup can't be the thing that takes
+down a request.
+
+Setup still raises loudly — that's boot-time misconfiguration you want to see:
+constructing `Client(user)` before `configure()`, `configure_for_offline` with no
+source, `Engine.from_file` on a bad path/JSON, and errors thrown by your own
+`attributes` transform.
+
+`log_level` tunes the SDK's own diagnostic logging (via the `shipeasy` logger).
+Accepted values, least → most verbose:
+
+```
+silent  <  error  <  warn  <  info  <  debug
+```
+
+A message logged at level `L` is emitted iff the configured level is at least
+`L` — so the default `"warn"` shows `error` + `warn` and mutes `info` + `debug`,
+and `"silent"` mutes everything. An unknown value is ignored (keeps `"warn"`).
+This only affects log output; it never changes the fail-safe behaviour above.
+
+```python
+shipeasy.configure(api_key="sdk_server_...", log_level="silent")
+```
 
 ## Tests and offline
 

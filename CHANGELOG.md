@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.14.0 (2026-07-07)
+
+- **Runtime methods never raise into the caller.** Every runtime read/track/see
+  method — `get_flag`, `get_flag_detail`, `get_config`, `get_experiment`,
+  `get_killswitch`, `track`, `log_exposure`, and the `see()` chain — is now
+  wrapped in a defensive guard on both `Engine` and the bound `Client`. On any
+  unexpected internal error the SDK logs and returns the documented safe default
+  (flags → your `default`, configs → `default`, experiments → a not-enrolled
+  `control` result, kill switches → `False`, track/exposure → no-op) instead of
+  propagating. Setup/lifecycle calls (`Client()` before `configure()`,
+  `configure_for_offline` with no source, `Engine.from_file` on a bad path/JSON,
+  the user `attributes` transform) still raise loudly — that's boot-time
+  misconfiguration and must stay visible.
+- **New `log_level` option.** `configure(..., log_level="warn")` (and the
+  `configure_for_testing` / `configure_for_offline` siblings, and
+  `Engine(..., log_level=...)`) tunes the SDK's own internal diagnostics — one of
+  `"silent" | "error" | "warn" | "info" | "debug"` (ordered
+  `silent < error < warn < info < debug`; a message at level L shows iff the
+  configured level is >= L). Default `"warn"`; an unknown value is ignored. All
+  internal diagnostic logging now routes through a small leveled logger and is
+  gated by this option. Logging never raises.
+
 ## 0.13.1
 
 - **Admin API client regenerated from the canonical OpenAPI spec (2.0.0).** The

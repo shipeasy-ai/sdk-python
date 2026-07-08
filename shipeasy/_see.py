@@ -31,6 +31,8 @@ import time
 import traceback
 from typing import Any, Callable, Mapping, Optional, Union
 
+from . import _logging as _log
+
 log = logging.getLogger("shipeasy")
 
 # ---- Limits (mirror core.ts; kept in sync with the worker's /collect) ----
@@ -325,7 +327,7 @@ def see(problem: Any) -> _SeeChain:
     client. Use ``client.see()`` to target a specific client."""
     client = _resolve_default()
     if client is None:
-        log.warning("see() called before a client was created — error dropped")
+        _log.warn("see() called before a client was created — error dropped")
         return _SeeChain(problem, lambda _built: None)
     return client.see(problem)
 
@@ -334,7 +336,7 @@ def see_violation(name: str) -> _SeeChain:
     """Report a non-exception problem via the default client."""
     client = _resolve_default()
     if client is None:
-        log.warning("see_violation() called before a client was created — error dropped")
+        _log.warn("see_violation() called before a client was created — error dropped")
         return _SeeChain(Violation(name), lambda _built: None)
     return client.see_violation(name)
 

@@ -24,6 +24,8 @@ from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
 from ._version import SDK_VERSION
 from . import _anon_id
 from . import _see
+from . import _logging as _log
+from ._logging import set_log_level
 from ._see import Violation, build_see_event, SeeLimiter
 
 T = TypeVar("T")
@@ -59,7 +61,12 @@ class Engine:
         telemetry_url: Optional[str] = None,
         private_attributes: Optional[Sequence[str]] = None,
         sticky_store: Optional[StickyBucketStore] = None,
+        log_level: str = "warn",
     ) -> None:
+        # Set the SDK's internal log verbosity first, so any diagnostic emitted
+        # during the rest of construction is already gated. An unknown value is
+        # ignored (keeps the default "warn"); see _logging.py.
+        set_log_level(log_level)
         self._api_key = api_key
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
         # Deployment env, tagged onto see() error events (telemetry already
@@ -197,7 +204,7 @@ class Engine:
             try:
                 fn()
             except Exception as e:  # noqa: BLE001 -- a listener must not break polling
-                log.warning("on_change listener failed: %s", e)
+                _log.warn("on_change listener failed: %s", e)
 
     def init(self) -> None:
         if self._test_mode:
@@ -223,7 +230,17 @@ class Engine:
         that way. The reason is computed at the boundary without touching
         ``eval_gate``. The "gate" telemetry beacon is emitted exactly once here
         (steps 2-5) and never on an override.
+
+        Fail-safe: any unexpected internal error is logged and reported as a
+        not-ready detail (``value=False``) — this runtime read never raises.
         """
+        try:
+            return self._get_flag_detail(name, user)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("get_flag_detail(%s) failed: %s", name, e)
+            return FlagDetail(value=False, reason=CLIENT_NOT_READY)
+
+    def _get_flag_detail(self, name: str, user: Mapping[str, Any]) -> FlagDetail:
         # 1. Override wins — short-circuit before telemetry, like get_experiment.
         if name in self._flag_overrides:
             return FlagDetail(value=self._flag_overrides[name], reason=OVERRIDE)
@@ -255,13 +272,38 @@ class Engine:
         """Return the flag's boolean value. ``default`` is returned only when
         the flag CANNOT be evaluated — the client isn't initialized or the gate
         isn't in the blob — never when it simply evaluates to False.
+
+        Fail-safe: any unexpected internal error is logged and ``default`` is
+        returned — this runtime read never raises.
         """
-        detail = self.get_flag_detail(name, user)
-        if detail.reason in (CLIENT_NOT_READY, FLAG_NOT_FOUND):
+        try:
+            detail = self.get_flag_detail(name, user)
+            if detail.reason in (CLIENT_NOT_READY, FLAG_NOT_FOUND):
+                return default
+            return detail.value
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("get_flag(%s) failed: %s", name, e)
             return default
-        return detail.value
 
     def get_config(
+        self,
+        name: str,
+        decode: Optional[Callable[[Any], T]] = None,
+        default: Optional[T] = None,
+    ) -> Optional[T]:
+        """Return config ``name`` (optionally ``decode``-d), or ``default``.
+
+        Fail-safe: a ``decode`` failure logs at warn and returns ``default``;
+        any other unexpected internal error logs at error and returns
+        ``default`` — this runtime read never raises.
+        """
+        try:
+            return self._get_config(name, decode, default)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("get_config(%s) failed: %s", name, e)
+            return default
+
+    def _get_config(
         self,
         name: str,
         decode: Optional[Callable[[Any], T]] = None,
@@ -274,7 +316,7 @@ class Engine:
             try:
                 return decode(value)
             except Exception as e:  # noqa: BLE001
-                log.warning("get_config(%s) decode failed: %s", name, e)
+                _log.warn("get_config(%s) decode failed: %s", name, e)
                 return default
         self._telemetry.emit("config", name)
         with self._lock:
@@ -287,10 +329,30 @@ class Engine:
         try:
             return decode(value)
         except Exception as e:  # noqa: BLE001
-            log.warning("get_config(%s) decode failed: %s", name, e)
+            _log.warn("get_config(%s) decode failed: %s", name, e)
             return default
 
     def get_experiment(
+        self,
+        name: str,
+        user: Mapping[str, Any],
+        default_params: T,
+        decode: Optional[Callable[[Any], T]] = None,
+    ) -> ExperimentResult:
+        """Evaluate experiment ``name`` for ``user``.
+
+        Fail-safe: a ``decode`` failure logs at warn; any other unexpected
+        internal error logs at error. Either way the caller gets a safe
+        not-enrolled control result (``in_experiment=False``, ``group="control"``,
+        ``params=default_params``) — this runtime read never raises.
+        """
+        try:
+            return self._get_experiment(name, user, default_params, decode)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("get_experiment(%s) failed: %s", name, e)
+            return ExperimentResult(False, "control", default_params)
+
+    def _get_experiment(
         self,
         name: str,
         user: Mapping[str, Any],
@@ -319,7 +381,7 @@ class Engine:
             try:
                 result.params = decode(result.params)
             except Exception as e:  # noqa: BLE001
-                log.warning("get_experiment(%s) decode failed: %s", name, e)
+                _log.warn("get_experiment(%s) decode failed: %s", name, e)
                 return ExperimentResult(False, "control", default_params)
         return result
 
@@ -331,16 +393,23 @@ class Engine:
         override (the dashboard "switches" feature) when present, falling back to
         the kill switch's top-level value otherwise. Returns ``False`` (not
         killed) when the client isn't initialized or the switch is absent.
+
+        Fail-safe: any unexpected internal error is logged and ``False`` is
+        returned — this runtime read never raises.
         """
-        with self._lock:
-            entry = (self._flags_blob or {}).get("killswitches", {}).get(name)
-        if not entry:
+        try:
+            with self._lock:
+                entry = (self._flags_blob or {}).get("killswitches", {}).get(name)
+            if not entry:
+                return False
+            if switch_key is not None:
+                switches = entry.get("switches") or {}
+                if switch_key in switches:
+                    return bool(_enabled(switches[switch_key]))
+            return bool(_enabled(entry.get("value", entry.get("enabled"))))
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("get_killswitch(%s) failed: %s", name, e)
             return False
-        if switch_key is not None:
-            switches = entry.get("switches") or {}
-            if switch_key in switches:
-                return bool(_enabled(switches[switch_key]))
-        return bool(_enabled(entry.get("value", entry.get("enabled"))))
 
     def _strip_private(
         self, properties: Optional[Mapping[str, Any]]
@@ -436,24 +505,29 @@ class Engine:
         return render_i18n_tag(client_key, profile, base_url=base_url)
 
     def track(self, user_id: str, event_name: str, properties: Optional[Mapping[str, Any]] = None) -> None:
-        if self._test_mode:
-            return
-        safe_props = self._strip_private(properties)
-        body = {
-            "events": [{
-                "type": "metric",
-                "event_name": event_name,
-                "user_id": str(user_id),
-                "ts": int(time.time() * 1000),
-                **({"properties": safe_props} if safe_props is not None else {}),
-            }]
-        }
-        data = json.dumps(body).encode("utf-8")
-        threading.Thread(
-            target=self._post_silent,
-            args=("/collect", data),
-            daemon=True,
-        ).start()
+        """Fire-and-forget a metric event. Fail-safe: any unexpected internal
+        error is logged and swallowed — this runtime method never raises."""
+        try:
+            if self._test_mode:
+                return
+            safe_props = self._strip_private(properties)
+            body = {
+                "events": [{
+                    "type": "metric",
+                    "event_name": event_name,
+                    "user_id": str(user_id),
+                    "ts": int(time.time() * 1000),
+                    **({"properties": safe_props} if safe_props is not None else {}),
+                }]
+            }
+            data = json.dumps(body).encode("utf-8")
+            threading.Thread(
+                target=self._post_silent,
+                args=("/collect", data),
+                daemon=True,
+            ).start()
+        except Exception as e:  # noqa: BLE001 — track must never raise into the caller
+            _log.error("track(%s) failed: %s", event_name, e)
 
     def log_exposure(
         self, user_or_user_id: Union[str, Mapping[str, Any]], experiment_name: str
@@ -465,35 +539,41 @@ class Engine:
         ``{"user_id": ...}``) or a full user dict. Re-evaluates the experiment;
         if the user is enrolled, POSTs a single ``exposure`` event to /collect.
         No-op in test mode or when the user isn't enrolled.
+
+        Fail-safe: any unexpected internal error is logged and swallowed — this
+        runtime method never raises.
         """
-        if self._test_mode:
-            return
-        user: Mapping[str, Any] = (
-            {"user_id": user_or_user_id}
-            if isinstance(user_or_user_id, str)
-            else user_or_user_id
-        )
-        result = self.get_experiment(experiment_name, user, None)
-        if not result.in_experiment:
-            return
-        u = _with_anon_id(user)
-        event: dict = {
-            "type": "exposure",
-            "experiment": experiment_name,
-            "group": result.group,
-            "ts": int(time.time() * 1000),
-        }
-        if u.get("user_id") is not None:
-            event["user_id"] = u["user_id"]
-        if u.get("anonymous_id") is not None:
-            event["anonymous_id"] = u["anonymous_id"]
-        body = {"events": [event]}
-        data = json.dumps(body).encode("utf-8")
-        threading.Thread(
-            target=self._post_silent,
-            args=("/collect", data),
-            daemon=True,
-        ).start()
+        try:
+            if self._test_mode:
+                return
+            user: Mapping[str, Any] = (
+                {"user_id": user_or_user_id}
+                if isinstance(user_or_user_id, str)
+                else user_or_user_id
+            )
+            result = self.get_experiment(experiment_name, user, None)
+            if not result.in_experiment:
+                return
+            u = _with_anon_id(user)
+            event: dict = {
+                "type": "exposure",
+                "experiment": experiment_name,
+                "group": result.group,
+                "ts": int(time.time() * 1000),
+            }
+            if u.get("user_id") is not None:
+                event["user_id"] = u["user_id"]
+            if u.get("anonymous_id") is not None:
+                event["anonymous_id"] = u["anonymous_id"]
+            body = {"events": [event]}
+            data = json.dumps(body).encode("utf-8")
+            threading.Thread(
+                target=self._post_silent,
+                args=("/collect", data),
+                daemon=True,
+            ).start()
+        except Exception as e:  # noqa: BLE001 — log_exposure must never raise
+            _log.error("log_exposure(%s) failed: %s", experiment_name, e)
 
     def _post_silent(self, path: str, data: bytes) -> None:
         try:
@@ -505,7 +585,7 @@ class Engine:
             )
             urllib.request.urlopen(req, timeout=10).read()
         except Exception as e:  # noqa: BLE001
-            log.warning("track failed: %s", e)
+            _log.warn("track failed: %s", e)
 
     # ---- see() structured error reporting ----
 
@@ -556,7 +636,7 @@ class Engine:
                 daemon=True,
             ).start()
         except Exception as e:  # noqa: BLE001 — reporting must never raise
-            log.warning("see() send failed: %s", e)
+            _log.warn("see() send failed: %s", e)
 
     def _start_poll(self) -> None:
         def loop() -> None:
@@ -566,7 +646,7 @@ class Engine:
                         # New data (a 200, not a 304) arrived on this poll.
                         self._notify_change()
                 except Exception as e:  # noqa: BLE001
-                    log.warning("background poll failed: %s", e)
+                    _log.warn("background poll failed: %s", e)
         self._thread = threading.Thread(target=loop, daemon=True)
         self._thread.start()
 
@@ -662,7 +742,12 @@ def configure(
     First-config-wins: the first call wires everything up; later calls are a
     no-op and return the same handle. Pass any advanced option as a keyword
     (``base_url``, ``env``, ``disable_telemetry``, ``private_attributes``,
-    ``sticky_store`` …) — see the configuration docs.
+    ``sticky_store``, ``log_level`` …) — see the configuration docs.
+
+    ``log_level`` (default ``"warn"``) tunes the SDK's own internal diagnostics —
+    one of ``"silent" | "error" | "warn" | "info" | "debug"``. It only gates the
+    SDK's log output; the runtime read/track/see methods stay fail-safe and never
+    raise regardless of the level.
 
     ``attributes`` is a function from *your* user object to the Shipeasy
     attribute map (``{"user_id": ..., "anonymous_id": ..., <targeting attrs>}``)
@@ -730,6 +815,7 @@ def configure_for_testing(
     flags: Optional[Mapping[str, bool]] = None,
     configs: Optional[Mapping[str, Any]] = None,
     experiments: Optional[Mapping[str, Any]] = None,
+    log_level: str = "warn",
 ) -> Engine:
     """Configure Shipeasy in **test mode** — a drop-in sibling of
     :func:`configure` with no network, ever (no api key needed).
@@ -748,9 +834,12 @@ def configure_for_testing(
         flags: ``{name: bool}`` forced ``get_flag`` results.
         configs: ``{name: value}`` forced ``get_config`` results.
         experiments: ``{name: (group, params)}`` forced enrolments.
+        log_level: SDK internal-diagnostics verbosity (default ``"warn"``); one of
+            ``"silent" | "error" | "warn" | "info" | "debug"``.
 
     Replaces any previously-configured engine, so tests can reconfigure freely.
     """
+    set_log_level(log_level)
     engine = Engine.for_testing()
     _apply_overrides(engine, flags, configs, experiments)
     return _install_global(engine, attributes)
@@ -764,6 +853,7 @@ def configure_for_offline(
     flags: Optional[Mapping[str, bool]] = None,
     configs: Optional[Mapping[str, Any]] = None,
     experiments: Optional[Mapping[str, Any]] = None,
+    log_level: str = "warn",
 ) -> Engine:
     """Configure Shipeasy **offline** — evaluate the *real* rules from an
     in-memory snapshot or a JSON file, with no network. A drop-in sibling of
@@ -777,7 +867,10 @@ def configure_for_offline(
     Optional ``flags`` / ``configs`` / ``experiments`` overrides are layered on
     top (same shapes as :func:`configure_for_testing`). Then read with
     ``shipeasy.Client(user)``. Replaces any previously-configured engine.
+
+    ``log_level`` (default ``"warn"``) tunes the SDK's internal diagnostics.
     """
+    set_log_level(log_level)
     if path is not None:
         engine = Engine.from_file(path)
     elif snapshot is not None:
@@ -904,10 +997,18 @@ class Client:
         self.attributes: Mapping[str, Any] = _with_anon_id(_global_attributes(user))
 
     def get_flag(self, name: str, default: bool = False) -> bool:
-        return self._engine.get_flag(name, self.attributes, default)
+        try:
+            return self._engine.get_flag(name, self.attributes, default)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.get_flag(%s) failed: %s", name, e)
+            return default
 
     def get_flag_detail(self, name: str) -> FlagDetail:
-        return self._engine.get_flag_detail(name, self.attributes)
+        try:
+            return self._engine.get_flag_detail(name, self.attributes)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.get_flag_detail(%s) failed: %s", name, e)
+            return FlagDetail(value=False, reason=CLIENT_NOT_READY)
 
     def get_config(
         self,
@@ -916,7 +1017,11 @@ class Client:
         default: Optional[T] = None,
     ) -> Optional[T]:
         # Configs are not user-scoped; forward straight to the engine.
-        return self._engine.get_config(name, decode, default)
+        try:
+            return self._engine.get_config(name, decode, default)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.get_config(%s) failed: %s", name, e)
+            return default
 
     def get_experiment(
         self,
@@ -924,12 +1029,20 @@ class Client:
         default_params: T,
         decode: Optional[Callable[[Any], T]] = None,
     ) -> ExperimentResult:
-        return self._engine.get_experiment(
-            name, self.attributes, default_params, decode
-        )
+        try:
+            return self._engine.get_experiment(
+                name, self.attributes, default_params, decode
+            )
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.get_experiment(%s) failed: %s", name, e)
+            return ExperimentResult(False, "control", default_params)
 
     def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
-        return self._engine.get_killswitch(name, switch_key)
+        try:
+            return self._engine.get_killswitch(name, switch_key)
+        except Exception as e:  # noqa: BLE001 — runtime reads must never raise
+            _log.error("Client.get_killswitch(%s) failed: %s", name, e)
+            return False
 
     def track(
         self, event_name: str, properties: Optional[Mapping[str, Any]] = None
@@ -940,10 +1053,13 @@ class Client:
         ``get_experiment`` records the conversion. Delegates to ``Engine.track``;
         no-op in test/offline mode.
         """
-        unit = self.attributes.get("user_id") or self.attributes.get("anonymous_id")
-        if unit is None:
-            return
-        self._engine.track(unit, event_name, properties)
+        try:
+            unit = self.attributes.get("user_id") or self.attributes.get("anonymous_id")
+            if unit is None:
+                return
+            self._engine.track(unit, event_name, properties)
+        except Exception as e:  # noqa: BLE001 — track must never raise into the caller
+            _log.error("Client.track(%s) failed: %s", event_name, e)
 
     def log_exposure(self, experiment_name: str) -> None:
         """Emit an exposure event for ``experiment_name`` against the bound user
@@ -951,4 +1067,7 @@ class Client:
         user is enrolled, POSTs a single ``exposure`` event. Delegates to
         ``Engine.log_exposure``; no-op in test/offline mode or when not enrolled.
         """
-        self._engine.log_exposure(self.attributes, experiment_name)
+        try:
+            self._engine.log_exposure(self.attributes, experiment_name)
+        except Exception as e:  # noqa: BLE001 — log_exposure must never raise
+            _log.error("Client.log_exposure(%s) failed: %s", experiment_name, e)
