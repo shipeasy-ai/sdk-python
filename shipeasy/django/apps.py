@@ -18,6 +18,8 @@ and configure via a ``SHIPEASY`` settings dict::
         "POLL": True,                                          # long-running server
     }
 
+``NETWORK_ENABLED`` (master egress switch — pin it to ``not DEBUG`` so the SDK
+is quiet outside production),
 Supported keys: ``SERVER_KEY`` (required — absent ⇒ no-op + warning),
 ``ATTRIBUTES`` (dotted import path to a callable, or a callable),
 ``ENV``, ``DISABLE_TELEMETRY``, ``PRIVATE_ATTRIBUTES``, ``BASE_URL``, and
@@ -79,6 +81,7 @@ def build_configure_kwargs(settings_dict: Optional[Dict[str, Any]]) -> Optional[
     # Pass-through engine options (only when present, so configure() defaults win).
     for key, opt in (
         ("ENV", "env"),
+        ("NETWORK_ENABLED", "is_network_enabled"),
         ("DISABLE_TELEMETRY", "disable_telemetry"),
         ("PRIVATE_ATTRIBUTES", "private_attributes"),
         ("BASE_URL", "base_url"),

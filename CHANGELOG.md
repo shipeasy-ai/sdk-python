@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.1 (2026-07-08)
+
+### Django scaffold pins network egress to production
+
+`python manage.py shipeasy_install` now writes `"NETWORK_ENABLED": not DEBUG` into
+the generated `SHIPEASY = {...}` settings block, and the Django AppConfig maps the
+new `NETWORK_ENABLED` settings key to `configure(is_network_enabled=...)`. So a
+freshly-scaffolded Django app is fully active in production and completely quiet
+in dev/CI (where `DEBUG` is True) with no extra config. Set it to `True` to load
+flags in development, or omit the key to let the SDK infer production itself.
+
 ## 0.17.0 (2026-07-08)
 
 ### Environment-derived network & telemetry (egress) defaults

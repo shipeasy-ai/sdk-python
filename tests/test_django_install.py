@@ -49,6 +49,8 @@ def test_patch_settings_adds_app_middleware_and_block():
     assert '"shipeasy.django.middleware.AnonIdMiddleware",' in new
     assert "SHIPEASY = {" in new
     assert "SHIPEASY_SERVER_KEY" in new
+    # Network egress is pinned to Django's production convention (not DEBUG).
+    assert '"NETWORK_ENABLED": not DEBUG,' in new
     # The new app entry sits inside INSTALLED_APPS (before its closing bracket).
     apps_block = new[new.index("INSTALLED_APPS"): new.index("MIDDLEWARE")]
     assert '"shipeasy.django",' in apps_block
@@ -165,6 +167,7 @@ def test_build_configure_kwargs():
             "SERVER_KEY": "sdk_server_x",
             "ATTRIBUTES": attrs,
             "ENV": "staging",
+            "NETWORK_ENABLED": False,
             "DISABLE_TELEMETRY": True,
             "PRIVATE_ATTRIBUTES": ["email"],
             "BASE_URL": "https://flags.internal",
@@ -174,6 +177,7 @@ def test_build_configure_kwargs():
     assert kwargs["api_key"] == "sdk_server_x"
     assert kwargs["attributes"] is attrs
     assert kwargs["env"] == "staging"
+    assert kwargs["is_network_enabled"] is False
     assert kwargs["disable_telemetry"] is True
     assert kwargs["private_attributes"] == ["email"]
     assert kwargs["base_url"] == "https://flags.internal"

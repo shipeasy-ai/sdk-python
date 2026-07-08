@@ -168,6 +168,10 @@ pip install shipeasy
    SHIPEASY = {
        # Required — your Shipeasy SERVER key (sdk_server_...); never a browser.
        "SERVER_KEY": os.environ.get("SHIPEASY_SERVER_KEY"),
+       # Network egress — master switch for ALL outbound requests. Pinned to
+       # Django's production convention (DEBUG is False in prod) so the SDK stays
+       # quiet in dev/CI. Omit it to let the SDK infer prod from the environment.
+       "NETWORK_ENABLED": not DEBUG,
        # Optional — map YOUR user object to the Shipeasy attribute map. A dotted
        # import path to a callable, OR a callable.
        "ATTRIBUTES": "myapp.shipeasy.user_attributes",

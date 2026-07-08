@@ -44,6 +44,12 @@ SHIPEASY = {
     # Required — your Shipeasy SERVER key (sdk_server_...). A server-side secret;
     # never embed it in the browser. Read it from the environment.
     "SERVER_KEY": os.environ.get("SHIPEASY_SERVER_KEY"),
+    # Network egress — the master switch for ALL outbound requests (flag fetches,
+    # track, exposures, see() reports, usage telemetry, internal self-monitoring).
+    # Pinned to Django's production convention (DEBUG is False in production) so
+    # the SDK is fully active in prod and stays completely quiet in dev/CI — reads
+    # return your in-code defaults there. Set True to force flags to load in dev.
+    "NETWORK_ENABLED": not DEBUG,
     # Optional — map YOUR user object to the Shipeasy attribute map targeting
     # evaluates against. A dotted import path to a callable, or a callable.
     # "ATTRIBUTES": lambda u: {"user_id": str(u.id), "plan": getattr(u, "plan", None)},
