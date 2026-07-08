@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.17.0 (2026-07-08)
+
+### Environment-derived network & telemetry (egress) defaults
+
+The SDK is now **quiet by default outside production**. On a dev machine or in CI
+it makes **no outbound request** — no blob fetch/poll, `track`, experiment
+exposure, `see()` error report, or usage telemetry — unless it detects a
+production environment or you opt in. This prevents an app that embeds the SDK
+from phoning home from a developer's laptop or a test run.
+
+- **New `is_production_env(configured_env=None)` helper** (exported from the
+  package) mirrors the TypeScript SDK's `isProductionEnv`. Precedence: the native
+  env var `SHIPEASY_ENV`, then `APP_ENV`, then `ENV`, then `PYTHON_ENV` — a value
+  of `production`/`prod` (case-insensitive) ⇒ production, any other present value
+  ⇒ not production; if none is set, fall back to the SDK's own `env` option (which
+  itself defaults to `"prod"`, so a real production deploy stays on).
+- **New `is_network_enabled` option** on `configure()` / `Engine(...)` — the
+  master switch for *all* outbound traffic. Defaults ON in production and OFF
+  everywhere else. When off, the SDK is **fully offline**: reads resolve against
+  `override_*` values and in-code defaults, and nothing is sent. An explicit value
+  always overrides the env-derived default.
+- **`disable_telemetry` now defaults by environment too** (was always `False`).
+  Usage telemetry is off outside production and forced off whenever
+  `is_network_enabled` is `False`. Pass `disable_telemetry=False` to force it on.
+
+**Behaviour change / how to restore the old behaviour.** Before 0.17.0 the SDK
+fetched and reported in every environment. If you relied on live flags or
+telemetry from a non-production process, either set the env var
+`SHIPEASY_ENV=production` (or `APP_ENV`/`ENV`/`PYTHON_ENV`), or pass
+`is_network_enabled=True` (and, for telemetry, `disable_telemetry=False`). A real
+production deploy is unaffected — it stays on by default.
+
 ## 0.16.0 (2026-07-08)
 
 ### Breaking — experiments are now read by universe, not by name

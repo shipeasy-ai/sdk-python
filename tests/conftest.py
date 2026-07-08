@@ -15,9 +15,32 @@ and stands in a fake key + a stubbed ``_send``; so they still work and never
 touch the network.
 """
 
+import os
+
 import pytest
 
 from shipeasy import _internal_report as _ir
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _egress_env_is_production():
+    """Declare the test process production-equivalent for EGRESS decisions.
+
+    The SDK's environment-derived defaults turn the master network switch and
+    usage telemetry OFF outside production (see ``shipeasy/_env.py``). The suite
+    runs in a non-production env, so without this the many tests that exercise a
+    real network path (fetch, track, telemetry, see) would go silently offline
+    and fail. Setting ``SHIPEASY_ENV=production`` for the whole run keeps those
+    on-by-default; the dedicated tests in ``test_env_egress.py`` override the env
+    locally (via monkeypatch) to assert the dev/prod branching itself.
+    """
+    prev = os.environ.get("SHIPEASY_ENV")
+    os.environ["SHIPEASY_ENV"] = "production"
+    yield
+    if prev is None:
+        os.environ.pop("SHIPEASY_ENV", None)
+    else:
+        os.environ["SHIPEASY_ENV"] = prev
 
 
 @pytest.fixture(autouse=True)

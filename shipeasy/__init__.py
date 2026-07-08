@@ -36,11 +36,13 @@ from ._see import (
     control_flow_exception,
     set_default_client,
 )
+from ._env import is_production_env
 from ._version import SDK_VERSION
 
 __all__ = [
     "Engine",
     "Client",
+    "is_production_env",
     "configure",
     "configure_for_testing",
     "configure_for_offline",

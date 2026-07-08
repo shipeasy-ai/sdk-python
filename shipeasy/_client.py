@@ -29,6 +29,7 @@ from ._detail import (
     DEFAULT,
 )
 from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
+from ._env import is_production_env
 from ._version import SDK_VERSION
 from . import _anon_id
 from . import _see
@@ -66,7 +67,8 @@ class Engine:
         base_url: Optional[str] = None,
         *,
         env: str = "prod",
-        disable_telemetry: bool = False,
+        is_network_enabled: Optional[bool] = None,
+        disable_telemetry: Optional[bool] = None,
         telemetry_url: Optional[str] = None,
         private_attributes: Optional[Sequence[str]] = None,
         sticky_store: Optional[StickyBucketStore] = None,
@@ -82,6 +84,19 @@ class Engine:
         # Deployment env, tagged onto see() error events (telemetry already
         # carries it separately).
         self._env = env
+        # Environment-derived egress defaults (see _env.py). Both the master
+        # network switch and usage telemetry default to ON in production and OFF
+        # everywhere else, so a local/dev/CI run of an app embedding the SDK never
+        # phones home unless it opts in. An explicit value always overrides.
+        prod = is_production_env(env)
+        # Master network gate. When off the SDK is fully OFFLINE: no fetch, no
+        # track, no exposure, no see(), no telemetry — reads resolve against
+        # overrides / in-code defaults. Reuses the test-mode machinery below.
+        self._network_enabled = is_network_enabled if is_network_enabled is not None else prod
+        offline = not self._network_enabled
+        # Per-evaluation usage telemetry: honour an explicit disable_telemetry,
+        # else default to prod-on (off outside production). Forced off offline.
+        telemetry_disabled = (disable_telemetry if disable_telemetry is not None else not prod) or offline
         # Attribute keys to strip from every outbound event ``properties`` bag
         # before POSTing to /collect (LD/Statsig ``privateAttributes``). The
         # server evaluates locally, so private attrs still drive targeting —
@@ -96,7 +111,7 @@ class Engine:
             sdk_key=api_key,
             side="server",
             env=env,
-            disabled=disable_telemetry,
+            disabled=telemetry_disabled,
         )
         self._flags_blob: Optional[dict] = None
         self._exps_blob: Optional[dict] = None
@@ -110,7 +125,10 @@ class Engine:
         # Local-override / test-mode state. ``_test_mode`` makes init()/track()
         # no-ops so the client never touches the network; the override maps win
         # over the fetched blob in the getters (Statsig-style local overrides).
-        self._test_mode = False
+        # A disabled master network switch reuses this exact machinery to enforce
+        # "fully offline" — init()/track()/exposure/see() become no-ops and the
+        # getters read from an empty seeded blob plus any overrides.
+        self._test_mode = offline
         self._flag_overrides: dict[str, bool] = {}
         self._config_overrides: dict[str, Any] = {}
         self._experiment_overrides: dict[str, tuple[str, Any]] = {}
@@ -136,8 +154,16 @@ class Engine:
         set_internal_report_context(
             side="server",
             sdk_version=SDK_VERSION,
-            enabled=not disable_internal_error_reporting,
+            enabled=(not disable_internal_error_reporting) and not offline,
         )
+        # When the master network switch is off, seed empty blobs and mark the
+        # client initialized so getters resolve immediately against overrides /
+        # in-code defaults — no fetch will ever run (init()/init_once() are gated
+        # by _test_mode above).
+        if offline:
+            self._flags_blob = {}
+            self._exps_blob = {}
+            self._initialized = True
 
     @classmethod
     def for_testing(cls) -> "Engine":
@@ -850,8 +876,20 @@ def configure(
 
     First-config-wins: the first call wires everything up; later calls are a
     no-op and return the same handle. Pass any advanced option as a keyword
-    (``base_url``, ``env``, ``disable_telemetry``, ``private_attributes``,
-    ``sticky_store``, ``log_level`` …) — see the configuration docs.
+    (``base_url``, ``env``, ``is_network_enabled``, ``disable_telemetry``,
+    ``private_attributes``, ``sticky_store``, ``log_level`` …) — see the
+    configuration docs.
+
+    Environment-derived egress defaults: the master network switch
+    (``is_network_enabled``) and usage telemetry (``disable_telemetry``) both
+    default to ON in production and OFF in every other environment, so the SDK is
+    QUIET BY DEFAULT on a dev machine or in CI — it makes no outbound request
+    unless it opts in. "Production" is decided by ``SHIPEASY_ENV`` /
+    ``APP_ENV`` / ``ENV`` / ``PYTHON_ENV`` (``production``/``prod`` ⇒ prod),
+    falling back to the ``env`` option (default ``"prod"``). Pass
+    ``is_network_enabled=True`` (or set ``SHIPEASY_ENV=production``) to restore
+    outbound requests outside production; ``is_network_enabled=False`` forces the
+    SDK fully offline (reads resolve against overrides / in-code defaults).
 
     ``log_level`` (default ``"warn"``) tunes the SDK's own internal diagnostics —
     one of ``"silent" | "error" | "warn" | "info" | "debug"``. It only gates the

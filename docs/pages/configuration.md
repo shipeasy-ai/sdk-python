@@ -57,8 +57,9 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 | `init` | `bool` | `True` | Fire the one-shot fetch fire-and-forget. |
 | `poll` | `bool` | `False` | Start the background poll (refreshes the blob over time). |
 | `base_url` | `str` | `https://api.shipeasy.ai` | API base URL for the blobs. Override for a self-hosted edge or in tests. |
-| `env` | `str` | `"prod"` | Deployment environment tag, attached to `see()` error events and usage telemetry. |
-| `disable_telemetry` | `bool` | `False` | Opt out of per-evaluation usage telemetry. Evaluation itself is unaffected. |
+| `env` | `str` | `"prod"` | Deployment environment tag, attached to `see()` error events and usage telemetry. Also the fallback for the egress defaults below when no native env var is set. |
+| `is_network_enabled` | `bool` | env-derived | Master switch for **all** outbound requests (blob fetch, `track`, exposure, `see()`, telemetry). Defaults ON in production, OFF elsewhere — see [Environment-derived egress defaults](#environment-derived-egress-defaults). `False` = fully offline. |
+| `disable_telemetry` | `bool` | env-derived | Opt out of per-evaluation usage telemetry. Defaults to OFF-telemetry outside production (on in prod). Evaluation itself is unaffected; forced off whenever `is_network_enabled` is `False`. |
 | `telemetry_url` | `str` | built-in | Override the telemetry endpoint (rarely needed). |
 | `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event before it leaves the process. They still drive **targeting** locally. See [advanced](advanced.md). |
 | `sticky_store` | `StickyBucketStore` | `None` | Pin a user's experiment group across re-buckets. See [advanced](advanced.md). |
@@ -115,6 +116,47 @@ It is on by default and off automatically in `configure_for_testing` /
 ```python
 shipeasy.configure(api_key="sdk_server_...", disable_internal_error_reporting=True)
 ```
+
+## Environment-derived egress defaults
+
+The SDK is **quiet by default outside production**: it makes no outbound request
+from a dev machine or in CI unless it opts in. Two switches control egress, and
+both **default ON in production and OFF in every other environment**:
+
+- **`is_network_enabled`** — the master switch for *all* outbound traffic: blob
+  fetch/poll, `track`, experiment exposure, `see()` error reports, **and** usage
+  telemetry. When off, the SDK is **fully offline** — reads resolve against your
+  `override_*` values and in-code `default`s, and nothing is sent.
+- **`disable_telemetry`** — the per-evaluation usage telemetry beacon. Off
+  outside production; forced off whenever `is_network_enabled` is `False`.
+
+An explicitly-passed value **always** overrides the default.
+
+"Production" is decided in this order:
+
+1. A native runtime env var — `SHIPEASY_ENV`, then `APP_ENV`, then `ENV`, then
+   `PYTHON_ENV`. A value of `production` / `prod` (case-insensitive) ⇒ production;
+   any other present value (`development` / `staging` / `test` / …) ⇒ not production.
+2. If none of those is set, the SDK's own `env` option (which defaults to
+   `"prod"`) — so a real production deploy stays ON without any env var.
+
+```python
+# Dev machine / CI, no env var set → offline by default (no network calls):
+shipeasy.configure(api_key="sdk_server_...")
+
+# Restore outbound requests outside production — either set the env var…
+#   export SHIPEASY_ENV=production
+# …or opt in explicitly:
+shipeasy.configure(api_key="sdk_server_...", is_network_enabled=True)
+
+# Force the SDK fully offline even in production:
+shipeasy.configure(api_key="sdk_server_...", is_network_enabled=False)
+```
+
+> **Behaviour change (0.17.0):** before this release the SDK fetched and reported
+> in every environment. It is now quiet outside production. If you relied on live
+> flags/telemetry from a non-production process, set `SHIPEASY_ENV=production` or
+> pass `is_network_enabled=True`.
 
 ## Tests and offline
 

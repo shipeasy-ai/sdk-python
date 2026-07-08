@@ -32,6 +32,13 @@ shipeasy.configure(
 Omit `attributes` if your user object is already the attribute map. For a
 long-running server pass `poll=True` to keep the blob fresh in the background.
 
+**Quiet outside production (0.17.0+).** By default the SDK makes NO outbound
+request (no fetch, `track`, exposure, `see()`, or telemetry) unless it detects a
+production environment — via `SHIPEASY_ENV`/`APP_ENV`/`ENV`/`PYTHON_ENV`
+(`production`/`prod`), else the `env` option (default `"prod"`). On a dev machine
+or in CI, set `SHIPEASY_ENV=production` or pass `is_network_enabled=True` to turn
+egress back on; pass `is_network_enabled=False` to force fully offline.
+
 **Django:** add `"shipeasy.django"` to `INSTALLED_APPS`, run
 `python manage.py shipeasy_install` (idempotently wires the anon-id middleware +
 a `SHIPEASY = {...}` settings block + `.env`), then set `SHIPEASY["SERVER_KEY"]`.
