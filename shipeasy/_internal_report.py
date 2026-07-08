@@ -48,7 +48,7 @@ INGEST_URL = "https://api.shipeasy.ai/collect"
 #     --name "SDK internal error self-reporting" --scopes events:write
 # then replace the ``_INGEST_KEY`` initializer below with the returned value.
 PLACEHOLDER_KEY = "sdk_client_REPLACE_WITH_SHIPEASY_INTERNAL_ERROR_KEY"
-_INGEST_KEY = PLACEHOLDER_KEY
+_INGEST_KEY = "sdk_client_00bd4608a03e4084922978f9522614d5"
 
 # Stable consequence. The ``label`` (the guard's operation name, e.g.
 # "flags.get") is the subject; the outcome is fixed. Both are constant per
