@@ -27,6 +27,7 @@ from . import _see
 from . import _logging as _log
 from ._logging import set_log_level
 from ._see import Violation, build_see_event, SeeLimiter
+from ._internal_report import report_internal_error, set_internal_report_context
 
 T = TypeVar("T")
 log = logging.getLogger("shipeasy")
@@ -62,6 +63,7 @@ class Engine:
         private_attributes: Optional[Sequence[str]] = None,
         sticky_store: Optional[StickyBucketStore] = None,
         log_level: str = "warn",
+        disable_internal_error_reporting: bool = False,
     ) -> None:
         # Set the SDK's internal log verbosity first, so any diagnostic emitted
         # during the rest of construction is already gated. An unknown value is
@@ -114,6 +116,16 @@ class Engine:
         # Register as the default engine backing the package-level see() funcs
         # (last constructed wins — the server-SDK analog of TS's shipeasy({key})).
         _see.set_default_client(self)
+        # Wire the internal self-monitoring channel: when a last-resort guard
+        # swallows one of the SDK's OWN internal errors, it also ships a see
+        # event to Shipeasy's own project (baked-in destination, distinct from
+        # this consumer's see() path). ON by default; opt out with
+        # disable_internal_error_reporting; forced off in test/offline mode.
+        set_internal_report_context(
+            side="server",
+            sdk_version=SDK_VERSION,
+            enabled=not disable_internal_error_reporting,
+        )
 
     @classmethod
     def for_testing(cls) -> "Engine":
@@ -123,7 +135,11 @@ class Engine:
         getters resolve against an empty blob plus whatever you seed via the
         ``override_*`` setters.
         """
-        client = cls(api_key="", disable_telemetry=True)
+        client = cls(
+            api_key="",
+            disable_telemetry=True,
+            disable_internal_error_reporting=True,
+        )
         client._test_mode = True
         client._flags_blob = {}
         client._exps_blob = {}
@@ -142,7 +158,11 @@ class Engine:
         *real* eval logic against the snapshot. ``override_*`` setters still
         apply on top.
         """
-        client = cls(api_key="", disable_telemetry=True)
+        client = cls(
+            api_key="",
+            disable_telemetry=True,
+            disable_internal_error_reporting=True,
+        )
         client._test_mode = True
         client._flags_blob = dict(flags) if flags else {}
         client._exps_blob = dict(experiments) if experiments else {}
@@ -238,6 +258,7 @@ class Engine:
             return self._get_flag_detail(name, user)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("get_flag_detail(%s) failed: %s", name, e)
+            report_internal_error("flags.get_detail", e)
             return FlagDetail(value=False, reason=CLIENT_NOT_READY)
 
     def _get_flag_detail(self, name: str, user: Mapping[str, Any]) -> FlagDetail:
@@ -283,6 +304,7 @@ class Engine:
             return detail.value
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("get_flag(%s) failed: %s", name, e)
+            report_internal_error("flags.get", e)
             return default
 
     def get_config(
@@ -301,6 +323,7 @@ class Engine:
             return self._get_config(name, decode, default)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("get_config(%s) failed: %s", name, e)
+            report_internal_error("configs.get", e)
             return default
 
     def _get_config(
@@ -350,6 +373,7 @@ class Engine:
             return self._get_experiment(name, user, default_params, decode)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("get_experiment(%s) failed: %s", name, e)
+            report_internal_error("experiments.get", e)
             return ExperimentResult(False, "control", default_params)
 
     def _get_experiment(
@@ -409,6 +433,7 @@ class Engine:
             return bool(_enabled(entry.get("value", entry.get("enabled"))))
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("get_killswitch(%s) failed: %s", name, e)
+            report_internal_error("killswitch.get", e)
             return False
 
     def _strip_private(
@@ -528,6 +553,7 @@ class Engine:
             ).start()
         except Exception as e:  # noqa: BLE001 — track must never raise into the caller
             _log.error("track(%s) failed: %s", event_name, e)
+            report_internal_error("track", e)
 
     def log_exposure(
         self, user_or_user_id: Union[str, Mapping[str, Any]], experiment_name: str
@@ -574,6 +600,7 @@ class Engine:
             ).start()
         except Exception as e:  # noqa: BLE001 — log_exposure must never raise
             _log.error("log_exposure(%s) failed: %s", experiment_name, e)
+            report_internal_error("exposure", e)
 
     def _post_silent(self, path: str, data: bytes) -> None:
         try:
@@ -1001,6 +1028,7 @@ class Client:
             return self._engine.get_flag(name, self.attributes, default)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("Client.get_flag(%s) failed: %s", name, e)
+            report_internal_error("Client.get_flag", e)
             return default
 
     def get_flag_detail(self, name: str) -> FlagDetail:
@@ -1008,6 +1036,7 @@ class Client:
             return self._engine.get_flag_detail(name, self.attributes)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("Client.get_flag_detail(%s) failed: %s", name, e)
+            report_internal_error("Client.get_flag_detail", e)
             return FlagDetail(value=False, reason=CLIENT_NOT_READY)
 
     def get_config(
@@ -1021,6 +1050,7 @@ class Client:
             return self._engine.get_config(name, decode, default)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("Client.get_config(%s) failed: %s", name, e)
+            report_internal_error("Client.get_config", e)
             return default
 
     def get_experiment(
@@ -1035,6 +1065,7 @@ class Client:
             )
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("Client.get_experiment(%s) failed: %s", name, e)
+            report_internal_error("Client.get_experiment", e)
             return ExperimentResult(False, "control", default_params)
 
     def get_killswitch(self, name: str, switch_key: Optional[str] = None) -> bool:
@@ -1042,6 +1073,7 @@ class Client:
             return self._engine.get_killswitch(name, switch_key)
         except Exception as e:  # noqa: BLE001 — runtime reads must never raise
             _log.error("Client.get_killswitch(%s) failed: %s", name, e)
+            report_internal_error("Client.get_killswitch", e)
             return False
 
     def track(
@@ -1060,6 +1092,7 @@ class Client:
             self._engine.track(unit, event_name, properties)
         except Exception as e:  # noqa: BLE001 — track must never raise into the caller
             _log.error("Client.track(%s) failed: %s", event_name, e)
+            report_internal_error("Client.track", e)
 
     def log_exposure(self, experiment_name: str) -> None:
         """Emit an exposure event for ``experiment_name`` against the bound user
@@ -1071,3 +1104,4 @@ class Client:
             self._engine.log_exposure(self.attributes, experiment_name)
         except Exception as e:  # noqa: BLE001 — log_exposure must never raise
             _log.error("Client.log_exposure(%s) failed: %s", experiment_name, e)
+            report_internal_error("Client.log_exposure", e)

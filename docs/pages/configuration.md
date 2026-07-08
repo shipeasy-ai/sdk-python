@@ -63,6 +63,7 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 | `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event before it leaves the process. They still drive **targeting** locally. See [advanced](advanced.md). |
 | `sticky_store` | `StickyBucketStore` | `None` | Pin a user's experiment group across re-buckets. See [advanced](advanced.md). |
 | `log_level` | `str` | `"warn"` | Verbosity of the SDK's own internal diagnostics. See below. |
+| `disable_internal_error_reporting` | `bool` | `False` | Opt out of SDK self-monitoring (see below). Your `see()` reporting is unaffected. |
 
 ## Fail-safe reads & the `log_level` option
 
@@ -95,6 +96,24 @@ This only affects log output; it never changes the fail-safe behaviour above.
 
 ```python
 shipeasy.configure(api_key="sdk_server_...", log_level="silent")
+```
+
+## SDK self-monitoring
+
+When one of those last-resort guards swallows an **internal** SDK failure — a bug
+on Shipeasy's side, not yours — the SDK also reports that error to Shipeasy's own
+project, so we can find and fix SDK bugs across every app the SDK runs in. This is
+a dedicated, baked-in destination entirely separate from your own `see()`
+reporting: **internal errors never land in your project or Errors tab.** The
+report carries only the error plus a stable, deduped consequence (the guarded
+operation, e.g. `flags.get`) and is fire-and-forget, so it can never slow down or
+break a read.
+
+It is on by default and off automatically in `configure_for_testing` /
+`configure_for_offline`. To opt out entirely:
+
+```python
+shipeasy.configure(api_key="sdk_server_...", disable_internal_error_reporting=True)
 ```
 
 ## Tests and offline
