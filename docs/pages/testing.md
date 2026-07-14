@@ -21,7 +21,7 @@ client = Client({"user_id": "u_123"})
 assert client.get_flag("new_checkout") is True
 assert client.get_config("billing_copy") == {"title": "Welcome"}
 
-# track()/assign() auto-exposure are no-ops in test mode — safe to call, send nothing
+# track() and get()-triggered exposure are no-ops in test mode — safe to call, send nothing
 client.track("purchase", {"amount": 49})
 ```
 

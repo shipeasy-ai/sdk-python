@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional
 import re
 
 from ._hash import murmur3
@@ -168,6 +168,28 @@ _OUT = ExpStanding(state="out")
 _HOLDOUT = ExpStanding(state="holdout")
 
 
+def _resolve_forced_group(
+    exp: Mapping[str, Any], uid: str, eval_gate_fn
+) -> Optional[str]:
+    """Resolve a forced override group for ``uid`` (spec step 1): ID overrides
+    (tier 1) beat cohort/GK overrides (tier 2); within cohort overrides the first
+    (pre-sorted by priority) gate that passes wins. Returns the forced group name
+    or None. The caller applies eligibility + group-existence (forced-but-gated).
+    Mirrors ``@shipeasy/core`` ``resolveForcedGroup``.
+    """
+    id_overrides = exp.get("idOverrides")
+    if id_overrides:
+        by_id = id_overrides.get(uid)
+        if by_id:
+            return by_id
+    cohort_overrides = exp.get("cohortOverrides")
+    if cohort_overrides:
+        for co in cohort_overrides:
+            if eval_gate_fn(co.get("gate")):
+                return co.get("group")
+    return None
+
+
 def classify_experiment(
     exp: Mapping[str, Any],
     user: Mapping[str, Any],
@@ -217,6 +239,20 @@ def classify_experiment(
 
     salt = exp.get("salt") or ""
     salt8 = salt[:8]
+
+    # Durable overrides (spec step 1, forced-but-gated). Reached only after the
+    # unit passes targeting and is not held out, so an override may now pin the
+    # group — bypassing allocation + the weighted pick but NOT the gates above. ID
+    # overrides (tier 1) beat cohort/GK overrides (tier 2); a forced group that no
+    # longer exists falls through to normal allocation. No-op when unconfigured, so
+    # v1/v2 stay byte-identical. Mirrors @shipeasy/core ``classifyExperiment``.
+    forced = _resolve_forced_group(exp, uid, eval_gate_fn)
+    if forced:
+        for g in groups:
+            if g.get("name") == forced:
+                if sticky_store is not None and exp_name is not None:
+                    sticky_store.set(uid, exp_name, {"g": forced, "s": salt8})
+                return _as_group(g)
 
     # Sticky short-circuit (doc 20 §2): an enrolled unit whose stored salt prefix
     # still matches skips the allocation gate (so a shrinking allocation keeps it
@@ -320,11 +356,16 @@ class Assignment:
     """The result of ``universe(name).assign(user)`` — a user's standing in a
     universe. A universe is a mutual-exclusion pool, so a unit lands in **at most
     one** experiment. Never throws: an un-enrolled unit still resolves ``get()``
-    to the universe defaults (or your fallback). Reading is side-effect free — the
-    single exposure is logged once by ``assign()`` when the unit is enrolled.
+    to the universe defaults (or your fallback).
+
+    Exposure is logged **on read** (spec step 7): the single exposure fires the
+    first time an enrolled unit's param is actually read via ``get()``, not at
+    ``assign()`` time — so an assignment that is computed but never read logs
+    nothing. Deduped per process; the durable per-(unit, experiment, group) dedup
+    lives server-side. Pass ``exposure=False`` to read without logging (peek).
     """
 
-    __slots__ = ("name", "group", "_params")
+    __slots__ = ("name", "group", "_params", "_on_expose", "_exposed")
 
     def __init__(
         self,
@@ -333,20 +374,33 @@ class Assignment:
         # Already merged (universeDefaults ⊕ variantOverride) when enrolled;
         # defaults-only (or {}) when not.
         params: Optional[Mapping[str, Any]],
+        # Fires the single exposure the first time an enrolled param is read.
+        # ``None`` when not enrolled (nothing to expose). Deduped downstream.
+        on_expose: Optional[Callable[[], None]] = None,
     ) -> None:
         self.name = name
         self.group = group
         self._params: Dict[str, Any] = dict(params) if params else {}
+        self._on_expose = on_expose
+        self._exposed = False
 
     @property
     def enrolled(self) -> bool:
-        """True iff the unit is enrolled in an experiment in this universe."""
+        """True iff the unit is enrolled in an experiment in this universe.
+        Reading it does NOT log an exposure (only ``get()`` of a param does)."""
         return self.group is not None
 
-    def get(self, field: str, fallback: Any = None) -> Any:
+    def get(self, field: str, fallback: Any = None, *, exposure: bool = True) -> Any:
         """Read a resolved param: the assigned variant's override, else the
         universe default, else ``fallback``. Works even when not enrolled (the
-        variant layer is absent, so you get ``universeDefault ?? fallback``)."""
+        variant layer is absent, so you get ``universeDefault ?? fallback``). The
+        first enrolled read logs the single exposure; pass ``exposure=False`` to
+        suppress it (peek)."""
+        # On-read exposure: the first param read of an enrolled assignment logs
+        # one exposure, unless the caller opted out with ``exposure=False``.
+        if exposure and not self._exposed and self._on_expose is not None:
+            self._exposed = True
+            self._on_expose()
         if field in self._params:
             return self._params[field]
         return fallback

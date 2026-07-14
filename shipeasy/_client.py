@@ -498,8 +498,16 @@ class Engine:
         for name, exp in candidates:
             standing = self._eval_experiment_standing(name, exp, user)
             if standing.state == "group":
-                self._post_exposure(user, name, standing.group or "control")
-                return Assignment(name, standing.group, standing.params or {})
+                group = standing.group or "control"
+                # On-read exposure (spec step 7): defer the single exposure to
+                # the first param read via the callback, instead of firing it
+                # here at assign time.
+                return Assignment(
+                    name,
+                    standing.group,
+                    standing.params or {},
+                    lambda n=name, g=group: self._post_exposure(user, n, g),
+                )
             # "holdout"/"out": try the next candidate — under pooling only one
             # slice can match, so the loop naturally lands on the winner.
         return _not_enrolled()

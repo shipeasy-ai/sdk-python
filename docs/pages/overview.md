@@ -28,7 +28,7 @@ client = shipeasy.Client(current_user)
 if client.get_flag("new_checkout"):
     ...
 config = client.get_config("billing_copy")
-a = client.universe("checkout").assign()  # ≤1 experiment; auto-logs exposure
+a = client.universe("checkout").assign()  # ≤1 experiment; exposure logs on first get()
 if a.get("button_color") == "green":
     ...
 client.track("purchase", {"amount": 49})  # on conversion
@@ -43,7 +43,8 @@ call:
 - `get_config(name, decode=None, default=None)`
 - `get_killswitch(name, switch_key=None)`
 - `universe(name).assign()` → `Assignment` (`.name` / `.group` / `.enrolled` /
-  `.get(field, fallback=None)`); auto-logs one exposure when enrolled
+  `.get(field, fallback=None, *, exposure=True)`); the first `get()` on an
+  enrolled assignment logs one exposure (`exposure=False` peeks without logging)
 - `track(event, properties=None)`
 
 So an experiment is **end-to-end Client-only**. Constructing a `Client(user)`

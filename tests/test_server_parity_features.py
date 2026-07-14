@@ -109,7 +109,9 @@ def _universe_exp(**extra):
     return {"experiments": {"exp": _running_exp(universe="u", **extra)}, "universes": {"u": {}}}
 
 
-def test_assign_auto_logs_exposure_once_when_enrolled():
+def test_assign_logs_exposure_on_first_read_once_when_enrolled():
+    # On-read exposure (spec step 7): assign() alone logs nothing; the first
+    # get() of an enrolled assignment fires exactly one exposure.
     c, cm = _make_capture_client()
     c._test_mode = False
     c._exps_blob = _universe_exp(alloc=10000)
@@ -118,8 +120,12 @@ def test_assign_auto_logs_exposure_once_when_enrolled():
     try:
         a = c.universe("u").assign({"user_id": "u1"})
         assert a.enrolled is True
-        # A second assign for the SAME (uid, exp, group) is deduped — no 2nd post.
-        c.universe("u").assign({"user_id": "u1"})
+        # assign() by itself is side-effect free — no exposure yet.
+        assert c.posts == []
+        a.get("anything")  # first read → the single exposure
+        a.get("again")  # same handle → deduped, no 2nd post
+        # A second assign+read for the SAME (uid, exp, group) is deduped too.
+        c.universe("u").assign({"user_id": "u1"}).get("x")
     finally:
         cm.threading.Thread = c._orig_thread
 
@@ -134,8 +140,26 @@ def test_assign_auto_logs_exposure_once_when_enrolled():
     assert "ts" in ev
 
 
+def test_peek_read_does_not_log_exposure():
+    # get(..., exposure=False) reads params without firing the exposure.
+    c, cm = _make_capture_client()
+    c._test_mode = False
+    c._exps_blob = _universe_exp(alloc=10000)
+    c._flags_blob = {}
+    c._initialized = True
+    try:
+        a = c.universe("u").assign({"user_id": "u1"})
+        assert a.enrolled is True
+        a.get("anything", exposure=False)
+        assert c.posts == []
+        a.get("anything")  # a real read still logs
+    finally:
+        cm.threading.Thread = c._orig_thread
+    assert len(c.posts) == 1
+
+
 def test_assign_no_exposure_when_not_enrolled():
-    # allocationPct = 0 → nobody enrolled → no exposure posted.
+    # allocationPct = 0 → nobody enrolled → reading logs nothing.
     c, cm = _make_capture_client()
     c._test_mode = False
     c._exps_blob = _universe_exp(alloc=0)
@@ -144,6 +168,7 @@ def test_assign_no_exposure_when_not_enrolled():
     try:
         a = c.universe("u").assign({"user_id": "u1"})
         assert a.enrolled is False
+        a.get("anything")  # not enrolled → no callback wired → no post
     finally:
         cm.threading.Thread = c._orig_thread
     assert c.posts == []
@@ -156,7 +181,7 @@ def test_assign_exposure_carries_user_dict_attrs():
     c._flags_blob = {}
     c._initialized = True
     try:
-        c.universe("u").assign({"user_id": "u9", "plan": "pro"})
+        c.universe("u").assign({"user_id": "u9", "plan": "pro"}).get("x")
     finally:
         cm.threading.Thread = c._orig_thread
     assert len(c.posts) == 1
