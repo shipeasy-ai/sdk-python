@@ -34,6 +34,8 @@ from ._see import (
     see,
     see_violation,
     control_flow_exception,
+    add_extras,
+    clear_extras,
     set_default_client,
 )
 from ._env import is_production_env
@@ -75,6 +77,8 @@ __all__ = [
     "see",
     "see_violation",
     "control_flow_exception",
+    "add_extras",
+    "clear_extras",
     "set_default_client",
 ]
 __version__ = SDK_VERSION

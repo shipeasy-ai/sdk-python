@@ -19,15 +19,50 @@ except PaymentError as e:
     fallback_charge(order)
 ```
 
-`.causes_the(subject)` and `.extras(mapping)` are chainable setters; `.to(...)`
-is the terminal:
+`.causes_the(subject)` and `.extras(mapping)` are chainable setters callable in
+any order **before** `.to`. You can also fold the extras into the terminal as
+`.to(outcome, extras)`, so there is no ordering to remember:
 
 ```python
 see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
+
+# equivalent, extras inline on the terminal:
+see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
 ```
+
+A stray `.extras` chained **after** `.to` is ignored with a warning (the report
+already shipped) — it never raises into your `except` block (`.to` returns the
+chain).
 
 Use the package-level `see()` — it reports against the engine you set up with
 [`configure()`](configuration.md). No object to construct or pass around.
+
+### Attach context from anywhere: `add_extras`
+
+To attach context without threading it into the `except` block, buffer it earlier
+in the request with `shipeasy.add_extras`. Every `see()` report that fires later
+in the **same request** merges it in:
+
+```python
+import shipeasy
+
+# from any layer, early in the request (mapping and/or keyword args)
+shipeasy.add_extras(order_id=order.id, tenant=tenant.slug)
+
+# ...later, deep in a service...
+try:
+    charge(order)
+except PaymentError as e:
+    shipeasy.see(e).causes_the("checkout").to("use cached prices")
+    # report carries order_id + tenant automatically
+```
+
+The buffer is backed by a **`ContextVar`**, so concurrent requests and async
+tasks never bleed into each other, and it merges into *every* report in the
+request (not just the first). A chained `.extras` / `.to` extra of the same key
+overrides an ambient one. The WSGI / ASGI / Django middleware clears the buffer
+at the end of each request; in a background job or script call
+`shipeasy.clear_extras()` when a unit of work ends.
 
 ## Non-exception violations
 

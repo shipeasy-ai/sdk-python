@@ -61,11 +61,13 @@ client.get_config("billing_copy", default={})   # typed JSON; default= on absent
 client.get_killswitch("payments_breaker")       # bool kill switch
 
 # A universe is a mutual-exclusion pool: a unit lands in <=1 experiment.
-# assign() auto-logs one exposure when enrolled; a.get() resolves
-# variant override -> universe default -> fallback (works even when not enrolled).
+# assign() is side-effect free; the first a.get() on an enrolled assignment
+# logs one exposure (deduped). a.get(field, fallback, *, exposure=False) peeks
+# without logging. It resolves variant override -> universe default -> fallback
+# (works even when not enrolled).
 a = client.universe("checkout").assign()
 a.name, a.group, a.enrolled                     # None/None/False when not enrolled
-a.get("color", "blue")
+a.get("color", "blue")                          # first read logs the exposure
 
 client.track("purchase", {"amount": 49})        # conversion / metric event
 ```
@@ -143,10 +145,17 @@ try:
     charge(order)
 except PaymentError as e:
     see(e).causes_the("checkout").to("use the backup processor")
+    # extras inline on the terminal (or .extras(...) before .to):
+    see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
 ```
 
+Buffer request-wide context from any layer with `shipeasy.add_extras(order_id=...)`
+— every later `see()` in the same request merges it in (ContextVar-scoped; the
+WSGI/ASGI/Django middleware clears it per request; `shipeasy.clear_extras()`
+outside a request). A stray `.extras` after `.to` is ignored (never raises).
+
 → More: `pages/error-reporting.md` · snippets `snippets/ops/see.md`
-(`.extras()`, violations, control-flow exceptions).
+(`.extras()`, `add_extras`, violations, control-flow exceptions).
 
 ## Other surfaces
 
@@ -154,8 +163,10 @@ except PaymentError as e:
   the shared `__se_anon_id` cookie; anonymous `get_flag` then just works.
 - `configure(private_attributes=[...])` strips keys from outbound events.
 - `configure(sticky_store=InMemoryStickyStore())` pins experiment assignment.
-- Exposure is automatic: an enrolled `client.universe(name).assign()` logs one
-  deduped exposure — there is no manual `log_exposure`.
+- Exposure fires on read: the first `a.get(field)` on an enrolled assignment
+  logs one exposure (deduped per process and durably per unit/experiment/group);
+  `assign()` itself is side-effect free, and `a.get(field, fallback,
+  exposure=False)` peeks without logging. There is no manual `log_exposure`.
 - SSR: `shipeasy.bootstrap_script_tag(user)` + `shipeasy.i18n_script_tag(client_key, "en:prod")`.
 
 → More: `pages/advanced.md`.

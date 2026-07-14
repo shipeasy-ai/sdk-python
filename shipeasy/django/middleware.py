@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Callable
 
 from .. import _anon_id as anon_id
+from .._see import clear_ambient_extras
 
 
 class AnonIdMiddleware:
@@ -47,7 +48,10 @@ class AnonIdMiddleware:
         try:
             response = self.get_response(request)
         finally:
+            # Don't leak the id — or any ambient see() extras — onto the next
+            # request handled by this thread.
             anon_id.reset_current(token)
+            clear_ambient_extras()
 
         if minted:
             response.set_cookie(

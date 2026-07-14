@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.19.0 (2026-07-13)
+
+### see(): inline extras on `.to`, ambient per-request extras, no ordering footgun
+
+- **`.to(outcome, extras)`** — the terminal now takes the extras inline, e.g.
+  `see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})`.
+  Equivalent to a final `.extras(...)`; folds under any earlier `.extras` (later
+  wins). So there is no longer an order to remember.
+- **A `.extras` chained AFTER `.to` no longer raises.** Previously `.to()`
+  returned `None`, so a trailing `.extras(...)` raised `AttributeError` — inside
+  your `except` block, the worst place. `.to` now returns the chain; a
+  post-`.to` `.extras` is ignored with a warning (the report already shipped).
+  Use `.to(outcome, extras)` or `shipeasy.add_extras` for late context.
+- **`shipeasy.add_extras(...)` / `shipeasy.clear_extras()`** — an ambient
+  per-request extras buffer. Call `shipeasy.add_extras(order_id=id, tenant=t)`
+  (accepts a mapping and/or kwargs) from anywhere (any layer, not just the
+  `except`) and every `see()` report that fires later in the same request merges
+  it in. The buffer is backed by a **`ContextVar`** (concurrent requests and
+  async tasks never bleed), attaches to *every* report in scope, and is cleared
+  per request by the WSGI/ASGI/Django middleware (outside a request, call
+  `shipeasy.clear_extras()` at the end of a unit of work). A chained `.extras` /
+  `.to` extra overrides an ambient key of the same name; ambient extras are
+  sanitized and private-attribute-stripped like any other.
+
+## 0.18.0 (2026-07-08)
+
+### Experiment exposure now fires on read (with a peek opt-out)
+
+`universe(name).assign()` is now **side-effect free** — it no longer logs an
+exposure. Instead an enrolled `Assignment` logs its single exposure **on read**:
+the first time you read a param via `.get(field)`, i.e. at the point you actually
+present the treatment. This stops assignments you look up but never surface from
+counting as exposures.
+
+- **`.get(field, fallback=None, *, exposure=True)`** gains an `exposure` keyword.
+  Pass `exposure=False` to **peek** at a param without logging an exposure; the
+  default read logs one (once) as before.
+- Exposure is deduped per process **and** now durably per
+  `(unit, experiment, group)` server-side, so the same unit re-reading across
+  requests never double-counts. Still a no-op in test/offline mode.
+
+Behaviour change: if you were relying on the mere `assign()` call to record an
+exposure, add a real `.get(...)` at the decision point (or drop `exposure=False`
+from a read you meant to count). Running experiments are unaffected — the
+assignment/params returned by `assign()` and `.get()` are unchanged.
+
+### Durable forced-but-gated ID & cohort overrides
+
+The experiment resolver now honours durable **ID overrides** and **cohort/gate
+overrides** carried in the experiments blob. A matched override pins the unit's
+group **only if** the unit still passes the experiment's targeting and isn't held
+out (forced *but still gated*); ID overrides take precedence over cohort
+overrides. This is consumed transparently via the blob — no new user-facing SDK
+API. Running experiments are byte-identical; the new resolution order rides
+`hash_version: 3`.
+
 ## 0.17.1 (2026-07-08)
 
 ### Django scaffold pins network egress to production

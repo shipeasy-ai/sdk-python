@@ -14,17 +14,30 @@ exception documents its product *consequence*, not just its stack:
 
 Dispatch model (differs from TS, which uses a microtask): ``.to(outcome)`` is
 the terminal — it builds the wire event and fire-and-forgets the POST to
-``/collect``. ``causes_the()`` and ``extras()`` are chainable setters that may
-be called in any order *before* ``.to()``::
+``/collect``. ``causes_the()`` and ``extras()`` are chainable setters called
+*before* ``.to()``; ``.to()`` also accepts the extras inline as a second arg, so
+there is no ordering trap to remember::
 
     see(e).causes_the("checkout").to("use cached prices")
     see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
+    see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
+
+``.extras()`` chained AFTER ``.to()`` is ignored with a warning (the report
+already went out) — it never raises into the ``except`` block. ``.to()`` returns
+the chain, so a stray trailing ``.extras()`` chains harmlessly.
+
+To attach context from anywhere in a request without threading it into the
+``except`` block, use the ambient buffer: ``shipeasy.add_extras(order_id=oid)``
+merges into EVERY see() report that fires later in the same request. It is scoped
+by ``contextvars`` (concurrent requests / async tasks never bleed) and the
+WSGI/ASGI/Django middleware clears it at the end of each request.
 
 If you don't know the consequence of an exception, don't catch it.
 """
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import threading
 import time
@@ -247,20 +260,58 @@ class _SeeChain:
     causesThe = causes_the
 
     def extras(self, extras: Mapping[str, Any]) -> "_SeeChain":
+        """Attach debugging metadata. Chainable — call repeatedly (keys merge,
+        later wins) *before* ``.to()``. Called AFTER ``.to()`` it is a no-op with
+        a warning: the report already shipped, so there is nothing to amend and,
+        crucially, it must not raise into the caller's ``except`` block. Use
+        ``.to(outcome, extras)`` or ``shipeasy.add_extras`` for late/scattered
+        context instead.
+        """
+        if self._done:
+            _log.warn(
+                "see() .extras(...) called after .to(...) is ignored — "
+                "pass extras to .to(outcome, extras) or call .extras before .to"
+            )
+            return self
         if extras:
             self._extras = {**(self._extras or {}), **dict(extras)}
         return self
 
-    def to(self, outcome: str) -> None:
-        """Terminal: build the event and fire-and-forget the report."""
+    def to(self, outcome: str, extras: Optional[Mapping[str, Any]] = None) -> "_SeeChain":
+        """Terminal: build the event and fire-and-forget the report. Idempotent.
+
+        ``extras`` may be passed inline here as the trailing form
+        ``.to(outcome, {"order_id": oid})`` — merged like a final ``.extras``
+        call (folds under any earlier ``.extras``; later wins). Returns self so a
+        stray trailing ``.extras`` chains harmlessly.
+        """
         if self._done:
-            return
+            return self
+        if extras:
+            self._extras = {**(self._extras or {}), **dict(extras)}
         self._done = True
         self._outcome = str(outcome)
         try:
-            self._dispatch(_BuiltChain(self._problem, self._subject, self._outcome, self._extras))
+            self._dispatch(
+                _BuiltChain(self._problem, self._subject, self._outcome, self._resolved_extras())
+            )
         except Exception:  # noqa: BLE001 — reporting must never raise into caller code
             pass
+        return self
+
+    def _resolved_extras(self) -> Optional[dict]:
+        """The chain's own extras merged OVER the ambient per-request buffer, so a
+        chained key of the same name wins over an ambient one. Returns None when
+        both are empty. ``sanitize_extras`` stringifies keys at build time.
+        """
+        ambient = _ambient_extras()
+        if not ambient:
+            return self._extras
+        if not self._extras:
+            return dict(ambient)
+        out = dict(ambient)
+        out.update(self._extras)
+        return out
 
 
 class _BuiltChain:
@@ -301,6 +352,56 @@ class _ControlFlowTail:
     def extras(self, extras: Mapping[str, Any]) -> "_ControlFlowTail":
         mark_expected(self._err, self._reason, extras)
         return self
+
+
+# ---- Ambient per-request extras -------------------------------------------
+
+# A per-request buffer of extras that merge into EVERY see() report firing later
+# in the same execution context. Lets a request attach context (order id, route,
+# tenant) from anywhere without threading it into the ``except`` block:
+# ``shipeasy.add_extras(order_id=oid)`` here, and any subsequent ``see()`` in
+# this request carries it.
+#
+# Backed by a ContextVar (not thread-local), so it scopes correctly under both
+# threaded WSGI servers and asyncio/ASGI — concurrent requests / tasks never
+# bleed. The WSGI/ASGI/Django middleware clears it at the end of each request;
+# outside a request (jobs, scripts) call ``shipeasy.clear_extras`` yourself when
+# a logical unit of work ends.
+#
+# Values are stored raw and sanitized (scalar-only, truncated, 20-key cap,
+# private-attribute stripped) at build time, exactly like chained extras.
+_ambient: contextvars.ContextVar[Optional[dict]] = contextvars.ContextVar(
+    "shipeasy_see_ambient_extras", default=None
+)
+
+
+def add_ambient_extras(extras: Mapping[str, Any]) -> None:
+    """Merge fields into the current context's buffer (string keys, later wins).
+    Non-mapping / empty input is ignored. Never raises."""
+    try:
+        if not extras or not isinstance(extras, Mapping):
+            return
+        buf = _ambient.get()
+        # Copy-on-write so a token reset by the middleware restores cleanly and
+        # sibling contexts that inherited the same dict object don't see writes.
+        buf = dict(buf) if buf else {}
+        for k, v in extras.items():
+            buf[str(k)] = v
+        _ambient.set(buf)
+    except Exception:  # noqa: BLE001 — never raise from context bookkeeping
+        pass
+
+
+def _ambient_extras() -> dict:
+    """A snapshot of the current context's buffer, or {} when empty."""
+    buf = _ambient.get()
+    return dict(buf) if buf else {}
+
+
+def clear_ambient_extras() -> None:
+    """Drop the current context's buffer so extras never leak to the next
+    request handled by this thread/task."""
+    _ambient.set(None)
 
 
 # ---- Global default client ----
@@ -345,3 +446,35 @@ def control_flow_exception(err: Any) -> _ControlFlowChain:
     """Mark an exception as expected control flow (reports nothing). Works
     without a client — it only stamps the exception object."""
     return _ControlFlowChain(err)
+
+
+# ---- Ambient per-request see() extras (package-level facade) ---------------
+
+
+def add_extras(extras: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> None:
+    """Attach context that merges into every ``see()`` report firing later in
+    this request, from anywhere — no need to thread it into the ``except`` block::
+
+        shipeasy.add_extras(order_id=order.id, tenant=tenant.slug)
+        # ...later, somewhere else in the same request...
+        except Exception as e:
+            shipeasy.see(e).causes_the("checkout").to("use cached prices")
+            # ^ report carries order_id + tenant automatically
+
+    Scoped by ``contextvars``, so concurrent requests / async tasks never bleed.
+    The WSGI/ASGI/Django middleware clears the buffer per request; outside a
+    request, call :func:`clear_extras` when a unit of work ends. Accepts a
+    mapping and/or keyword args (kwargs win on key collision). Works with no
+    client configured (it only writes the buffer); never raises.
+    """
+    merged: dict = {}
+    if extras and isinstance(extras, Mapping):
+        merged.update(extras)
+    if kwargs:
+        merged.update(kwargs)
+    add_ambient_extras(merged)
+
+
+def clear_extras() -> None:
+    """Drop the ambient extras buffer for the current request/context."""
+    clear_ambient_extras()

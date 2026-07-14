@@ -143,3 +143,144 @@ def test_private_attributes_stripped_from_extras(monkeypatch):
     ev = _events(sent)[0]
     assert "secret" not in ev["extras"]
     assert ev["extras"]["ok"] == "yes"
+
+
+# ---- inline extras on .to + non-crashing tail (PART 1) ---------------------
+
+
+def test_to_accepts_inline_extras(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    c.see(ValueError("x")).causes_the("checkout").to(
+        "use cached prices", {"order_id": "o1", "n": 3}
+    )
+    ev = _events(sent)[0]
+    assert ev["outcome"] == "use cached prices"
+    assert ev["extras"] == {"order_id": "o1", "n": 3}
+
+
+def test_to_inline_extras_merge_over_prior_extras(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    c.see(ValueError("x")).causes_the("checkout").extras(
+        {"order_id": "old", "keep": "yes"}
+    ).to("use cached prices", {"order_id": "new"})
+    ev = _events(sent)[0]
+    # inline .to extras win over an earlier .extras of the same key
+    assert ev["extras"] == {"order_id": "new", "keep": "yes"}
+
+
+def test_to_returns_chain(monkeypatch):
+    _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    chain = c.see(ValueError("x")).causes_the("checkout")
+    assert chain.to("use cached prices") is chain
+
+
+def test_extras_after_to_is_ignored_and_does_not_raise(monkeypatch, caplog):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    chain = c.see(ValueError("x")).causes_the("checkout")
+    # A trailing .extras() after .to() must not raise and must not send again.
+    with caplog.at_level("WARNING", logger="shipeasy"):
+        chain.to("use cached prices").extras({"too": "late"})
+    assert len(_events(sent)) == 1
+    assert "too" not in (_events(sent)[0].get("extras") or {})
+    assert any("after .to" in r.message for r in caplog.records)
+
+
+def test_global_see_before_client_trailing_extras_never_raises(monkeypatch):
+    _capture(monkeypatch)
+    _see.set_default_client(None)
+    # No client → chain drops, but .to() still returns a chainable object so a
+    # trailing .extras() never raises.
+    see(ValueError("x")).causes_the("checkout").to("use cached prices").extras(
+        {"late": "ok"}
+    )
+
+
+# ---- ambient per-request extras (PART 2) -----------------------------------
+
+
+def test_add_extras_merge_into_later_report(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    try:
+        shipeasy.add_extras(order_id="o1", tenant="acme")
+        c.see(ValueError("x")).causes_the("checkout").to("use cached prices")
+        ev = _events(sent)[0]
+        assert ev["extras"] == {"order_id": "o1", "tenant": "acme"}
+    finally:
+        shipeasy.clear_extras()
+
+
+def test_add_extras_accepts_mapping_and_kwargs(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    try:
+        shipeasy.add_extras({"a": 1}, b=2)
+        c.see(ValueError("x")).to("be incomplete")
+        assert _events(sent)[0]["extras"] == {"a": 1, "b": 2}
+    finally:
+        shipeasy.clear_extras()
+
+
+def test_add_extras_attaches_to_multiple_reports(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    try:
+        shipeasy.add_extras(request_id="r1")
+        c.see(ValueError("a")).causes_the("first").to("out a")
+        c.see(RuntimeError("b")).causes_the("second").to("out b")
+        evs = _events(sent)
+        assert evs[0]["extras"]["request_id"] == "r1"
+        assert evs[1]["extras"]["request_id"] == "r1"
+    finally:
+        shipeasy.clear_extras()
+
+
+def test_chained_extras_override_ambient_key(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    try:
+        shipeasy.add_extras(order_id="ambient", tenant="acme")
+        c.see(ValueError("x")).causes_the("checkout").extras(
+            {"order_id": "chained"}
+        ).to("use cached prices")
+        ev = _events(sent)[0]
+        # chain wins on collision; ambient-only keys still merge in
+        assert ev["extras"] == {"order_id": "chained", "tenant": "acme"}
+    finally:
+        shipeasy.clear_extras()
+
+
+def test_clear_extras_empties_buffer(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    shipeasy.add_extras(order_id="o1")
+    shipeasy.clear_extras()
+    c.see(ValueError("x")).causes_the("checkout").to("use cached prices")
+    ev = _events(sent)[0]
+    assert "extras" not in ev
+
+
+def test_ambient_extras_do_not_bleed_across_contexts(monkeypatch):
+    import contextvars
+
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+
+    def ctx_a():
+        shipeasy.add_extras(who="a")
+        c.see(ValueError("a")).causes_the("first").to("out a")
+
+    def ctx_b():
+        # A separate context must NOT see ctx_a's buffer.
+        c.see(ValueError("b")).causes_the("second").to("out b")
+
+    contextvars.copy_context().run(ctx_a)
+    contextvars.copy_context().run(ctx_b)
+
+    evs = _events(sent)
+    assert evs[0]["extras"] == {"who": "a"}
+    assert "extras" not in evs[1]

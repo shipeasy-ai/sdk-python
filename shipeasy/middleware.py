@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import Callable
 
 from . import _anon_id as anon_id
+from ._see import clear_ambient_extras
 
 
 class AnonIdMiddleware:
@@ -46,7 +47,10 @@ class AnonIdMiddleware:
         try:
             return self.app(environ, _start_response)
         finally:
+            # Don't leak the id — or any ambient see() extras — onto the next
+            # request handled by this thread.
             anon_id.reset_current(token)
+            clear_ambient_extras()
 
 
 class AnonIdASGIMiddleware:
@@ -78,6 +82,7 @@ class AnonIdASGIMiddleware:
             await self.app(scope, receive, _send)
         finally:
             anon_id.reset_current(token)
+            clear_ambient_extras()
 
 
 def _xfp_https(scope) -> bool:
