@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.19.1 (2026-07-19)
+
+### fix: honor the gatekeeper `stack` in local gate evaluation
+
+- **`eval_gate` now evaluates a modern gate's ordered gatekeeper `stack`** when
+  present, matching `@shipeasy/core`'s `evalGatekeeper` and the edge worker.
+  Previously the SDK read only the flat `rules` + `rolloutPct` columns, which are
+  a lossy approximation of a stack: a whitelist condition at 100% followed by a
+  0% public rollout flattens to `rules:[…], rolloutPct:0`, which the flat path
+  wrongly read as "matches whitelist AND in the 0% bucket" = never true. Whitelisted
+  callers were incorrectly denied.
+- Stack entries are tried top-to-bottom; the gate passes on the first `condition`
+  whose rules match (`pass: "all"`/`"any"`) AND whose per-condition rollout bucket
+  hits, or the first `rollout` whose bucket hits. A `condition` with no explicit
+  `rolloutPct` defaults to 100%; a `rollout` to 0%. Supports per-entry `bucketBy`,
+  `salt`, and time-based `ramp` (from→to over `[startAt, startAt+durationMs]`).
+- **Stack-less gates keep exact legacy flat behaviour** — no change for older
+  gates.
+
 ## 0.19.0 (2026-07-13)
 
 ### see(): inline extras on `.to`, ambient per-request extras, no ordering footgun

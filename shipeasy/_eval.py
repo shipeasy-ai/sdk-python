@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Mapping, Optional
 import re
+import time
 
 from ._hash import murmur3
 from ._sticky import StickyBucketStore
@@ -102,10 +103,108 @@ def match_rule(rule: Mapping[str, Any], user: Mapping[str, Any]) -> bool:
     return False
 
 
+# ---- Gatekeeper (stacked) evaluation ----
+#
+# A modern gate ships an ordered ``stack`` of sub-gates. Each entry is a rule set
+# plus its own rollout %: when the rules match AND the caller falls in that
+# entry's bucket, the stack short-circuits and the gate passes; otherwise it
+# falls through to the next entry. When ``stack`` is absent, behaviour falls back
+# to the legacy flat ``rules`` + ``rolloutPct`` evaluation. The flat columns are a
+# lossy approximation of a stack (a whitelist condition at 100% followed by a 0%
+# public rollout flattens to ``rules:[…], rolloutPct:0``, which the flat path
+# would wrongly read as "matches whitelist AND in the 0% bucket" = never). Mirrors
+# ``@shipeasy/core`` ``evalGatekeeper`` — keep the two in sync.
+
+
+def _clamp_pct(n: int) -> int:
+    if n < 0:
+        return 0
+    if n > 10000:
+        return 10000
+    return n
+
+
+def _effective_pct(entry: Mapping[str, Any], now: int) -> int:
+    """Effective rollout % (basis points) for a stack entry at time ``now``. A
+    condition with no explicit ``rolloutPct`` defaults to 10000 (100%: every match
+    passes); a rollout to 0. A ``ramp`` overrides the static % via
+    truncating-toward-zero integer division — the cross-SDK contract (see
+    experiment-platform/04-evaluation.md)."""
+    base = entry.get("rolloutPct")
+    if base is None:
+        base = 10000 if entry.get("type") == "condition" else 0
+    ramp = entry.get("ramp")
+    if not ramp:
+        return base
+    start_at = ramp["startAt"]
+    duration = ramp["durationMs"]
+    if now <= start_at:
+        return ramp["from"]
+    if now >= start_at + duration:
+        return ramp["to"]
+    delta = ramp["to"] - ramp["from"]  # signed
+    elapsed = now - start_at
+    # int() truncates toward zero, matching JS Math.trunc for both signs.
+    pct = ramp["from"] + int((delta * elapsed) / duration)
+    return _clamp_pct(pct)
+
+
+def _bucket_hit(pct: int, uid: Optional[str], salt: str) -> bool:
+    """Hash the caller into ``[0, 10000)`` and test against ``pct``. No-unit
+    contract (experiment-platform/18): a fully-rolled bucket is on for everyone
+    without a unit id; a fractional one needs a stable unit, so it is off."""
+    if pct <= 0:
+        return False
+    if not uid:
+        return pct >= 10000
+    if pct >= 10000:
+        return True
+    return murmur3(f"{salt}:{uid}") % 10000 < pct
+
+
+def _eval_stack_entry(
+    entry: Mapping[str, Any], user: Mapping[str, Any], fallback_salt: str, now: int
+) -> bool:
+    if entry.get("type") == "condition":
+        rules = entry.get("rules") or []
+        if not rules:
+            return False
+        mode = entry.get("pass") or "all"
+        if mode == "any":
+            matched = any(match_rule(r, user) for r in rules)
+        else:
+            matched = all(match_rule(r, user) for r in rules)
+        if not matched:
+            return False
+        # Rules matched — bucket at the per-condition rollout. A distinct default
+        # salt (the entry id) keeps each step's bucket independent yet stable.
+        salt = entry.get("salt") or entry.get("id") or fallback_salt
+        return _bucket_hit(
+            _effective_pct(entry, now), pick_identifier(user, entry.get("bucketBy")), salt
+        )
+    # rollout — salt fallback is the gate salt so existing entries don't re-bucket.
+    salt = entry.get("salt") or fallback_salt
+    return _bucket_hit(
+        _effective_pct(entry, now), pick_identifier(user, entry.get("bucketBy")), salt
+    )
+
+
 def eval_gate(gate: Mapping[str, Any], user: Mapping[str, Any]) -> bool:
     if _enabled(gate.get("killswitch")):
         return False
     if not _enabled(gate.get("enabled")):
+        return False
+    # Modern gatekeepers ship an ordered ``stack``; evaluate it top-to-bottom and
+    # pass on the first entry whose rules match AND whose bucket hits. This is the
+    # canonical model — the flat ``rules``/``rolloutPct`` below are a lossy
+    # approximation. Mirrors ``@shipeasy/core`` ``evalGatekeeper``.
+    stack = gate.get("stack")
+    if isinstance(stack, list) and len(stack) > 0:
+        now = int(time.time() * 1000)
+        fallback_salt = gate.get("salt") or ""
+        for entry in stack:
+            if _eval_stack_entry(entry, user, fallback_salt, now):
+                return True
         return False
     for rule in gate.get("rules") or []:
         if not match_rule(rule, user):
