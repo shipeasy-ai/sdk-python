@@ -44,6 +44,27 @@ def test_bootstrap_script_tag_omits_anon_when_unset():
     assert "data-anon-id" not in tag
 
 
+def test_bootstrap_script_tag_carries_identity_as_data_user():
+    # A server-identified user rides the tag as data-user (minus anonymous_id),
+    # so the browser SDK adopts the identity on first paint (no anon→identified flip).
+    tag = _client().bootstrap_script_tag(
+        {"user_id": "u1", "email": "u@x.test", "anonymous_id": "anon-1"},
+        anon_id="anon-1",
+    )
+    raw = tag.split('data-user="', 1)[1].split('"', 1)[0]
+    identity = json.loads(html.unescape(raw))
+    assert identity == {"user_id": "u1", "email": "u@x.test"}
+    # anonymous_id never leaks into data-user — it rides data-anon-id.
+    assert "anonymous_id" not in identity
+    assert 'data-anon-id="anon-1"' in tag
+
+
+def test_bootstrap_script_tag_omits_data_user_when_anonymous():
+    # No identified traits (anon-only, or empty) ⇒ no data-user, no PII on the tag.
+    assert "data-user" not in _client().bootstrap_script_tag({"anonymous_id": "anon-1"})
+    assert "data-user" not in _client().bootstrap_script_tag({})
+
+
 def test_i18n_script_tag():
     tag = _client().i18n_script_tag("client_pub", "fr:prod")
     assert 'src="https://cdn.shipeasy.ai/sdk/i18n/loader.js"' in tag

@@ -106,3 +106,16 @@ head = shipeasy.bootstrap_script_tag(user, anon_id=anon_id) \
 ```
 
 `bootstrap_script_tag` also accepts `i18n_profile=` and `base_url=`.
+
+### Identity coherence (no anon→identified flip)
+
+When you pass an identified `user` (one carrying `user_id` / `email` / targeting
+traits, not just an `anonymous_id`), those traits also ride the tag as
+`data-user`. The browser SDK **adopts** that identity on first paint — its flags
+are already this user's, and a later `identify()` in the browser reconciles
+**idempotently** (a matching call is a no-op, no extra `/sdk/evaluate`, no
+flip). Because the server already evaluated the payload for this user, the
+`data-flags` on the tag match what the client would compute, so there is no
+anon→identified flip. An anonymous request (only `anonymous_id`, or no traits)
+emits no `data-user`, so the tag carries no PII when there is no identity to
+carry.

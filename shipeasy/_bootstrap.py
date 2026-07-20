@@ -24,14 +24,33 @@ def _cdn_base(override: Optional[str]) -> str:
     return (override or _DEFAULT_CDN_BASE).rstrip("/")
 
 
+def _identity_attrs(identity: Optional[Mapping[str, Any]]) -> Optional[str]:
+    """Serialize the server-identified user's traits for the ``data-user``
+    attribute — everything except ``anonymous_id`` (which rides ``data-anon-id``).
+    Returns ``None`` for an anonymous request (no identified traits), so the tag
+    carries no PII when there is no identity to carry."""
+    if not identity:
+        return None
+    traits = {k: v for k, v in identity.items() if k != "anonymous_id" and v is not None}
+    if not traits:
+        return None
+    return json.dumps(traits)
+
+
 def render_bootstrap_tag(
     payload: Mapping[str, Any],
     *,
     anon_id: Optional[str] = None,
+    identity: Optional[Mapping[str, Any]] = None,
     i18n_profile: str = "en:prod",
     base_url: Optional[str] = None,
 ) -> str:
-    """Render the ``se-bootstrap.js`` tag from an evaluated bootstrap payload."""
+    """Render the ``se-bootstrap.js`` tag from an evaluated bootstrap payload.
+
+    When ``identity`` carries a server-identified user, its traits ride the tag
+    as ``data-user`` so the browser SDK **adopts** the server's identity on first
+    paint (no anon→identified flip) and a later ``identify()`` reconciles
+    idempotently. Anonymous requests emit no ``data-user``."""
     base = _cdn_base(base_url)
     attrs = [
         "data-se-bootstrap",
@@ -44,6 +63,9 @@ def render_bootstrap_tag(
     ]
     if anon_id:
         attrs.append(_attr("data-anon-id", anon_id))
+    data_user = _identity_attrs(identity)
+    if data_user is not None:
+        attrs.append(_attr("data-user", data_user))
     src = html.escape(f"{base}/sdk/bootstrap.js", quote=True)
     return f'<script src="{src}" ' + " ".join(attrs) + "></script>"
 

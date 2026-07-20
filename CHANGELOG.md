@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.20.0 (2026-07-19)
+
+### feat: carry the server-identified user on the SSR bootstrap tag (no anon→identified flip)
+
+- **`bootstrap_script_tag(user)` now emits `data-user`** when `user` carries
+  identified traits (`user_id` / `email` / targeting attrs — anything but
+  `anonymous_id`). The browser SDK adopts that identity on first paint, so its
+  flags are already this user's and a later `identify()` reconciles
+  idempotently — no anon→identified flip. Anonymous requests (only
+  `anonymous_id`, or no traits) emit no `data-user`, so the tag carries no PII
+  when there is no identity to carry.
+- Mirrors `@shipeasy/sdk` (TS) 7.9.0. See
+  `experiment-platform/18-identity-bucketing.md` for the cross-SDK contract.
+
 ## 0.19.1 (2026-07-19)
 
 ### fix: honor the gatekeeper `stack` in local gate evaluation

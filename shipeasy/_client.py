@@ -637,6 +637,7 @@ class Engine:
         return render_bootstrap_tag(
             self.evaluate(user),
             anon_id=anon_id,
+            identity=user,
             i18n_profile=i18n_profile,
             base_url=base_url,
         )
