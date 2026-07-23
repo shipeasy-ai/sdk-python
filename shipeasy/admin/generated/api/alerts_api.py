@@ -354,7 +354,7 @@ class AlertsApi:
     @validate_call
     def delete_alert_rule(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -431,7 +431,7 @@ class AlertsApi:
     @validate_call
     def delete_alert_rule_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -508,7 +508,7 @@ class AlertsApi:
     @validate_call
     def delete_alert_rule_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -649,6 +649,7 @@ class AlertsApi:
     def list_alert_rules(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -668,6 +669,8 @@ class AlertsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -692,6 +695,7 @@ class AlertsApi:
 
         _param = self._list_alert_rules_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -722,6 +726,7 @@ class AlertsApi:
     def list_alert_rules_with_http_info(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -741,6 +746,8 @@ class AlertsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -765,6 +772,7 @@ class AlertsApi:
 
         _param = self._list_alert_rules_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -795,6 +803,7 @@ class AlertsApi:
     def list_alert_rules_without_preload_content(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -814,6 +823,8 @@ class AlertsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -838,6 +849,7 @@ class AlertsApi:
 
         _param = self._list_alert_rules_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -863,6 +875,7 @@ class AlertsApi:
     def _list_alert_rules_serialize(
         self,
         x_project_id,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -885,6 +898,10 @@ class AlertsApi:
 
         # process the path parameters
         # process the query parameters
+        if q is not None:
+            
+            _query_params.append(('q', q))
+            
         # process the header parameters
         if x_project_id is not None:
             _header_params['X-Project-Id'] = x_project_id
@@ -1206,7 +1223,7 @@ class AlertsApi:
     @validate_call
     def update_alert_rule(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         update_alert_rule_request: UpdateAlertRuleRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1224,7 +1241,7 @@ class AlertsApi:
     ) -> UpdateAlertRuleResponse:
         """Update an alert rule
 
-        Partial update of a rule's tunable knobs. `metricId` is immutable — it is rejected by the schema (the metric also pins the aggregation), so delete + recreate to repoint a rule.  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
+        Partial update of a rule's tunable knobs. `metricId` is immutable — the metric also pins the aggregation, so a body carrying `metricId` is rejected with `409 IMMUTABLE_FIELD`; create a new rule bound to the other metric instead (rule deletion is dashboard-only).  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
 
         :param id: Stable opaque alert-rule id (`ar_…`) or the rule's `name`. (required)
         :type id: str
@@ -1287,7 +1304,7 @@ class AlertsApi:
     @validate_call
     def update_alert_rule_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         update_alert_rule_request: UpdateAlertRuleRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1305,7 +1322,7 @@ class AlertsApi:
     ) -> ApiResponse[UpdateAlertRuleResponse]:
         """Update an alert rule
 
-        Partial update of a rule's tunable knobs. `metricId` is immutable — it is rejected by the schema (the metric also pins the aggregation), so delete + recreate to repoint a rule.  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
+        Partial update of a rule's tunable knobs. `metricId` is immutable — the metric also pins the aggregation, so a body carrying `metricId` is rejected with `409 IMMUTABLE_FIELD`; create a new rule bound to the other metric instead (rule deletion is dashboard-only).  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
 
         :param id: Stable opaque alert-rule id (`ar_…`) or the rule's `name`. (required)
         :type id: str
@@ -1368,7 +1385,7 @@ class AlertsApi:
     @validate_call
     def update_alert_rule_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque alert-rule id (`ar_…`) or the rule's `name`.")],
         update_alert_rule_request: UpdateAlertRuleRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1386,7 +1403,7 @@ class AlertsApi:
     ) -> RESTResponseType:
         """Update an alert rule
 
-        Partial update of a rule's tunable knobs. `metricId` is immutable — it is rejected by the schema (the metric also pins the aggregation), so delete + recreate to repoint a rule.  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
+        Partial update of a rule's tunable knobs. `metricId` is immutable — the metric also pins the aggregation, so a body carrying `metricId` is rejected with `409 IMMUTABLE_FIELD`; create a new rule bound to the other metric instead (rule deletion is dashboard-only).  Pass `\"notify\": null` to revert the rule's delivery target back to the project default.  **Use cases**  - **Tune sensitivity** — change `threshold`/`comparator`/`windowHours` as the metric's baseline shifts. - **Pause without losing config** — `{ \"enabled\": false }` instead of deleting the rule.
 
         :param id: Stable opaque alert-rule id (`ar_…`) or the rule's `name`. (required)
         :type id: str

@@ -30,6 +30,7 @@ class ListI18nKeysResponse(BaseModel):
     """ # noqa: E501
     keys: List[ListI18nKeysResponseKeysInner] = Field(description="The page of matching keys.")
     total: Union[StrictFloat, StrictInt] = Field(description="Total matching keys across all pages (ignores `limit`/`offset`).")
+    additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["keys", "total"]
 
     model_config = ConfigDict(
@@ -62,8 +63,10 @@ class ListI18nKeysResponse(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
+        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
+            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -78,6 +81,11 @@ class ListI18nKeysResponse(BaseModel):
                 if _item_keys:
                     _items.append(_item_keys.to_dict())
             _dict['keys'] = _items
+        # puts key-value pairs in additional_properties in the top level
+        if self.additional_properties is not None:
+            for _key, _value in self.additional_properties.items():
+                _dict[_key] = _value
+
         return _dict
 
     @classmethod
@@ -93,6 +101,11 @@ class ListI18nKeysResponse(BaseModel):
             "keys": [ListI18nKeysResponseKeysInner.from_dict(_item) for _item in obj["keys"]] if obj.get("keys") is not None else None,
             "total": obj.get("total")
         })
+        # store additional fields in additional_properties
+        for _key in obj.keys():
+            if _key not in cls.__properties:
+                _obj.additional_properties[_key] = obj.get(_key)
+
         return _obj
 
 

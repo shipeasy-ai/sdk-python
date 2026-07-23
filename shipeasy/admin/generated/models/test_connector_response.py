@@ -25,12 +25,11 @@ from pydantic_core import to_jsonable_python
 
 class TestConnectorResponse(BaseModel):
     """
-    Result of testing a connector. `{ ok: true, issueUrl }` on success; `{ ok: false, issueUrl: null, error }` when the dispatch fails (the request still returns HTTP 200).
+    Result of a successful connector test: `{ ok: true, issueUrl }`. When the downstream dispatch fails the endpoint returns HTTP 502 (see the `Error` response), never `ok: false`.
     """ # noqa: E501
-    ok: StrictBool = Field(description="`true` when the test dispatch reached the destination; `false` when the dispatch itself failed (still HTTP 200, with `error` set).")
-    issue_url: Optional[StrictStr] = Field(description="URL of the artifact the test produced (e.g. the GitHub Issue created by a `github` connector), or `null` when the provider produces no linkable artifact (or the dispatch failed).", alias="issueUrl")
-    error: Optional[StrictStr] = Field(default=None, description="Failure reason. Present only when `ok` is `false` — the test reached the handler but the underlying dispatch to the provider failed.")
-    __properties: ClassVar[List[str]] = ["ok", "issueUrl", "error"]
+    ok: StrictBool = Field(description="Always `true` — a successful test returns HTTP 200. A dispatch failure returns HTTP 502 with the `Error` envelope, not this body.")
+    issue_url: Optional[StrictStr] = Field(description="URL of the artifact the test produced (e.g. the GitHub Issue created by a `github` connector), or `null` when the provider produces no linkable artifact.", alias="issueUrl")
+    __properties: ClassVar[List[str]] = ["ok", "issueUrl"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -89,8 +88,7 @@ class TestConnectorResponse(BaseModel):
 
         _obj = cls.model_validate({
             "ok": obj.get("ok"),
-            "issueUrl": obj.get("issueUrl"),
-            "error": obj.get("error")
+            "issueUrl": obj.get("issueUrl")
         })
         return _obj
 

@@ -28,7 +28,7 @@ from pydantic_core import to_jsonable_python
 
 class ConnectorRecord(BaseModel):
     """
-    A connector row. The encrypted credentials cipher backing the connector is intentionally never serialised.
+    A connector row. The encrypted credentials cipher backing the connector is intentionally never serialised — `hasCredentials` reports only whether one is stored.
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque connector id (a UUID).")
     project_id: StrictStr = Field(description="Id of the project the connector belongs to.", alias="projectId")
@@ -38,13 +38,14 @@ class ConnectorRecord(BaseModel):
     events: List[ConnectorEvent] = Field(description="Events this connector is subscribed to. Empty array = no auto-dispatch / no auto-fire (the connector can still be fired/tested manually).")
     config: Dict[str, Any] = Field(description="Provider-specific, non-secret configuration (e.g. a Google Sheets `spreadsheetId`/`sheetTitle`, a Slack channel ref, or a trigger's repo coordinates + routine id). Secrets are never stored here — they live in an encrypted credentials cipher that is never returned by the API.")
     account_label: Optional[StrictStr] = Field(description="Display label for the connected account / target (e.g. the OAuth account email, or a trigger's idempotency key such as its repo url or routine id). `null` until the connector is authenticated/configured.", alias="accountLabel")
+    has_credentials: StrictBool = Field(description="Whether an encrypted credentials cipher is stored for this connector (`true` once OAuth/token setup completed). The cipher itself is never serialised — this boolean is the only signal. `false` for a fresh OAuth stub or a tokenless trigger.", alias="hasCredentials")
     last_error: Optional[StrictStr] = Field(description="Error message from the most recent failed dispatch/fire attempt, or `null` if the last attempt succeeded (or none has run).", alias="lastError")
     last_attempt_at: Optional[StrictStr] = Field(description="ISO-8601 timestamp of the most recent dispatch/fire attempt, or `null` if none has run.", alias="lastAttemptAt")
     last_success_at: Optional[StrictStr] = Field(description="ISO-8601 timestamp of the most recent successful dispatch/fire, or `null` if none has succeeded. Preserved across later failures.", alias="lastSuccessAt")
     created_at: StrictStr = Field(description="ISO-8601 timestamp of creation.", alias="createdAt")
     updated_at: StrictStr = Field(description="ISO-8601 timestamp of last mutation.", alias="updatedAt")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "projectId", "provider", "name", "enabled", "events", "config", "accountLabel", "lastError", "lastAttemptAt", "lastSuccessAt", "createdAt", "updatedAt"]
+    __properties: ClassVar[List[str]] = ["id", "projectId", "provider", "name", "enabled", "events", "config", "accountLabel", "hasCredentials", "lastError", "lastAttemptAt", "lastSuccessAt", "createdAt", "updatedAt"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -132,6 +133,7 @@ class ConnectorRecord(BaseModel):
             "events": obj.get("events"),
             "config": obj.get("config"),
             "accountLabel": obj.get("accountLabel"),
+            "hasCredentials": obj.get("hasCredentials"),
             "lastError": obj.get("lastError"),
             "lastAttemptAt": obj.get("lastAttemptAt"),
             "lastSuccessAt": obj.get("lastSuccessAt"),

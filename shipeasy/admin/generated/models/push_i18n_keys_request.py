@@ -17,9 +17,11 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, ClassVar, Dict, List, Optional
-from shipeasy.admin.generated.models.push_i18n_keys_request_keys_inner import PushI18nKeysRequestKeysInner
+from typing_extensions import Annotated
+from uuid import UUID
+from shipeasy.admin.generated.models.upsert_i18n_keys_request_keys_inner import UpsertI18nKeysRequestKeysInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -28,9 +30,9 @@ class PushI18nKeysRequest(BaseModel):
     """
     Body for `POST /api/admin/i18n/keys`. Insert-only: keys that already exist are never overwritten — use `PUT /keys/{id}` to change a value.
     """ # noqa: E501
-    profile_id: StrictStr = Field(description="Target profile id to add keys to.")
-    chunk: Optional[StrictStr] = Field(default=None, description="Logical grouping the new keys are filed under. Defaults to `default`.")
-    keys: List[PushI18nKeysRequestKeysInner] = Field(description="Keys to add. Insert-only — existing keys are reported back as `skipped`.")
+    profile_id: UUID = Field(description="Target profile id to add keys to.")
+    chunk: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=64)]] = Field(default='default', description="Logical grouping the new keys are filed under. Defaults to `default`.")
+    keys: Annotated[List[UpsertI18nKeysRequestKeysInner], Field(min_length=1, max_length=5000)] = Field(description="Keys to add. Insert-only — existing keys are reported back as `skipped`.")
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["profile_id", "chunk", "keys"]
 
@@ -100,8 +102,8 @@ class PushI18nKeysRequest(BaseModel):
 
         _obj = cls.model_validate({
             "profile_id": obj.get("profile_id"),
-            "chunk": obj.get("chunk"),
-            "keys": [PushI18nKeysRequestKeysInner.from_dict(_item) for _item in obj["keys"]] if obj.get("keys") is not None else None
+            "chunk": obj.get("chunk") if obj.get("chunk") is not None else 'default',
+            "keys": [UpsertI18nKeysRequestKeysInner.from_dict(_item) for _item in obj["keys"]] if obj.get("keys") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

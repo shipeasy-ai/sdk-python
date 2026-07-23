@@ -22,7 +22,12 @@ from shipeasy.admin.generated.models.create_metric_request import CreateMetricRe
 from shipeasy.admin.generated.models.create_metric_response import CreateMetricResponse
 from shipeasy.admin.generated.models.delete_metric_response import DeleteMetricResponse
 from shipeasy.admin.generated.models.get_metric_response import GetMetricResponse
+from shipeasy.admin.generated.models.get_metric_series_request import GetMetricSeriesRequest
+from shipeasy.admin.generated.models.get_metric_series_response import GetMetricSeriesResponse
+from shipeasy.admin.generated.models.list_metric_experiments_response import ListMetricExperimentsResponse
 from shipeasy.admin.generated.models.list_metrics_response_inner import ListMetricsResponseInner
+from shipeasy.admin.generated.models.unarchive_metric_response import UnarchiveMetricResponse
+from shipeasy.admin.generated.models.update_metric_request import UpdateMetricRequest
 
 from shipeasy.admin.generated.api_client import ApiClient, RequestSerialized
 from shipeasy.admin.generated.api_response import ApiResponse
@@ -352,7 +357,7 @@ class MetricsApi:
     @validate_call
     def delete_metric(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -429,7 +434,7 @@ class MetricsApi:
     @validate_call
     def delete_metric_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -506,7 +511,7 @@ class MetricsApi:
     @validate_call
     def delete_metric_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -646,7 +651,7 @@ class MetricsApi:
     @validate_call
     def get_metric(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -723,7 +728,7 @@ class MetricsApi:
     @validate_call
     def get_metric_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -800,7 +805,7 @@ class MetricsApi:
     @validate_call
     def get_metric_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -938,8 +943,10 @@ class MetricsApi:
 
 
     @validate_call
-    def list_metrics(
+    def get_metric_series(
         self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`).")],
+        get_metric_series_request: GetMetricSeriesRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -953,11 +960,15 @@ class MetricsApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> List[ListMetricsResponseInner]:
-        """List metrics
+    ) -> GetMetricSeriesResponse:
+        """Get a metric's time series
 
-        Returns every metric in the project (not paginated) — name, folder, source event, aggregation, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
+        Compiles the metric's typed IR into Analytics Engine SQL and returns the bucketed series over the requested window (near-real-time; ingest lag is seconds). The window bounds are epoch **seconds**; `to` must be strictly greater than `from`. The response echoes the SQL that produced the rows.  Returns `422` when the stored definition can't compile (e.g. a label or event has gone away — re-save the metric), and `502`/`503` when the analytics upstream fails or isn't configured.  **Use case:** Render the metric trend chart / sparkline, or pull raw bucketed values to feed an external dashboard.
 
+        :param id: Stable opaque metric id (`met_…`). (required)
+        :type id: str
+        :param get_metric_series_request: (required)
+        :type get_metric_series_request: GetMetricSeriesRequest
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
         :param _request_timeout: timeout setting for this request. If one
@@ -982,8 +993,622 @@ class MetricsApi:
         :return: Returns the result object.
         """ # noqa: E501
 
+        _param = self._get_metric_series_serialize(
+            id=id,
+            get_metric_series_request=get_metric_series_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricSeriesResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_metric_series_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`).")],
+        get_metric_series_request: GetMetricSeriesRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[GetMetricSeriesResponse]:
+        """Get a metric's time series
+
+        Compiles the metric's typed IR into Analytics Engine SQL and returns the bucketed series over the requested window (near-real-time; ingest lag is seconds). The window bounds are epoch **seconds**; `to` must be strictly greater than `from`. The response echoes the SQL that produced the rows.  Returns `422` when the stored definition can't compile (e.g. a label or event has gone away — re-save the metric), and `502`/`503` when the analytics upstream fails or isn't configured.  **Use case:** Render the metric trend chart / sparkline, or pull raw bucketed values to feed an external dashboard.
+
+        :param id: Stable opaque metric id (`met_…`). (required)
+        :type id: str
+        :param get_metric_series_request: (required)
+        :type get_metric_series_request: GetMetricSeriesRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_metric_series_serialize(
+            id=id,
+            get_metric_series_request=get_metric_series_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricSeriesResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_metric_series_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`).")],
+        get_metric_series_request: GetMetricSeriesRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get a metric's time series
+
+        Compiles the metric's typed IR into Analytics Engine SQL and returns the bucketed series over the requested window (near-real-time; ingest lag is seconds). The window bounds are epoch **seconds**; `to` must be strictly greater than `from`. The response echoes the SQL that produced the rows.  Returns `422` when the stored definition can't compile (e.g. a label or event has gone away — re-save the metric), and `502`/`503` when the analytics upstream fails or isn't configured.  **Use case:** Render the metric trend chart / sparkline, or pull raw bucketed values to feed an external dashboard.
+
+        :param id: Stable opaque metric id (`met_…`). (required)
+        :type id: str
+        :param get_metric_series_request: (required)
+        :type get_metric_series_request: GetMetricSeriesRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_metric_series_serialize(
+            id=id,
+            get_metric_series_request=get_metric_series_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricSeriesResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_metric_series_serialize(
+        self,
+        id,
+        get_metric_series_request,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if get_metric_series_request is not None:
+            _body_params = get_metric_series_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/api/admin/metrics/{id}/series',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def list_metric_experiments(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ListMetricExperimentsResponse:
+        """List experiments using a metric
+
+        Returns every experiment that attaches this metric — as `goal`, `guardrail`, or `secondary` — ordered with running experiments first, then by role weight (goal > guardrail > secondary).  **Use case:** See who depends on a metric before editing or archiving it — e.g. the metric detail panel's \"used by\" list.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_metric_experiments_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ListMetricExperimentsResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def list_metric_experiments_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ListMetricExperimentsResponse]:
+        """List experiments using a metric
+
+        Returns every experiment that attaches this metric — as `goal`, `guardrail`, or `secondary` — ordered with running experiments first, then by role weight (goal > guardrail > secondary).  **Use case:** See who depends on a metric before editing or archiving it — e.g. the metric detail panel's \"used by\" list.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_metric_experiments_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ListMetricExperimentsResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def list_metric_experiments_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """List experiments using a metric
+
+        Returns every experiment that attaches this metric — as `goal`, `guardrail`, or `secondary` — ordered with running experiments first, then by role weight (goal > guardrail > secondary).  **Use case:** See who depends on a metric before editing or archiving it — e.g. the metric detail panel's \"used by\" list.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_metric_experiments_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ListMetricExperimentsResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _list_metric_experiments_serialize(
+        self,
+        id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/api/admin/metrics/{id}/experiments',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def list_metrics(
+        self,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> List[ListMetricsResponseInner]:
+        """List metrics
+
+        Returns every metric in the project (not paginated) — name, folder, source event, the typed `queryIr`, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
+
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
         _param = self._list_metrics_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1014,6 +1639,7 @@ class MetricsApi:
     def list_metrics_with_http_info(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1029,10 +1655,12 @@ class MetricsApi:
     ) -> ApiResponse[List[ListMetricsResponseInner]]:
         """List metrics
 
-        Returns every metric in the project (not paginated) — name, folder, source event, aggregation, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
+        Returns every metric in the project (not paginated) — name, folder, source event, the typed `queryIr`, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1057,6 +1685,7 @@ class MetricsApi:
 
         _param = self._list_metrics_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1087,6 +1716,7 @@ class MetricsApi:
     def list_metrics_without_preload_content(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1102,10 +1732,12 @@ class MetricsApi:
     ) -> RESTResponseType:
         """List metrics
 
-        Returns every metric in the project (not paginated) — name, folder, source event, aggregation, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
+        Returns every metric in the project (not paginated) — name, folder, source event, the typed `queryIr`, and the rendered query.  **Use case:** Audit every metric defined in the project — for example to find the metric id to attach as an experiment's success metric.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1130,6 +1762,7 @@ class MetricsApi:
 
         _param = self._list_metrics_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1155,6 +1788,7 @@ class MetricsApi:
     def _list_metrics_serialize(
         self,
         x_project_id,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -1177,6 +1811,10 @@ class MetricsApi:
 
         # process the path parameters
         # process the query parameters
+        if q is not None:
+            
+            _query_params.append(('q', q))
+            
         # process the header parameters
         if x_project_id is not None:
             _header_params['X-Project-Id'] = x_project_id
@@ -1201,6 +1839,622 @@ class MetricsApi:
         return self.api_client.param_serialize(
             method='GET',
             resource_path='/api/admin/metrics',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def unarchive_metric(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> UnarchiveMetricResponse:
+        """Unarchive a metric
+
+        Reverses a soft-delete (archive), making the metric live again. Idempotent — unarchiving a metric that is already live succeeds with no effect.  **Use case:** Undo an accidental archive (the metrics list \"Undo\" toast calls this).
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._unarchive_metric_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UnarchiveMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def unarchive_metric_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[UnarchiveMetricResponse]:
+        """Unarchive a metric
+
+        Reverses a soft-delete (archive), making the metric live again. Idempotent — unarchiving a metric that is already live succeeds with no effect.  **Use case:** Undo an accidental archive (the metrics list \"Undo\" toast calls this).
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._unarchive_metric_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UnarchiveMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def unarchive_metric_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Unarchive a metric
+
+        Reverses a soft-delete (archive), making the metric live again. Idempotent — unarchiving a metric that is already live succeeds with no effect.  **Use case:** Undo an accidental archive (the metrics list \"Undo\" toast calls this).
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._unarchive_metric_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UnarchiveMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _unarchive_metric_serialize(
+        self,
+        id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/api/admin/metrics/{id}/unarchive',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def update_metric(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        update_metric_request: UpdateMetricRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> GetMetricResponse:
+        """Update a metric
+
+        Update a metric's definition — folder, source event, query (`query` DSL or typed `query_ir`), winsorisation, minimum detectable effect, or direction. `name` is immutable. Provide at most one of `query` / `query_ir`.  **Use case:** Refine a metric's query or guardrail direction without recreating it.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param update_metric_request: (required)
+        :type update_metric_request: UpdateMetricRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_metric_serialize(
+            id=id,
+            update_metric_request=update_metric_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def update_metric_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        update_metric_request: UpdateMetricRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[GetMetricResponse]:
+        """Update a metric
+
+        Update a metric's definition — folder, source event, query (`query` DSL or typed `query_ir`), winsorisation, minimum detectable effect, or direction. `name` is immutable. Provide at most one of `query` / `query_ir`.  **Use case:** Refine a metric's query or guardrail direction without recreating it.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param update_metric_request: (required)
+        :type update_metric_request: UpdateMetricRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_metric_serialize(
+            id=id,
+            update_metric_request=update_metric_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def update_metric_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque metric id (`met_…`) or the metric's `name`.")],
+        update_metric_request: UpdateMetricRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Update a metric
+
+        Update a metric's definition — folder, source event, query (`query` DSL or typed `query_ir`), winsorisation, minimum detectable effect, or direction. `name` is immutable. Provide at most one of `query` / `query_ir`.  **Use case:** Refine a metric's query or guardrail direction without recreating it.
+
+        :param id: Stable opaque metric id (`met_…`) or the metric's `name`. (required)
+        :type id: str
+        :param update_metric_request: (required)
+        :type update_metric_request: UpdateMetricRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_metric_serialize(
+            id=id,
+            update_metric_request=update_metric_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GetMetricResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _update_metric_serialize(
+        self,
+        id,
+        update_metric_request,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if update_metric_request is not None:
+            _body_params = update_metric_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='PATCH',
+            resource_path='/api/admin/metrics/{id}',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

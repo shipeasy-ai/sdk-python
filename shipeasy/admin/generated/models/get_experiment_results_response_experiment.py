@@ -28,7 +28,7 @@ class GetExperimentResultsResponseExperiment(BaseModel):
     """
     GetExperimentResultsResponseExperiment
     """ # noqa: E501
-    id: Optional[StrictStr] = Field(description="Optional gate name. Only callers that pass the gate are enrolled in the experiment.")
+    id: Optional[StrictStr] = Field(description="Optional gate name (a `targeting`-type flag). Only callers that pass the gate are enrolled in the experiment.")
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create.")
     status: StrictStr
     __properties: ClassVar[List[str]] = ["id", "name", "status"]

@@ -19,47 +19,67 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
+from shipeasy.admin.generated.models.connector_data import ConnectorData
+from shipeasy.admin.generated.models.notification_target import NotificationTarget
+from shipeasy.admin.generated.models.ops_investigation_state import OpsInvestigationState
+from shipeasy.admin.generated.models.ops_item_attachment import OpsItemAttachment
+from shipeasy.admin.generated.models.ops_item_context import OpsItemContext
+from shipeasy.admin.generated.models.ops_item_owner import OpsItemOwner
+from shipeasy.admin.generated.models.ops_item_priority import OpsItemPriority
+from shipeasy.admin.generated.models.ops_item_related import OpsItemRelated
+from shipeasy.admin.generated.models.ops_item_status import OpsItemStatus
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class GetOpsItemResponse(BaseModel):
     """
-    One queue item — any type.
+    One queue item, any of the five types. Shared fields apply to all; `stepsToReproduce`/`actualResult`/`expectedResult` are bug-specific, `description`/`useCase` feature-specific. The auto-collected browser fields (page URL, user-agent, viewport) live under `context.browser` for bug/feature. `context` also carries the hydrated per-type payload for auto-filed `error`/`alert`/`measure_plan` tickets, `attachments` lists any uploaded files, and `related` gives deep links to the underlying resources.
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque item id.")
     number: Optional[Union[StrictFloat, StrictInt]] = Field(description="Per-project item number (the `#7` handle), or `null` if unnumbered.")
-    type: StrictStr = Field(description="Queue item type. `bug` and `feature_request` are user-fileable; `error` and `alert` tickets are auto-filed by the platform.")
-    title: StrictStr = Field(description="One-line item title.")
-    status: StrictStr = Field(description="Lifecycle status of a queue item.")
-    priority: Optional[StrictStr] = Field(description="Triage priority of a queue item.")
-    source_ref: Optional[StrictStr] = Field(default=None, description="Source reference for auto-filed tickets (e.g. an error fingerprint).", alias="sourceRef")
+    type: StrictStr = Field(description="Queue item type. `bug` and `feature_request` are user-fileable; `error`, `alert`, and `measure_plan` tickets are auto-filed by the platform (a tracked production error, a metric-threshold alert, and an assistant-proposed measurement plan respectively).")
+    title: StrictStr = Field(description="One-line item title (all types).")
+    status: OpsItemStatus
+    priority: Optional[OpsItemPriority] = Field(description="Triage priority, or `null` if not yet set (all types).")
+    source: Optional[StrictStr] = Field(default=None, description="How the item was filed: `team` (a human admin/teammate — bug/feature) or `system` (auto-filed — error/alert/measure_plan).")
+    source_ref: Optional[StrictStr] = Field(default=None, description="Stable key of the originating record for auto-filed tickets (error fingerprint, `<alert source>:<dedupeKey>`, or measurement-plan ref); `null` for human-filed bugs/features.", alias="sourceRef")
+    investigation_state: Optional[OpsInvestigationState] = Field(default=None, description="Where automation has taken this item in the investigation lifecycle (see `OpsInvestigationState`). Written as a side-effect of the actions that already happen (link a PR, change status, an assistant reply); `null` on rows filed before the field existed — derive from `status`/`type` in that case.", alias="investigationState")
+    reporter_email: Optional[StrictStr] = Field(default=None, description="Reporter email (bug/feature), or `null`.", alias="reporterEmail")
+    steps_to_reproduce: Optional[StrictStr] = Field(default=None, description="Reproduction steps — populated for `bug`, empty string otherwise.", alias="stepsToReproduce")
+    actual_result: Optional[StrictStr] = Field(default=None, description="What actually happened — `bug` only, empty string otherwise.", alias="actualResult")
+    expected_result: Optional[StrictStr] = Field(default=None, description="What was expected — `bug` only, empty string otherwise.", alias="expectedResult")
+    description: Optional[StrictStr] = Field(default=None, description="Feature description — populated for `feature_request`, empty string otherwise.")
+    use_case: Optional[StrictStr] = Field(default=None, description="Feature use case — `feature_request` only, empty string otherwise.", alias="useCase")
+    context: Optional[OpsItemContext] = Field(description="Type-specific capture context. For `bug`/`feature_request` it carries `browser` (the auto-collected page URL / user-agent / viewport). For auto-filed tickets it carries the hydrated `error`, `alert`, or `measurePlan` block. `null` only for legacy rows with nothing captured.")
+    attachments: List[OpsItemAttachment] = Field(description="Files attached to the report — screenshots, recordings, logs. Populated for `bug`/`feature_request`; always an empty array for auto-filed `error`/`alert`/`measure_plan` tickets. Fetch each via its `fetchUrl` with the same admin/ops key (the download route is ops-key allow-listed).")
+    related: OpsItemRelated
+    connector_data: Optional[ConnectorData] = Field(default=None, description="Per-connector linkage recorded for this item, keyed by connector provider. Populated as connectors act on the item (e.g. GitHub opens an issue, Slack posts a message); more than one provider can be present at once. `null` if no connector has touched the item.", alias="connectorData")
+    notify: Optional[NotificationTarget] = Field(default=None, description="Per-item completion-notification target, or `null` (falls back to the project default).")
+    assignee_id: Optional[StrictStr] = Field(default=None, description="The PERSON owner — a `users.id` (resolved into `owner.user`), or `null` when unassigned.", alias="assigneeId")
+    assignee_connector_id: Optional[StrictStr] = Field(default=None, description="The AGENT owner when it is a connected trigger connector — a `connectors` row id (resolved into `owner.agent`), or `null`. Mutually exclusive with `assigneeAgent`.", alias="assigneeConnectorId")
+    assignee_agent: Optional[StrictStr] = Field(default=None, description="The AGENT owner when it is a built-in hosted Shipeasy agent — currently only `jarvis` — or `null`. Mutually exclusive with `assigneeConnectorId`.", alias="assigneeAgent")
+    owner: OpsItemOwner
     created_at: StrictStr = Field(description="ISO-8601 creation timestamp.", alias="createdAt")
+    updated_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 last-update timestamp.", alias="updatedAt")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "number", "type", "title", "status", "priority", "sourceRef", "createdAt"]
+    __properties: ClassVar[List[str]] = ["id", "number", "type", "title", "status", "priority", "source", "sourceRef", "investigationState", "reporterEmail", "stepsToReproduce", "actualResult", "expectedResult", "description", "useCase", "context", "attachments", "related", "connectorData", "notify", "assigneeId", "assigneeConnectorId", "assigneeAgent", "owner", "createdAt", "updatedAt"]
 
     @field_validator('type')
     def type_validate_enum(cls, value):
         """Validates the enum"""
-        if value not in set(['bug', 'feature_request', 'error', 'alert']):
-            raise ValueError("must be one of enum values ('bug', 'feature_request', 'error', 'alert')")
+        if value not in set(['bug', 'feature_request', 'error', 'alert', 'measure_plan']):
+            raise ValueError("must be one of enum values ('bug', 'feature_request', 'error', 'alert', 'measure_plan')")
         return value
 
-    @field_validator('status')
-    def status_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['open', 'triaged', 'in_progress', 'ready_for_qa', 'resolved', 'wont_fix']):
-            raise ValueError("must be one of enum values ('open', 'triaged', 'in_progress', 'ready_for_qa', 'resolved', 'wont_fix')")
-        return value
-
-    @field_validator('priority')
-    def priority_validate_enum(cls, value):
+    @field_validator('source')
+    def source_validate_enum(cls, value):
         """Validates the enum"""
         if value is None:
             return value
 
-        if value not in set(['nice_to_have', 'medium', 'high', 'critical']):
-            raise ValueError("must be one of enum values ('nice_to_have', 'medium', 'high', 'critical')")
+        if value not in set(['team', 'system']):
+            raise ValueError("must be one of enum values ('team', 'system')")
         return value
 
     model_config = ConfigDict(
@@ -103,6 +123,28 @@ class GetOpsItemResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of context
+        if self.context:
+            _dict['context'] = self.context.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in attachments (list)
+        _items = []
+        if self.attachments:
+            for _item_attachments in self.attachments:
+                if _item_attachments:
+                    _items.append(_item_attachments.to_dict())
+            _dict['attachments'] = _items
+        # override the default output from pydantic by calling `to_dict()` of related
+        if self.related:
+            _dict['related'] = self.related.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of connector_data
+        if self.connector_data:
+            _dict['connectorData'] = self.connector_data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of notify
+        if self.notify:
+            _dict['notify'] = self.notify.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of owner
+        if self.owner:
+            _dict['owner'] = self.owner.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -123,6 +165,46 @@ class GetOpsItemResponse(BaseModel):
         if self.source_ref is None and "source_ref" in self.model_fields_set:
             _dict['sourceRef'] = None
 
+        # set to None if investigation_state (nullable) is None
+        # and model_fields_set contains the field
+        if self.investigation_state is None and "investigation_state" in self.model_fields_set:
+            _dict['investigationState'] = None
+
+        # set to None if reporter_email (nullable) is None
+        # and model_fields_set contains the field
+        if self.reporter_email is None and "reporter_email" in self.model_fields_set:
+            _dict['reporterEmail'] = None
+
+        # set to None if context (nullable) is None
+        # and model_fields_set contains the field
+        if self.context is None and "context" in self.model_fields_set:
+            _dict['context'] = None
+
+        # set to None if connector_data (nullable) is None
+        # and model_fields_set contains the field
+        if self.connector_data is None and "connector_data" in self.model_fields_set:
+            _dict['connectorData'] = None
+
+        # set to None if notify (nullable) is None
+        # and model_fields_set contains the field
+        if self.notify is None and "notify" in self.model_fields_set:
+            _dict['notify'] = None
+
+        # set to None if assignee_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_id is None and "assignee_id" in self.model_fields_set:
+            _dict['assigneeId'] = None
+
+        # set to None if assignee_connector_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_connector_id is None and "assignee_connector_id" in self.model_fields_set:
+            _dict['assigneeConnectorId'] = None
+
+        # set to None if assignee_agent (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_agent is None and "assignee_agent" in self.model_fields_set:
+            _dict['assigneeAgent'] = None
+
         return _dict
 
     @classmethod
@@ -141,8 +223,26 @@ class GetOpsItemResponse(BaseModel):
             "title": obj.get("title"),
             "status": obj.get("status"),
             "priority": obj.get("priority"),
+            "source": obj.get("source"),
             "sourceRef": obj.get("sourceRef"),
-            "createdAt": obj.get("createdAt")
+            "investigationState": obj.get("investigationState"),
+            "reporterEmail": obj.get("reporterEmail"),
+            "stepsToReproduce": obj.get("stepsToReproduce"),
+            "actualResult": obj.get("actualResult"),
+            "expectedResult": obj.get("expectedResult"),
+            "description": obj.get("description"),
+            "useCase": obj.get("useCase"),
+            "context": OpsItemContext.from_dict(obj["context"]) if obj.get("context") is not None else None,
+            "attachments": [OpsItemAttachment.from_dict(_item) for _item in obj["attachments"]] if obj.get("attachments") is not None else None,
+            "related": OpsItemRelated.from_dict(obj["related"]) if obj.get("related") is not None else None,
+            "connectorData": ConnectorData.from_dict(obj["connectorData"]) if obj.get("connectorData") is not None else None,
+            "notify": NotificationTarget.from_dict(obj["notify"]) if obj.get("notify") is not None else None,
+            "assigneeId": obj.get("assigneeId"),
+            "assigneeConnectorId": obj.get("assigneeConnectorId"),
+            "assigneeAgent": obj.get("assigneeAgent"),
+            "owner": OpsItemOwner.from_dict(obj["owner"]) if obj.get("owner") is not None else None,
+            "createdAt": obj.get("createdAt"),
+            "updatedAt": obj.get("updatedAt")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

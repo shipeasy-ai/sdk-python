@@ -30,9 +30,9 @@ class CreateKeyRequest(BaseModel):
     """ # noqa: E501
     type: StrictStr = Field(description="Key kind to mint. `server` (back-end), `client` (public, browser), `admin` (CLI/devtools token), `ops` (restricted unattended-trigger credential). `admin`/`ops` keys don't count toward the plan key limit.")
     name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=80)]] = Field(default=None, description="Optional human label. Programmatic (API) mints that omit it get an auto-generated descriptive name; dashboard mints may leave it blank.")
-    scopes: Optional[List[StrictStr]] = Field(default=None, description="Optional permission strings recorded on the key for audit/display.")
+    scopes: Optional[List[StrictStr]] = Field(default=None, description="Optional permission strings recorded on the key. `tickets:public_create` is enforced: a client key needs it (plus the project's `allowPublicTickets` setting) to file a `pending_approval` bug via the public `POST /cli/report` endpoint. The rest are audit/display only.")
     expires_in_days: Optional[Annotated[int, Field(le=3650, strict=True, ge=1)]] = Field(default=None, description="Days until the key expires (1–3650), or `null`/omitted for a key that never expires. Ignored for `admin` keys (fixed 90-day expiry) and `ops` keys (short sliding window).", alias="expiresInDays")
-    env: Optional[StrictStr] = Field(default=None, description="Environment to bind the key to. Required for `server`/`client` keys; ignored for `admin`/`ops` (pinned to `prod`).")
+    env: StrictStr = Field(description="Environment to bind the key to. Always required. For `server`/`client` keys it is the isolation boundary the worker reads from; `admin`/`ops` keys are env-agnostic and pinned to `prod` by the handler regardless of the value sent.")
     __properties: ClassVar[List[str]] = ["type", "name", "scopes", "expiresInDays", "env"]
 
     @field_validator('type')
@@ -49,16 +49,13 @@ class CreateKeyRequest(BaseModel):
             return value
 
         for i in value:
-            if i not in set(['experiments:read', 'gates:evaluate', 'events:write', 'configs:write', 'experiments:write']):
-                raise ValueError("each list item must be one of ('experiments:read', 'gates:evaluate', 'events:write', 'configs:write', 'experiments:write')")
+            if i not in set(['experiments:read', 'gates:evaluate', 'events:write', 'configs:write', 'experiments:write', 'tickets:public_create']):
+                raise ValueError("each list item must be one of ('experiments:read', 'gates:evaluate', 'events:write', 'configs:write', 'experiments:write', 'tickets:public_create')")
         return value
 
     @field_validator('env')
     def env_validate_enum(cls, value):
         """Validates the enum"""
-        if value is None:
-            return value
-
         if value not in set(['dev', 'staging', 'prod']):
             raise ValueError("must be one of enum values ('dev', 'staging', 'prod')")
         return value

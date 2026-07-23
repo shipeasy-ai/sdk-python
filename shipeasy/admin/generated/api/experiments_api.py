@@ -18,10 +18,13 @@ from typing_extensions import Annotated
 from pydantic import Field, StrictStr
 from typing import Optional
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.create_experiment_readout_request import CreateExperimentReadoutRequest
+from shipeasy.admin.generated.models.create_experiment_readout_response import CreateExperimentReadoutResponse
 from shipeasy.admin.generated.models.create_experiment_request import CreateExperimentRequest
 from shipeasy.admin.generated.models.create_experiment_response import CreateExperimentResponse
 from shipeasy.admin.generated.models.delete_experiment_response import DeleteExperimentResponse
-from shipeasy.admin.generated.models.get_experiment_response import GetExperimentResponse
+from shipeasy.admin.generated.models.experiment_api_row import ExperimentApiRow
+from shipeasy.admin.generated.models.experiment_readout_api_row import ExperimentReadoutApiRow
 from shipeasy.admin.generated.models.get_experiment_results_response import GetExperimentResultsResponse
 from shipeasy.admin.generated.models.get_experiment_timeseries_response import GetExperimentTimeseriesResponse
 from shipeasy.admin.generated.models.list_experiments_response import ListExperimentsResponse
@@ -359,9 +362,331 @@ class ExperimentsApi:
 
 
     @validate_call
+    def create_experiment_readout(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        create_experiment_readout_request: CreateExperimentReadoutRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> CreateExperimentReadoutResponse:
+        """Mint a readout snapshot
+
+        Freezes the current results view into an immutable, dated readout snapshot — verdict, headline, per-metric numbers, the caveat list with its acknowledgment state, enrollment, and a hash of the assignment-relevant config. Ship/stop flows mint one automatically; \"Share readout\" mints one on demand. Snapshots are never updated after insert.  Pass `requireAllAcknowledged: true` to enforce ship gating server-side — returns `422` while any open caveat is not listed in `acknowledgedCaveatIds`.  **Use case:** Capture \"what the data said when we decided\" before shipping or stopping, so the decision stays auditable even after results move.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param create_experiment_readout_request: (required)
+        :type create_experiment_readout_request: CreateExperimentReadoutRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_experiment_readout_serialize(
+            id=id,
+            create_experiment_readout_request=create_experiment_readout_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateExperimentReadoutResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def create_experiment_readout_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        create_experiment_readout_request: CreateExperimentReadoutRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[CreateExperimentReadoutResponse]:
+        """Mint a readout snapshot
+
+        Freezes the current results view into an immutable, dated readout snapshot — verdict, headline, per-metric numbers, the caveat list with its acknowledgment state, enrollment, and a hash of the assignment-relevant config. Ship/stop flows mint one automatically; \"Share readout\" mints one on demand. Snapshots are never updated after insert.  Pass `requireAllAcknowledged: true` to enforce ship gating server-side — returns `422` while any open caveat is not listed in `acknowledgedCaveatIds`.  **Use case:** Capture \"what the data said when we decided\" before shipping or stopping, so the decision stays auditable even after results move.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param create_experiment_readout_request: (required)
+        :type create_experiment_readout_request: CreateExperimentReadoutRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_experiment_readout_serialize(
+            id=id,
+            create_experiment_readout_request=create_experiment_readout_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateExperimentReadoutResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def create_experiment_readout_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        create_experiment_readout_request: CreateExperimentReadoutRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Mint a readout snapshot
+
+        Freezes the current results view into an immutable, dated readout snapshot — verdict, headline, per-metric numbers, the caveat list with its acknowledgment state, enrollment, and a hash of the assignment-relevant config. Ship/stop flows mint one automatically; \"Share readout\" mints one on demand. Snapshots are never updated after insert.  Pass `requireAllAcknowledged: true` to enforce ship gating server-side — returns `422` while any open caveat is not listed in `acknowledgedCaveatIds`.  **Use case:** Capture \"what the data said when we decided\" before shipping or stopping, so the decision stays auditable even after results move.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param create_experiment_readout_request: (required)
+        :type create_experiment_readout_request: CreateExperimentReadoutRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_experiment_readout_serialize(
+            id=id,
+            create_experiment_readout_request=create_experiment_readout_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateExperimentReadoutResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _create_experiment_readout_serialize(
+        self,
+        id,
+        create_experiment_readout_request,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if create_experiment_readout_request is not None:
+            _body_params = create_experiment_readout_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/api/admin/experiments/{id}/readouts',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def delete_experiment(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -438,7 +763,7 @@ class ExperimentsApi:
     @validate_call
     def delete_experiment_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -515,7 +840,7 @@ class ExperimentsApi:
     @validate_call
     def delete_experiment_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -655,7 +980,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -669,7 +994,7 @@ class ExperimentsApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> GetExperimentResponse:
+    ) -> ExperimentApiRow:
         """Get one experiment
 
         Returns the full experiment row including groups, params, allocation, and lifecycle timestamps.  **Use case:** Fetch one experiment to render the detail page or to inspect its current allocation and group weights.
@@ -710,7 +1035,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "GetExperimentResponse",
+            '200': "ExperimentApiRow",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -732,7 +1057,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -746,7 +1071,7 @@ class ExperimentsApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[GetExperimentResponse]:
+    ) -> ApiResponse[ExperimentApiRow]:
         """Get one experiment
 
         Returns the full experiment row including groups, params, allocation, and lifecycle timestamps.  **Use case:** Fetch one experiment to render the detail page or to inspect its current allocation and group weights.
@@ -787,7 +1112,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "GetExperimentResponse",
+            '200': "ExperimentApiRow",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -809,7 +1134,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -864,7 +1189,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "GetExperimentResponse",
+            '200': "ExperimentApiRow",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -947,9 +1272,318 @@ class ExperimentsApi:
 
 
     @validate_call
+    def get_experiment_readout(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        readout_id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Readout snapshot id, as returned by `createExperimentReadout`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ExperimentReadoutApiRow:
+        """Get a readout snapshot
+
+        Returns one immutable readout snapshot — the frozen results view (verdict, headline, per-metric numbers, caveats, enrollment) captured when it was minted, plus the `configHash` that tells you whether it is still comparable to the live view.  **Use case:** Render a shared, dated readout exactly as it looked at decision time.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param readout_id: Readout snapshot id, as returned by `createExperimentReadout`. (required)
+        :type readout_id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_experiment_readout_serialize(
+            id=id,
+            readout_id=readout_id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ExperimentReadoutApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_experiment_readout_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        readout_id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Readout snapshot id, as returned by `createExperimentReadout`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ExperimentReadoutApiRow]:
+        """Get a readout snapshot
+
+        Returns one immutable readout snapshot — the frozen results view (verdict, headline, per-metric numbers, caveats, enrollment) captured when it was minted, plus the `configHash` that tells you whether it is still comparable to the live view.  **Use case:** Render a shared, dated readout exactly as it looked at decision time.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param readout_id: Readout snapshot id, as returned by `createExperimentReadout`. (required)
+        :type readout_id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_experiment_readout_serialize(
+            id=id,
+            readout_id=readout_id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ExperimentReadoutApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_experiment_readout_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        readout_id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Readout snapshot id, as returned by `createExperimentReadout`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get a readout snapshot
+
+        Returns one immutable readout snapshot — the frozen results view (verdict, headline, per-metric numbers, caveats, enrollment) captured when it was minted, plus the `configHash` that tells you whether it is still comparable to the live view.  **Use case:** Render a shared, dated readout exactly as it looked at decision time.
+
+        :param id: Stable opaque experiment id (`exp_…`) or the experiment's `name`. (required)
+        :type id: str
+        :param readout_id: Readout snapshot id, as returned by `createExperimentReadout`. (required)
+        :type readout_id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_experiment_readout_serialize(
+            id=id,
+            readout_id=readout_id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ExperimentReadoutApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_experiment_readout_serialize(
+        self,
+        id,
+        readout_id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        if readout_id is not None:
+            _path_params['readoutId'] = readout_id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/api/admin/experiments/{id}/readouts/{readoutId}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def get_experiment_results(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1026,7 +1660,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_results_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1103,7 +1737,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_results_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1243,7 +1877,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_timeseries(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         metric: Annotated[Optional[StrictStr], Field(description="Optional metric name to filter the series.")] = None,
         _request_timeout: Union[
@@ -1324,7 +1958,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_timeseries_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         metric: Annotated[Optional[StrictStr], Field(description="Optional metric name to filter the series.")] = None,
         _request_timeout: Union[
@@ -1405,7 +2039,7 @@ class ExperimentsApi:
     @validate_call
     def get_experiment_timeseries_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         metric: Annotated[Optional[StrictStr], Field(description="Optional metric name to filter the series.")] = None,
         _request_timeout: Union[
@@ -1557,6 +2191,8 @@ class ExperimentsApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1580,6 +2216,10 @@ class ExperimentsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param status: Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.
+        :type status: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1606,6 +2246,8 @@ class ExperimentsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            status=status,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1638,6 +2280,8 @@ class ExperimentsApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1661,6 +2305,10 @@ class ExperimentsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param status: Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.
+        :type status: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1687,6 +2335,8 @@ class ExperimentsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            status=status,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1719,6 +2369,8 @@ class ExperimentsApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1742,6 +2394,10 @@ class ExperimentsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param status: Filter by lifecycle status. Pass `archived` to return the archive tab; any other value (or omitting it) returns the non-archived experiments.
+        :type status: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1768,6 +2424,8 @@ class ExperimentsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            status=status,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1795,6 +2453,8 @@ class ExperimentsApi:
         x_project_id,
         limit,
         cursor,
+        status,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -1824,6 +2484,14 @@ class ExperimentsApi:
         if cursor is not None:
             
             _query_params.append(('cursor', cursor))
+            
+        if status is not None:
+            
+            _query_params.append(('status', status))
+            
+        if q is not None:
+            
+            _query_params.append(('q', q))
             
         # process the header parameters
         if x_project_id is not None:
@@ -1867,7 +2535,7 @@ class ExperimentsApi:
     @validate_call
     def reanalyze_experiment(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1922,7 +2590,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReanalyzeExperimentResponse",
+            '200': "ReanalyzeExperimentResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -1944,7 +2612,7 @@ class ExperimentsApi:
     @validate_call
     def reanalyze_experiment_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1999,7 +2667,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReanalyzeExperimentResponse",
+            '200': "ReanalyzeExperimentResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2021,7 +2689,7 @@ class ExperimentsApi:
     @validate_call
     def reanalyze_experiment_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -2076,7 +2744,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReanalyzeExperimentResponse",
+            '200': "ReanalyzeExperimentResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2161,7 +2829,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_metrics(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_metrics_request: SetExperimentMetricsRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2220,7 +2888,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentMetricsResponse",
+            '200': "SetExperimentMetricsResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2242,7 +2910,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_metrics_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_metrics_request: SetExperimentMetricsRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2301,7 +2969,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentMetricsResponse",
+            '200': "SetExperimentMetricsResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2323,7 +2991,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_metrics_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_metrics_request: SetExperimentMetricsRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2382,7 +3050,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentMetricsResponse",
+            '200': "SetExperimentMetricsResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2483,7 +3151,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_status(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_status_request: SetExperimentStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2542,7 +3210,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentStatusResponse",
+            '200': "SetExperimentStatusResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2564,7 +3232,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_status_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_status_request: SetExperimentStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2623,7 +3291,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentStatusResponse",
+            '200': "SetExperimentStatusResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2645,7 +3313,7 @@ class ExperimentsApi:
     @validate_call
     def set_experiment_status_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         set_experiment_status_request: SetExperimentStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2704,7 +3372,7 @@ class ExperimentsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "SetExperimentStatusResponse",
+            '200': "SetExperimentStatusResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -2805,7 +3473,7 @@ class ExperimentsApi:
     @validate_call
     def update_experiment(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         update_experiment_request: UpdateExperimentRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2886,7 +3554,7 @@ class ExperimentsApi:
     @validate_call
     def update_experiment_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         update_experiment_request: UpdateExperimentRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2967,7 +3635,7 @@ class ExperimentsApi:
     @validate_call
     def update_experiment_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque experiment id (`exp_…`) or the experiment's `name`.")],
         update_experiment_request: UpdateExperimentRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[

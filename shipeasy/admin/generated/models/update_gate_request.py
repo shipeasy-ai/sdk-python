@@ -17,11 +17,11 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
-from shipeasy.admin.generated.models.list_gates_response_data_inner_rules_inner import ListGatesResponseDataInnerRulesInner
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner import ListGatesResponseDataInnerStackInner
+from shipeasy.admin.generated.models.gate_api_row_rules_inner import GateApiRowRulesInner
+from shipeasy.admin.generated.models.gate_api_row_stack_inner import GateApiRowStackInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,18 +30,29 @@ class UpdateGateRequest(BaseModel):
     """
     Body for `PATCH /api/admin/gates/{id}`. Partial — only supplied fields change. Array fields (`rules`, `stack`) replace, not merge.
     """ # noqa: E501
+    type: Optional[StrictStr] = Field(default=None, description="Gate kind. Switching to `holdout` requires the gate carry only a public rollout % + whitelist (attribute rules / stack are rejected).")
     rollout_pct: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="New rollout in **basis points** (0–10000 = 0%–100%) — `100` here means **1%**. Use `rollout_percent` (0–100) below for percent. Omit both to leave unchanged.")
     rollout_percent: Optional[Union[Annotated[float, Field(le=100, strict=True, ge=0)], Annotated[int, Field(le=100, strict=True, ge=0)]]] = Field(default=None, description="New rollout as a **percentage** (0–100). Friendlier alias for `rollout_pct`; converted internally. Wins over `rollout_pct` if both are supplied. Omit both to leave unchanged.")
-    rules: Optional[List[ListGatesResponseDataInnerRulesInner]] = Field(default=None, description="Replaces the rule list wholesale. To add a value to an `in` rule, send the full new `rules` array with the augmented `value` (e.g. previous `['US','CA']` → `['US','CA','GB']`).")
+    rules: Optional[List[GateApiRowRulesInner]] = Field(default=None, description="Replaces the rule list wholesale. To add a value to an `in` rule, send the full new `rules` array with the augmented `value` (e.g. previous `['US','CA']` → `['US','CA','GB']`).")
     enabled: Optional[StrictBool] = Field(default=None, description="Master switch. `false` makes the gate evaluate to `false` for every caller regardless of `rollout_pct`, `rules`, or `stack` — use as kill switch.")
-    stack: Optional[List[ListGatesResponseDataInnerStackInner]] = Field(default=None, description="Replaces the gatekeeper stack wholesale. Send `null` to revert to flat `rules` + `rollout_pct` evaluation.")
+    stack: Optional[List[GateApiRowStackInner]] = Field(default=None, description="Replaces the gatekeeper stack wholesale. Send `null` to revert to flat `rules` + `rollout_pct` evaluation.")
     title: Optional[Annotated[str, Field(strict=True, max_length=140)]] = Field(default=None, description="Human-readable title shown in the dashboard. Free-form, no key format constraint.")
     description: Optional[Annotated[str, Field(strict=True, max_length=2000)]] = Field(default=None, description="Long-form description / runbook. Markdown is rendered in the dashboard.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
     group: Optional[Annotated[str, Field(strict=True, max_length=64)]] = Field(default=None, description="Group label for dashboard organisation (e.g. team or product area).")
     owner_email: Optional[Annotated[str, Field(strict=True, max_length=190)]] = Field(default=None, description="Owner contact. Displayed verbatim; not used for auth.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["rollout_pct", "rollout_percent", "rules", "enabled", "stack", "title", "description", "folder", "group", "owner_email"]
+    __properties: ClassVar[List[str]] = ["type", "rollout_pct", "rollout_percent", "rules", "enabled", "stack", "title", "description", "folder", "group", "owner_email"]
+
+    @field_validator('type')
+    def type_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['targeting', 'holdout']):
+            raise ValueError("must be one of enum values ('targeting', 'holdout')")
+        return value
 
     @field_validator('folder')
     def folder_validate_regular_expression(cls, value):
@@ -138,11 +149,12 @@ class UpdateGateRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "type": obj.get("type"),
             "rollout_pct": obj.get("rollout_pct"),
             "rollout_percent": obj.get("rollout_percent"),
-            "rules": [ListGatesResponseDataInnerRulesInner.from_dict(_item) for _item in obj["rules"]] if obj.get("rules") is not None else None,
+            "rules": [GateApiRowRulesInner.from_dict(_item) for _item in obj["rules"]] if obj.get("rules") is not None else None,
             "enabled": obj.get("enabled"),
-            "stack": [ListGatesResponseDataInnerStackInner.from_dict(_item) for _item in obj["stack"]] if obj.get("stack") is not None else None,
+            "stack": [GateApiRowStackInner.from_dict(_item) for _item in obj["stack"]] if obj.get("stack") is not None else None,
             "title": obj.get("title"),
             "description": obj.get("description"),
             "folder": obj.get("folder"),

@@ -19,21 +19,27 @@ __version__ = "1.0.0"
 # Define package exports
 __all__ = [
     "APIKeysApi",
+    "AgentsApi",
     "AlertsApi",
     "AttributesApi",
+    "CommentsApi",
     "ConfigsApi",
     "ConnectorsApi",
     "DraftsApi",
     "ErrorsApi",
     "EventsApi",
     "ExperimentsApi",
+    "FiredAlertsApi",
     "FlagsApi",
+    "InvestigationsApi",
     "KeysApi",
     "KillswitchApi",
     "MetricsApi",
     "OpsApi",
     "ProfilesApi",
     "ProjectsApi",
+    "TemplatesApi",
+    "TriggerApi",
     "UniversesApi",
     "ApiResponse",
     "ApiClient",
@@ -44,15 +50,23 @@ __all__ = [
     "ApiKeyError",
     "ApiAttributeError",
     "ApiException",
+    "AckOpsItemRequest",
+    "AckOpsItemResponse",
+    "AlertApiRow",
     "ApproveEventRequest",
     "ApproveEventResponse",
+    "AttributeType",
     "ClaudeTriggerConfig",
+    "ConnectorData",
     "ConnectorEvent",
     "ConnectorProvider",
     "ConnectorRecord",
     "CopilotTriggerConfig",
     "CreateAlertRuleRequest",
     "CreateAlertRuleResponse",
+    "CreateAttributeRequest",
+    "CreateAttributeResponse",
+    "CreateBugRequest",
     "CreateClaudeTriggerRequest",
     "CreateConfigRequest",
     "CreateConfigResponse",
@@ -62,10 +76,16 @@ __all__ = [
     "CreateCursorTriggerRequest",
     "CreateEventRequest",
     "CreateEventResponse",
+    "CreateExperimentReadoutRequest",
+    "CreateExperimentReadoutResponse",
     "CreateExperimentRequest",
     "CreateExperimentResponse",
+    "CreateFeatureRequestRequest",
     "CreateGateRequest",
     "CreateGateResponse",
+    "CreateGateTemplateRequest",
+    "CreateGateTemplateResponse",
+    "CreateI18nDraftRequest",
     "CreateI18nProfileRequest",
     "CreateI18nProfileResponse",
     "CreateJulesTriggerRequest",
@@ -75,20 +95,29 @@ __all__ = [
     "CreateKillswitchResponse",
     "CreateMetricRequest",
     "CreateMetricResponse",
+    "CreateMetricWithQuery",
+    "CreateMetricWithQueryIr",
     "CreateOAuthConnectorRequest",
+    "CreateOpsCommentRequest",
+    "CreateOpsCommentResponse",
+    "CreateOpsInvestigationRequest",
     "CreateOpsItemRequest",
     "CreateOpsItemResponse",
+    "CreateTriggerConnectorRequest",
     "CreateUniverseRequest",
     "CreateUniverseResponse",
     "CursorTriggerConfig",
     "DeleteAlertRuleResponse",
+    "DeleteAttributeResponse",
     "DeleteConfigResponse",
     "DeleteConnectorResponse",
     "DeleteEventResponse",
     "DeleteExperimentResponse",
     "DeleteGateResponse",
+    "DeleteGateTemplateResponse",
     "DeleteKillswitchResponse",
     "DeleteMetricResponse",
+    "DeleteOpsItemResponse",
     "DeleteUniverseResponse",
     "DisableGateResponse",
     "DiscardConfigDraftRequest",
@@ -97,28 +126,55 @@ __all__ = [
     "Env",
     "Error",
     "ErrorCode",
+    "ErrorOccurrence",
     "ErrorRecord",
     "ErrorSeriesRequest",
     "ErrorSeriesResponse",
-    "ErrorSeriesResponseRowsInner",
+    "ExperimentApiRow",
+    "ExperimentApiRowExposureInner",
+    "ExperimentApiRowGoalMetric",
+    "ExperimentApiRowGroupsInner",
+    "ExperimentApiRowGuardrailsInner",
     "ExperimentInlineMetric",
+    "ExperimentReadoutApiRow",
+    "ExperimentReadoutApiRowUsersJson",
+    "ExperimentReadoutApiRowUsersJsonGroupsInner",
+    "ExperimentReadoutCaveat",
+    "ExperimentReadoutMetric",
+    "ExperimentResultRow",
     "FileErrorTicketResponse",
     "FireConnectorRequest",
     "FireConnectorResponse",
+    "GateApiRow",
+    "GateApiRowEnabled",
+    "GateApiRowRulesInner",
+    "GateApiRowStackInner",
+    "GateApiRowStackInnerOneOf",
+    "GateApiRowStackInnerOneOf1",
+    "GateApiRowStackInnerOneOfRamp",
+    "GateTemplate",
+    "GateTemplateRule",
+    "GateTemplateRuleResponse",
+    "GateTemplateRuleValue",
+    "GetAttributeResponse",
     "GetConfigResponse",
     "GetCurrentProjectResponse",
     "GetCurrentProjectResponseModuleTranslations",
     "GetEventResponse",
-    "GetExperimentResponse",
     "GetExperimentResultsResponse",
     "GetExperimentResultsResponseExperiment",
-    "GetExperimentResultsResponseResultsInner",
     "GetExperimentTimeseriesResponse",
     "GetExperimentTimeseriesResponseExperiment",
-    "GetExperimentTimeseriesResponseSeriesInner",
     "GetKillswitchResponse",
     "GetMetricResponse",
+    "GetMetricSeriesRequest",
+    "GetMetricSeriesResponse",
+    "GetMetricSeriesResponseRowsInner",
     "GetOpsItemResponse",
+    "GithubConnectorData",
+    "GithubConnectorDataIssue",
+    "GithubPrLink",
+    "I18nDraft",
     "JulesTriggerConfig",
     "KeyRecord",
     "KillswitchValue",
@@ -126,7 +182,7 @@ __all__ = [
     "LinkPrToOpsItemResponse",
     "ListAlertRulesResponseInner",
     "ListAttributesResponseInner",
-    "ListConfigActivityResponseInner",
+    "ListConfigVersionsResponseInner",
     "ListConfigsResponse",
     "ListConfigsResponseDataInner",
     "ListConfigsResponseDataInnerDraftsValue",
@@ -134,17 +190,10 @@ __all__ = [
     "ListEventsResponseInner",
     "ListEventsResponseInnerPropertiesInner",
     "ListExperimentsResponse",
-    "ListExperimentsResponseDataInner",
-    "ListExperimentsResponseDataInnerGroupsInner",
+    "ListGateActivityResponseInner",
+    "ListGateTemplatesResponse",
     "ListGatesResponse",
-    "ListGatesResponseDataInner",
-    "ListGatesResponseDataInnerEnabled",
-    "ListGatesResponseDataInnerRulesInner",
-    "ListGatesResponseDataInnerStackInner",
-    "ListGatesResponseDataInnerStackInnerOneOf",
-    "ListGatesResponseDataInnerStackInnerOneOf1",
-    "ListGatesResponseDataInnerStackInnerOneOfRamp",
-    "ListI18nDraftsResponseInner",
+    "ListI18nDraftKeysResponseInner",
     "ListI18nKeysResponse",
     "ListI18nKeysResponseKeysInner",
     "ListI18nProfilesResponseInner",
@@ -152,38 +201,71 @@ __all__ = [
     "ListKillswitchesResponse",
     "ListKillswitchesResponseDataInner",
     "ListKillswitchesResponseDataInnerEnvsValue",
+    "ListMetricExperimentsResponse",
+    "ListMetricExperimentsResponseExperimentsInner",
     "ListMetricsResponseInner",
-    "ListMetricsResponseInnerQueryIr",
-    "ListMetricsResponseInnerQueryIrAgg",
-    "ListMetricsResponseInnerQueryIrAggOneOf",
-    "ListMetricsResponseInnerQueryIrAggOneOf1",
-    "ListMetricsResponseInnerQueryIrAggOneOf2",
-    "ListMetricsResponseInnerQueryIrAggOneOf3",
-    "ListMetricsResponseInnerQueryIrAggOneOf4",
-    "ListMetricsResponseInnerQueryIrAggOneOf5",
-    "ListMetricsResponseInnerQueryIrAggOneOf6",
-    "ListMetricsResponseInnerQueryIrAggOneOf7",
-    "ListMetricsResponseInnerQueryIrAggOneOf8",
-    "ListMetricsResponseInnerQueryIrAggOneOf9",
-    "ListMetricsResponseInnerQueryIrAggOneOf9Numerator",
-    "ListMetricsResponseInnerQueryIrAggOneOf9NumeratorFiltersInner",
-    "ListMetricsResponseInnerQueryIrGroupBy",
+    "ListOpsCommentsResponse",
     "ListOpsItemsResponseInner",
     "ListSlackChannelsResponse",
     "ListSlackChannelsResponseChannelsInner",
     "ListUniversesResponse",
     "ListUniversesResponseDataInner",
+    "MeasurePlanResource",
+    "MeasurePlanStep",
+    "MetricDirection",
     "NotificationTarget",
     "NotificationTargetSlackChannel",
     "NotifyOpsRequest",
     "NotifyOpsResponse",
+    "OkResponse",
+    "OpsAgentProfile",
+    "OpsAlertContext",
+    "OpsAlertMetricSummary",
+    "OpsAlertRuleSummary",
+    "OpsBrowserContext",
+    "OpsComment",
+    "OpsCommentAuthorType",
+    "OpsErrorContext",
+    "OpsInvestigation",
+    "OpsInvestigationSourcesInner",
+    "OpsInvestigationState",
+    "OpsItemAttachment",
+    "OpsItemContext",
+    "OpsItemContextErrorChart",
+    "OpsItemContextErrorChartSeriesInner",
+    "OpsItemNotifyOrNull",
+    "OpsItemOwner",
+    "OpsItemOwnerAgent",
+    "OpsItemOwnerUser",
+    "OpsItemPriority",
+    "OpsItemPriorityOrNull",
+    "OpsItemRelated",
+    "OpsItemStatus",
+    "OpsMeasurePlanContext",
+    "OpsRun",
+    "OpsRunAction",
+    "OpsRunActionOrNull",
     "PublishConfigDraftRequest",
     "PublishConfigDraftResponse",
     "PublishI18nProfileRequest",
     "PublishI18nProfileResponse",
     "PushI18nKeysRequest",
-    "PushI18nKeysRequestKeysInner",
     "PushI18nKeysResponse",
+    "QueryIr",
+    "QueryIrAgg",
+    "QueryIrAggOneOf",
+    "QueryIrAggOneOf1",
+    "QueryIrAggOneOf2",
+    "QueryIrAggOneOf3",
+    "QueryIrAggOneOf4",
+    "QueryIrAggOneOf5",
+    "QueryIrAggOneOf6",
+    "QueryIrAggOneOf7",
+    "QueryIrAggOneOf8",
+    "QueryIrAggOneOf9",
+    "QueryIrAggOneOf9Numerator",
+    "QueryIrAggOneOf9NumeratorFiltersInner",
+    "QueryIrGroupBy",
     "ReanalyzeExperimentResponse",
     "RevokeKeyResponse",
     "SaveConfigDraftRequest",
@@ -202,53 +284,87 @@ __all__ = [
     "SetKillswitchSwitchResponse",
     "SetKillswitchValueRequest",
     "SetKillswitchValueResponse",
+    "SlackConnectorData",
+    "SlackConnectorDataMessage",
     "TestConnectorResponse",
+    "UnarchiveMetricResponse",
+    "UniverseParam",
     "UnsetKillswitchSwitchRequest",
     "UnsetKillswitchSwitchResponse",
+    "UpdateAlertRequest",
     "UpdateAlertRuleRequest",
     "UpdateAlertRuleResponse",
+    "UpdateAttributeRequest",
+    "UpdateAttributeResponse",
+    "UpdateBugRequest",
+    "UpdateClaudeTriggerRequest",
     "UpdateConfigRequest",
     "UpdateConfigResponse",
     "UpdateConfigSchemaRequest",
     "UpdateConfigSchemaResponse",
     "UpdateConnectorRequest",
     "UpdateConnectorResponse",
+    "UpdateCopilotTriggerRequest",
+    "UpdateCursorTriggerRequest",
     "UpdateErrorStatusRequest",
     "UpdateEventRequest",
     "UpdateEventResponse",
     "UpdateExperimentRequest",
     "UpdateExperimentResponse",
+    "UpdateFeatureRequestRequest",
     "UpdateGateRequest",
     "UpdateGateResponse",
+    "UpdateGateTemplateRequest",
+    "UpdateGateTemplateResponse",
+    "UpdateI18nDraftRequest",
     "UpdateI18nKeyRequest",
     "UpdateI18nKeyResponse",
+    "UpdateJulesTriggerRequest",
     "UpdateKillswitchRequest",
     "UpdateKillswitchResponse",
+    "UpdateMetricFields",
+    "UpdateMetricRequest",
+    "UpdateMetricWithQuery",
+    "UpdateMetricWithQueryIr",
+    "UpdateOpsInvestigationRequest",
     "UpdateOpsItemRequest",
     "UpdateOpsItemResponse",
+    "UpdateOpsItemStatusRequest",
+    "UpdateProjectRequest",
+    "UpdateTriggerConnectorRequest",
     "UpdateUniverseRequest",
     "UpdateUniverseResponse",
+    "UpsertI18nDraftKeyRequest",
+    "UpsertI18nKeysRequest",
+    "UpsertI18nKeysRequestKeysInner",
+    "UpsertI18nKeysResponse",
     "UpsertProjectRequest",
     "UpsertProjectResponse",
 ]
 
 # import apis into sdk package
 from shipeasy.admin.generated.api.api_keys_api import APIKeysApi as APIKeysApi
+from shipeasy.admin.generated.api.agents_api import AgentsApi as AgentsApi
 from shipeasy.admin.generated.api.alerts_api import AlertsApi as AlertsApi
 from shipeasy.admin.generated.api.attributes_api import AttributesApi as AttributesApi
+from shipeasy.admin.generated.api.comments_api import CommentsApi as CommentsApi
 from shipeasy.admin.generated.api.configs_api import ConfigsApi as ConfigsApi
 from shipeasy.admin.generated.api.connectors_api import ConnectorsApi as ConnectorsApi
 from shipeasy.admin.generated.api.drafts_api import DraftsApi as DraftsApi
 from shipeasy.admin.generated.api.errors_api import ErrorsApi as ErrorsApi
 from shipeasy.admin.generated.api.events_api import EventsApi as EventsApi
 from shipeasy.admin.generated.api.experiments_api import ExperimentsApi as ExperimentsApi
+from shipeasy.admin.generated.api.fired_alerts_api import FiredAlertsApi as FiredAlertsApi
 from shipeasy.admin.generated.api.flags_api import FlagsApi as FlagsApi
+from shipeasy.admin.generated.api.investigations_api import InvestigationsApi as InvestigationsApi
 from shipeasy.admin.generated.api.keys_api import KeysApi as KeysApi
 from shipeasy.admin.generated.api.killswitch_api import KillswitchApi as KillswitchApi
 from shipeasy.admin.generated.api.metrics_api import MetricsApi as MetricsApi
 from shipeasy.admin.generated.api.ops_api import OpsApi as OpsApi
 from shipeasy.admin.generated.api.profiles_api import ProfilesApi as ProfilesApi
 from shipeasy.admin.generated.api.projects_api import ProjectsApi as ProjectsApi
+from shipeasy.admin.generated.api.templates_api import TemplatesApi as TemplatesApi
+from shipeasy.admin.generated.api.trigger_api import TriggerApi as TriggerApi
 from shipeasy.admin.generated.api.universes_api import UniversesApi as UniversesApi
 
 # import ApiClient
@@ -263,15 +379,23 @@ from shipeasy.admin.generated.exceptions import ApiAttributeError as ApiAttribut
 from shipeasy.admin.generated.exceptions import ApiException as ApiException
 
 # import models into sdk package
+from shipeasy.admin.generated.models.ack_ops_item_request import AckOpsItemRequest as AckOpsItemRequest
+from shipeasy.admin.generated.models.ack_ops_item_response import AckOpsItemResponse as AckOpsItemResponse
+from shipeasy.admin.generated.models.alert_api_row import AlertApiRow as AlertApiRow
 from shipeasy.admin.generated.models.approve_event_request import ApproveEventRequest as ApproveEventRequest
 from shipeasy.admin.generated.models.approve_event_response import ApproveEventResponse as ApproveEventResponse
+from shipeasy.admin.generated.models.attribute_type import AttributeType as AttributeType
 from shipeasy.admin.generated.models.claude_trigger_config import ClaudeTriggerConfig as ClaudeTriggerConfig
+from shipeasy.admin.generated.models.connector_data import ConnectorData as ConnectorData
 from shipeasy.admin.generated.models.connector_event import ConnectorEvent as ConnectorEvent
 from shipeasy.admin.generated.models.connector_provider import ConnectorProvider as ConnectorProvider
 from shipeasy.admin.generated.models.connector_record import ConnectorRecord as ConnectorRecord
 from shipeasy.admin.generated.models.copilot_trigger_config import CopilotTriggerConfig as CopilotTriggerConfig
 from shipeasy.admin.generated.models.create_alert_rule_request import CreateAlertRuleRequest as CreateAlertRuleRequest
 from shipeasy.admin.generated.models.create_alert_rule_response import CreateAlertRuleResponse as CreateAlertRuleResponse
+from shipeasy.admin.generated.models.create_attribute_request import CreateAttributeRequest as CreateAttributeRequest
+from shipeasy.admin.generated.models.create_attribute_response import CreateAttributeResponse as CreateAttributeResponse
+from shipeasy.admin.generated.models.create_bug_request import CreateBugRequest as CreateBugRequest
 from shipeasy.admin.generated.models.create_claude_trigger_request import CreateClaudeTriggerRequest as CreateClaudeTriggerRequest
 from shipeasy.admin.generated.models.create_config_request import CreateConfigRequest as CreateConfigRequest
 from shipeasy.admin.generated.models.create_config_response import CreateConfigResponse as CreateConfigResponse
@@ -281,10 +405,16 @@ from shipeasy.admin.generated.models.create_copilot_trigger_request import Creat
 from shipeasy.admin.generated.models.create_cursor_trigger_request import CreateCursorTriggerRequest as CreateCursorTriggerRequest
 from shipeasy.admin.generated.models.create_event_request import CreateEventRequest as CreateEventRequest
 from shipeasy.admin.generated.models.create_event_response import CreateEventResponse as CreateEventResponse
+from shipeasy.admin.generated.models.create_experiment_readout_request import CreateExperimentReadoutRequest as CreateExperimentReadoutRequest
+from shipeasy.admin.generated.models.create_experiment_readout_response import CreateExperimentReadoutResponse as CreateExperimentReadoutResponse
 from shipeasy.admin.generated.models.create_experiment_request import CreateExperimentRequest as CreateExperimentRequest
 from shipeasy.admin.generated.models.create_experiment_response import CreateExperimentResponse as CreateExperimentResponse
+from shipeasy.admin.generated.models.create_feature_request_request import CreateFeatureRequestRequest as CreateFeatureRequestRequest
 from shipeasy.admin.generated.models.create_gate_request import CreateGateRequest as CreateGateRequest
 from shipeasy.admin.generated.models.create_gate_response import CreateGateResponse as CreateGateResponse
+from shipeasy.admin.generated.models.create_gate_template_request import CreateGateTemplateRequest as CreateGateTemplateRequest
+from shipeasy.admin.generated.models.create_gate_template_response import CreateGateTemplateResponse as CreateGateTemplateResponse
+from shipeasy.admin.generated.models.create_i18n_draft_request import CreateI18nDraftRequest as CreateI18nDraftRequest
 from shipeasy.admin.generated.models.create_i18n_profile_request import CreateI18nProfileRequest as CreateI18nProfileRequest
 from shipeasy.admin.generated.models.create_i18n_profile_response import CreateI18nProfileResponse as CreateI18nProfileResponse
 from shipeasy.admin.generated.models.create_jules_trigger_request import CreateJulesTriggerRequest as CreateJulesTriggerRequest
@@ -294,20 +424,29 @@ from shipeasy.admin.generated.models.create_killswitch_request import CreateKill
 from shipeasy.admin.generated.models.create_killswitch_response import CreateKillswitchResponse as CreateKillswitchResponse
 from shipeasy.admin.generated.models.create_metric_request import CreateMetricRequest as CreateMetricRequest
 from shipeasy.admin.generated.models.create_metric_response import CreateMetricResponse as CreateMetricResponse
+from shipeasy.admin.generated.models.create_metric_with_query import CreateMetricWithQuery as CreateMetricWithQuery
+from shipeasy.admin.generated.models.create_metric_with_query_ir import CreateMetricWithQueryIr as CreateMetricWithQueryIr
 from shipeasy.admin.generated.models.create_o_auth_connector_request import CreateOAuthConnectorRequest as CreateOAuthConnectorRequest
+from shipeasy.admin.generated.models.create_ops_comment_request import CreateOpsCommentRequest as CreateOpsCommentRequest
+from shipeasy.admin.generated.models.create_ops_comment_response import CreateOpsCommentResponse as CreateOpsCommentResponse
+from shipeasy.admin.generated.models.create_ops_investigation_request import CreateOpsInvestigationRequest as CreateOpsInvestigationRequest
 from shipeasy.admin.generated.models.create_ops_item_request import CreateOpsItemRequest as CreateOpsItemRequest
 from shipeasy.admin.generated.models.create_ops_item_response import CreateOpsItemResponse as CreateOpsItemResponse
+from shipeasy.admin.generated.models.create_trigger_connector_request import CreateTriggerConnectorRequest as CreateTriggerConnectorRequest
 from shipeasy.admin.generated.models.create_universe_request import CreateUniverseRequest as CreateUniverseRequest
 from shipeasy.admin.generated.models.create_universe_response import CreateUniverseResponse as CreateUniverseResponse
 from shipeasy.admin.generated.models.cursor_trigger_config import CursorTriggerConfig as CursorTriggerConfig
 from shipeasy.admin.generated.models.delete_alert_rule_response import DeleteAlertRuleResponse as DeleteAlertRuleResponse
+from shipeasy.admin.generated.models.delete_attribute_response import DeleteAttributeResponse as DeleteAttributeResponse
 from shipeasy.admin.generated.models.delete_config_response import DeleteConfigResponse as DeleteConfigResponse
 from shipeasy.admin.generated.models.delete_connector_response import DeleteConnectorResponse as DeleteConnectorResponse
 from shipeasy.admin.generated.models.delete_event_response import DeleteEventResponse as DeleteEventResponse
 from shipeasy.admin.generated.models.delete_experiment_response import DeleteExperimentResponse as DeleteExperimentResponse
 from shipeasy.admin.generated.models.delete_gate_response import DeleteGateResponse as DeleteGateResponse
+from shipeasy.admin.generated.models.delete_gate_template_response import DeleteGateTemplateResponse as DeleteGateTemplateResponse
 from shipeasy.admin.generated.models.delete_killswitch_response import DeleteKillswitchResponse as DeleteKillswitchResponse
 from shipeasy.admin.generated.models.delete_metric_response import DeleteMetricResponse as DeleteMetricResponse
+from shipeasy.admin.generated.models.delete_ops_item_response import DeleteOpsItemResponse as DeleteOpsItemResponse
 from shipeasy.admin.generated.models.delete_universe_response import DeleteUniverseResponse as DeleteUniverseResponse
 from shipeasy.admin.generated.models.disable_gate_response import DisableGateResponse as DisableGateResponse
 from shipeasy.admin.generated.models.discard_config_draft_request import DiscardConfigDraftRequest as DiscardConfigDraftRequest
@@ -316,28 +455,55 @@ from shipeasy.admin.generated.models.enable_gate_response import EnableGateRespo
 from shipeasy.admin.generated.models.env import Env as Env
 from shipeasy.admin.generated.models.error import Error as Error
 from shipeasy.admin.generated.models.error_code import ErrorCode as ErrorCode
+from shipeasy.admin.generated.models.error_occurrence import ErrorOccurrence as ErrorOccurrence
 from shipeasy.admin.generated.models.error_record import ErrorRecord as ErrorRecord
 from shipeasy.admin.generated.models.error_series_request import ErrorSeriesRequest as ErrorSeriesRequest
 from shipeasy.admin.generated.models.error_series_response import ErrorSeriesResponse as ErrorSeriesResponse
-from shipeasy.admin.generated.models.error_series_response_rows_inner import ErrorSeriesResponseRowsInner as ErrorSeriesResponseRowsInner
+from shipeasy.admin.generated.models.experiment_api_row import ExperimentApiRow as ExperimentApiRow
+from shipeasy.admin.generated.models.experiment_api_row_exposure_inner import ExperimentApiRowExposureInner as ExperimentApiRowExposureInner
+from shipeasy.admin.generated.models.experiment_api_row_goal_metric import ExperimentApiRowGoalMetric as ExperimentApiRowGoalMetric
+from shipeasy.admin.generated.models.experiment_api_row_groups_inner import ExperimentApiRowGroupsInner as ExperimentApiRowGroupsInner
+from shipeasy.admin.generated.models.experiment_api_row_guardrails_inner import ExperimentApiRowGuardrailsInner as ExperimentApiRowGuardrailsInner
 from shipeasy.admin.generated.models.experiment_inline_metric import ExperimentInlineMetric as ExperimentInlineMetric
+from shipeasy.admin.generated.models.experiment_readout_api_row import ExperimentReadoutApiRow as ExperimentReadoutApiRow
+from shipeasy.admin.generated.models.experiment_readout_api_row_users_json import ExperimentReadoutApiRowUsersJson as ExperimentReadoutApiRowUsersJson
+from shipeasy.admin.generated.models.experiment_readout_api_row_users_json_groups_inner import ExperimentReadoutApiRowUsersJsonGroupsInner as ExperimentReadoutApiRowUsersJsonGroupsInner
+from shipeasy.admin.generated.models.experiment_readout_caveat import ExperimentReadoutCaveat as ExperimentReadoutCaveat
+from shipeasy.admin.generated.models.experiment_readout_metric import ExperimentReadoutMetric as ExperimentReadoutMetric
+from shipeasy.admin.generated.models.experiment_result_row import ExperimentResultRow as ExperimentResultRow
 from shipeasy.admin.generated.models.file_error_ticket_response import FileErrorTicketResponse as FileErrorTicketResponse
 from shipeasy.admin.generated.models.fire_connector_request import FireConnectorRequest as FireConnectorRequest
 from shipeasy.admin.generated.models.fire_connector_response import FireConnectorResponse as FireConnectorResponse
+from shipeasy.admin.generated.models.gate_api_row import GateApiRow as GateApiRow
+from shipeasy.admin.generated.models.gate_api_row_enabled import GateApiRowEnabled as GateApiRowEnabled
+from shipeasy.admin.generated.models.gate_api_row_rules_inner import GateApiRowRulesInner as GateApiRowRulesInner
+from shipeasy.admin.generated.models.gate_api_row_stack_inner import GateApiRowStackInner as GateApiRowStackInner
+from shipeasy.admin.generated.models.gate_api_row_stack_inner_one_of import GateApiRowStackInnerOneOf as GateApiRowStackInnerOneOf
+from shipeasy.admin.generated.models.gate_api_row_stack_inner_one_of1 import GateApiRowStackInnerOneOf1 as GateApiRowStackInnerOneOf1
+from shipeasy.admin.generated.models.gate_api_row_stack_inner_one_of_ramp import GateApiRowStackInnerOneOfRamp as GateApiRowStackInnerOneOfRamp
+from shipeasy.admin.generated.models.gate_template import GateTemplate as GateTemplate
+from shipeasy.admin.generated.models.gate_template_rule import GateTemplateRule as GateTemplateRule
+from shipeasy.admin.generated.models.gate_template_rule_response import GateTemplateRuleResponse as GateTemplateRuleResponse
+from shipeasy.admin.generated.models.gate_template_rule_value import GateTemplateRuleValue as GateTemplateRuleValue
+from shipeasy.admin.generated.models.get_attribute_response import GetAttributeResponse as GetAttributeResponse
 from shipeasy.admin.generated.models.get_config_response import GetConfigResponse as GetConfigResponse
 from shipeasy.admin.generated.models.get_current_project_response import GetCurrentProjectResponse as GetCurrentProjectResponse
 from shipeasy.admin.generated.models.get_current_project_response_module_translations import GetCurrentProjectResponseModuleTranslations as GetCurrentProjectResponseModuleTranslations
 from shipeasy.admin.generated.models.get_event_response import GetEventResponse as GetEventResponse
-from shipeasy.admin.generated.models.get_experiment_response import GetExperimentResponse as GetExperimentResponse
 from shipeasy.admin.generated.models.get_experiment_results_response import GetExperimentResultsResponse as GetExperimentResultsResponse
 from shipeasy.admin.generated.models.get_experiment_results_response_experiment import GetExperimentResultsResponseExperiment as GetExperimentResultsResponseExperiment
-from shipeasy.admin.generated.models.get_experiment_results_response_results_inner import GetExperimentResultsResponseResultsInner as GetExperimentResultsResponseResultsInner
 from shipeasy.admin.generated.models.get_experiment_timeseries_response import GetExperimentTimeseriesResponse as GetExperimentTimeseriesResponse
 from shipeasy.admin.generated.models.get_experiment_timeseries_response_experiment import GetExperimentTimeseriesResponseExperiment as GetExperimentTimeseriesResponseExperiment
-from shipeasy.admin.generated.models.get_experiment_timeseries_response_series_inner import GetExperimentTimeseriesResponseSeriesInner as GetExperimentTimeseriesResponseSeriesInner
 from shipeasy.admin.generated.models.get_killswitch_response import GetKillswitchResponse as GetKillswitchResponse
 from shipeasy.admin.generated.models.get_metric_response import GetMetricResponse as GetMetricResponse
+from shipeasy.admin.generated.models.get_metric_series_request import GetMetricSeriesRequest as GetMetricSeriesRequest
+from shipeasy.admin.generated.models.get_metric_series_response import GetMetricSeriesResponse as GetMetricSeriesResponse
+from shipeasy.admin.generated.models.get_metric_series_response_rows_inner import GetMetricSeriesResponseRowsInner as GetMetricSeriesResponseRowsInner
 from shipeasy.admin.generated.models.get_ops_item_response import GetOpsItemResponse as GetOpsItemResponse
+from shipeasy.admin.generated.models.github_connector_data import GithubConnectorData as GithubConnectorData
+from shipeasy.admin.generated.models.github_connector_data_issue import GithubConnectorDataIssue as GithubConnectorDataIssue
+from shipeasy.admin.generated.models.github_pr_link import GithubPrLink as GithubPrLink
+from shipeasy.admin.generated.models.i18n_draft import I18nDraft as I18nDraft
 from shipeasy.admin.generated.models.jules_trigger_config import JulesTriggerConfig as JulesTriggerConfig
 from shipeasy.admin.generated.models.key_record import KeyRecord as KeyRecord
 from shipeasy.admin.generated.models.killswitch_value import KillswitchValue as KillswitchValue
@@ -345,7 +511,7 @@ from shipeasy.admin.generated.models.link_pr_to_ops_item_request import LinkPrTo
 from shipeasy.admin.generated.models.link_pr_to_ops_item_response import LinkPrToOpsItemResponse as LinkPrToOpsItemResponse
 from shipeasy.admin.generated.models.list_alert_rules_response_inner import ListAlertRulesResponseInner as ListAlertRulesResponseInner
 from shipeasy.admin.generated.models.list_attributes_response_inner import ListAttributesResponseInner as ListAttributesResponseInner
-from shipeasy.admin.generated.models.list_config_activity_response_inner import ListConfigActivityResponseInner as ListConfigActivityResponseInner
+from shipeasy.admin.generated.models.list_config_versions_response_inner import ListConfigVersionsResponseInner as ListConfigVersionsResponseInner
 from shipeasy.admin.generated.models.list_configs_response import ListConfigsResponse as ListConfigsResponse
 from shipeasy.admin.generated.models.list_configs_response_data_inner import ListConfigsResponseDataInner as ListConfigsResponseDataInner
 from shipeasy.admin.generated.models.list_configs_response_data_inner_drafts_value import ListConfigsResponseDataInnerDraftsValue as ListConfigsResponseDataInnerDraftsValue
@@ -353,17 +519,10 @@ from shipeasy.admin.generated.models.list_configs_response_data_inner_envs_value
 from shipeasy.admin.generated.models.list_events_response_inner import ListEventsResponseInner as ListEventsResponseInner
 from shipeasy.admin.generated.models.list_events_response_inner_properties_inner import ListEventsResponseInnerPropertiesInner as ListEventsResponseInnerPropertiesInner
 from shipeasy.admin.generated.models.list_experiments_response import ListExperimentsResponse as ListExperimentsResponse
-from shipeasy.admin.generated.models.list_experiments_response_data_inner import ListExperimentsResponseDataInner as ListExperimentsResponseDataInner
-from shipeasy.admin.generated.models.list_experiments_response_data_inner_groups_inner import ListExperimentsResponseDataInnerGroupsInner as ListExperimentsResponseDataInnerGroupsInner
+from shipeasy.admin.generated.models.list_gate_activity_response_inner import ListGateActivityResponseInner as ListGateActivityResponseInner
+from shipeasy.admin.generated.models.list_gate_templates_response import ListGateTemplatesResponse as ListGateTemplatesResponse
 from shipeasy.admin.generated.models.list_gates_response import ListGatesResponse as ListGatesResponse
-from shipeasy.admin.generated.models.list_gates_response_data_inner import ListGatesResponseDataInner as ListGatesResponseDataInner
-from shipeasy.admin.generated.models.list_gates_response_data_inner_enabled import ListGatesResponseDataInnerEnabled as ListGatesResponseDataInnerEnabled
-from shipeasy.admin.generated.models.list_gates_response_data_inner_rules_inner import ListGatesResponseDataInnerRulesInner as ListGatesResponseDataInnerRulesInner
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner import ListGatesResponseDataInnerStackInner as ListGatesResponseDataInnerStackInner
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner_one_of import ListGatesResponseDataInnerStackInnerOneOf as ListGatesResponseDataInnerStackInnerOneOf
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner_one_of1 import ListGatesResponseDataInnerStackInnerOneOf1 as ListGatesResponseDataInnerStackInnerOneOf1
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner_one_of_ramp import ListGatesResponseDataInnerStackInnerOneOfRamp as ListGatesResponseDataInnerStackInnerOneOfRamp
-from shipeasy.admin.generated.models.list_i18n_drafts_response_inner import ListI18nDraftsResponseInner as ListI18nDraftsResponseInner
+from shipeasy.admin.generated.models.list_i18n_draft_keys_response_inner import ListI18nDraftKeysResponseInner as ListI18nDraftKeysResponseInner
 from shipeasy.admin.generated.models.list_i18n_keys_response import ListI18nKeysResponse as ListI18nKeysResponse
 from shipeasy.admin.generated.models.list_i18n_keys_response_keys_inner import ListI18nKeysResponseKeysInner as ListI18nKeysResponseKeysInner
 from shipeasy.admin.generated.models.list_i18n_profiles_response_inner import ListI18nProfilesResponseInner as ListI18nProfilesResponseInner
@@ -371,38 +530,71 @@ from shipeasy.admin.generated.models.list_keys_response import ListKeysResponse 
 from shipeasy.admin.generated.models.list_killswitches_response import ListKillswitchesResponse as ListKillswitchesResponse
 from shipeasy.admin.generated.models.list_killswitches_response_data_inner import ListKillswitchesResponseDataInner as ListKillswitchesResponseDataInner
 from shipeasy.admin.generated.models.list_killswitches_response_data_inner_envs_value import ListKillswitchesResponseDataInnerEnvsValue as ListKillswitchesResponseDataInnerEnvsValue
+from shipeasy.admin.generated.models.list_metric_experiments_response import ListMetricExperimentsResponse as ListMetricExperimentsResponse
+from shipeasy.admin.generated.models.list_metric_experiments_response_experiments_inner import ListMetricExperimentsResponseExperimentsInner as ListMetricExperimentsResponseExperimentsInner
 from shipeasy.admin.generated.models.list_metrics_response_inner import ListMetricsResponseInner as ListMetricsResponseInner
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir import ListMetricsResponseInnerQueryIr as ListMetricsResponseInnerQueryIr
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg import ListMetricsResponseInnerQueryIrAgg as ListMetricsResponseInnerQueryIrAgg
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of import ListMetricsResponseInnerQueryIrAggOneOf as ListMetricsResponseInnerQueryIrAggOneOf
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of1 import ListMetricsResponseInnerQueryIrAggOneOf1 as ListMetricsResponseInnerQueryIrAggOneOf1
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of2 import ListMetricsResponseInnerQueryIrAggOneOf2 as ListMetricsResponseInnerQueryIrAggOneOf2
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of3 import ListMetricsResponseInnerQueryIrAggOneOf3 as ListMetricsResponseInnerQueryIrAggOneOf3
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of4 import ListMetricsResponseInnerQueryIrAggOneOf4 as ListMetricsResponseInnerQueryIrAggOneOf4
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of5 import ListMetricsResponseInnerQueryIrAggOneOf5 as ListMetricsResponseInnerQueryIrAggOneOf5
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of6 import ListMetricsResponseInnerQueryIrAggOneOf6 as ListMetricsResponseInnerQueryIrAggOneOf6
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of7 import ListMetricsResponseInnerQueryIrAggOneOf7 as ListMetricsResponseInnerQueryIrAggOneOf7
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of8 import ListMetricsResponseInnerQueryIrAggOneOf8 as ListMetricsResponseInnerQueryIrAggOneOf8
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of9 import ListMetricsResponseInnerQueryIrAggOneOf9 as ListMetricsResponseInnerQueryIrAggOneOf9
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of9_numerator import ListMetricsResponseInnerQueryIrAggOneOf9Numerator as ListMetricsResponseInnerQueryIrAggOneOf9Numerator
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_agg_one_of9_numerator_filters_inner import ListMetricsResponseInnerQueryIrAggOneOf9NumeratorFiltersInner as ListMetricsResponseInnerQueryIrAggOneOf9NumeratorFiltersInner
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir_group_by import ListMetricsResponseInnerQueryIrGroupBy as ListMetricsResponseInnerQueryIrGroupBy
+from shipeasy.admin.generated.models.list_ops_comments_response import ListOpsCommentsResponse as ListOpsCommentsResponse
 from shipeasy.admin.generated.models.list_ops_items_response_inner import ListOpsItemsResponseInner as ListOpsItemsResponseInner
 from shipeasy.admin.generated.models.list_slack_channels_response import ListSlackChannelsResponse as ListSlackChannelsResponse
 from shipeasy.admin.generated.models.list_slack_channels_response_channels_inner import ListSlackChannelsResponseChannelsInner as ListSlackChannelsResponseChannelsInner
 from shipeasy.admin.generated.models.list_universes_response import ListUniversesResponse as ListUniversesResponse
 from shipeasy.admin.generated.models.list_universes_response_data_inner import ListUniversesResponseDataInner as ListUniversesResponseDataInner
+from shipeasy.admin.generated.models.measure_plan_resource import MeasurePlanResource as MeasurePlanResource
+from shipeasy.admin.generated.models.measure_plan_step import MeasurePlanStep as MeasurePlanStep
+from shipeasy.admin.generated.models.metric_direction import MetricDirection as MetricDirection
 from shipeasy.admin.generated.models.notification_target import NotificationTarget as NotificationTarget
 from shipeasy.admin.generated.models.notification_target_slack_channel import NotificationTargetSlackChannel as NotificationTargetSlackChannel
 from shipeasy.admin.generated.models.notify_ops_request import NotifyOpsRequest as NotifyOpsRequest
 from shipeasy.admin.generated.models.notify_ops_response import NotifyOpsResponse as NotifyOpsResponse
+from shipeasy.admin.generated.models.ok_response import OkResponse as OkResponse
+from shipeasy.admin.generated.models.ops_agent_profile import OpsAgentProfile as OpsAgentProfile
+from shipeasy.admin.generated.models.ops_alert_context import OpsAlertContext as OpsAlertContext
+from shipeasy.admin.generated.models.ops_alert_metric_summary import OpsAlertMetricSummary as OpsAlertMetricSummary
+from shipeasy.admin.generated.models.ops_alert_rule_summary import OpsAlertRuleSummary as OpsAlertRuleSummary
+from shipeasy.admin.generated.models.ops_browser_context import OpsBrowserContext as OpsBrowserContext
+from shipeasy.admin.generated.models.ops_comment import OpsComment as OpsComment
+from shipeasy.admin.generated.models.ops_comment_author_type import OpsCommentAuthorType as OpsCommentAuthorType
+from shipeasy.admin.generated.models.ops_error_context import OpsErrorContext as OpsErrorContext
+from shipeasy.admin.generated.models.ops_investigation import OpsInvestigation as OpsInvestigation
+from shipeasy.admin.generated.models.ops_investigation_sources_inner import OpsInvestigationSourcesInner as OpsInvestigationSourcesInner
+from shipeasy.admin.generated.models.ops_investigation_state import OpsInvestigationState as OpsInvestigationState
+from shipeasy.admin.generated.models.ops_item_attachment import OpsItemAttachment as OpsItemAttachment
+from shipeasy.admin.generated.models.ops_item_context import OpsItemContext as OpsItemContext
+from shipeasy.admin.generated.models.ops_item_context_error_chart import OpsItemContextErrorChart as OpsItemContextErrorChart
+from shipeasy.admin.generated.models.ops_item_context_error_chart_series_inner import OpsItemContextErrorChartSeriesInner as OpsItemContextErrorChartSeriesInner
+from shipeasy.admin.generated.models.ops_item_notify_or_null import OpsItemNotifyOrNull as OpsItemNotifyOrNull
+from shipeasy.admin.generated.models.ops_item_owner import OpsItemOwner as OpsItemOwner
+from shipeasy.admin.generated.models.ops_item_owner_agent import OpsItemOwnerAgent as OpsItemOwnerAgent
+from shipeasy.admin.generated.models.ops_item_owner_user import OpsItemOwnerUser as OpsItemOwnerUser
+from shipeasy.admin.generated.models.ops_item_priority import OpsItemPriority as OpsItemPriority
+from shipeasy.admin.generated.models.ops_item_priority_or_null import OpsItemPriorityOrNull as OpsItemPriorityOrNull
+from shipeasy.admin.generated.models.ops_item_related import OpsItemRelated as OpsItemRelated
+from shipeasy.admin.generated.models.ops_item_status import OpsItemStatus as OpsItemStatus
+from shipeasy.admin.generated.models.ops_measure_plan_context import OpsMeasurePlanContext as OpsMeasurePlanContext
+from shipeasy.admin.generated.models.ops_run import OpsRun as OpsRun
+from shipeasy.admin.generated.models.ops_run_action import OpsRunAction as OpsRunAction
+from shipeasy.admin.generated.models.ops_run_action_or_null import OpsRunActionOrNull as OpsRunActionOrNull
 from shipeasy.admin.generated.models.publish_config_draft_request import PublishConfigDraftRequest as PublishConfigDraftRequest
 from shipeasy.admin.generated.models.publish_config_draft_response import PublishConfigDraftResponse as PublishConfigDraftResponse
 from shipeasy.admin.generated.models.publish_i18n_profile_request import PublishI18nProfileRequest as PublishI18nProfileRequest
 from shipeasy.admin.generated.models.publish_i18n_profile_response import PublishI18nProfileResponse as PublishI18nProfileResponse
 from shipeasy.admin.generated.models.push_i18n_keys_request import PushI18nKeysRequest as PushI18nKeysRequest
-from shipeasy.admin.generated.models.push_i18n_keys_request_keys_inner import PushI18nKeysRequestKeysInner as PushI18nKeysRequestKeysInner
 from shipeasy.admin.generated.models.push_i18n_keys_response import PushI18nKeysResponse as PushI18nKeysResponse
+from shipeasy.admin.generated.models.query_ir import QueryIr as QueryIr
+from shipeasy.admin.generated.models.query_ir_agg import QueryIrAgg as QueryIrAgg
+from shipeasy.admin.generated.models.query_ir_agg_one_of import QueryIrAggOneOf as QueryIrAggOneOf
+from shipeasy.admin.generated.models.query_ir_agg_one_of1 import QueryIrAggOneOf1 as QueryIrAggOneOf1
+from shipeasy.admin.generated.models.query_ir_agg_one_of2 import QueryIrAggOneOf2 as QueryIrAggOneOf2
+from shipeasy.admin.generated.models.query_ir_agg_one_of3 import QueryIrAggOneOf3 as QueryIrAggOneOf3
+from shipeasy.admin.generated.models.query_ir_agg_one_of4 import QueryIrAggOneOf4 as QueryIrAggOneOf4
+from shipeasy.admin.generated.models.query_ir_agg_one_of5 import QueryIrAggOneOf5 as QueryIrAggOneOf5
+from shipeasy.admin.generated.models.query_ir_agg_one_of6 import QueryIrAggOneOf6 as QueryIrAggOneOf6
+from shipeasy.admin.generated.models.query_ir_agg_one_of7 import QueryIrAggOneOf7 as QueryIrAggOneOf7
+from shipeasy.admin.generated.models.query_ir_agg_one_of8 import QueryIrAggOneOf8 as QueryIrAggOneOf8
+from shipeasy.admin.generated.models.query_ir_agg_one_of9 import QueryIrAggOneOf9 as QueryIrAggOneOf9
+from shipeasy.admin.generated.models.query_ir_agg_one_of9_numerator import QueryIrAggOneOf9Numerator as QueryIrAggOneOf9Numerator
+from shipeasy.admin.generated.models.query_ir_agg_one_of9_numerator_filters_inner import QueryIrAggOneOf9NumeratorFiltersInner as QueryIrAggOneOf9NumeratorFiltersInner
+from shipeasy.admin.generated.models.query_ir_group_by import QueryIrGroupBy as QueryIrGroupBy
 from shipeasy.admin.generated.models.reanalyze_experiment_response import ReanalyzeExperimentResponse as ReanalyzeExperimentResponse
 from shipeasy.admin.generated.models.revoke_key_response import RevokeKeyResponse as RevokeKeyResponse
 from shipeasy.admin.generated.models.save_config_draft_request import SaveConfigDraftRequest as SaveConfigDraftRequest
@@ -421,32 +613,60 @@ from shipeasy.admin.generated.models.set_killswitch_switch_request import SetKil
 from shipeasy.admin.generated.models.set_killswitch_switch_response import SetKillswitchSwitchResponse as SetKillswitchSwitchResponse
 from shipeasy.admin.generated.models.set_killswitch_value_request import SetKillswitchValueRequest as SetKillswitchValueRequest
 from shipeasy.admin.generated.models.set_killswitch_value_response import SetKillswitchValueResponse as SetKillswitchValueResponse
+from shipeasy.admin.generated.models.slack_connector_data import SlackConnectorData as SlackConnectorData
+from shipeasy.admin.generated.models.slack_connector_data_message import SlackConnectorDataMessage as SlackConnectorDataMessage
 from shipeasy.admin.generated.models.test_connector_response import TestConnectorResponse as TestConnectorResponse
+from shipeasy.admin.generated.models.unarchive_metric_response import UnarchiveMetricResponse as UnarchiveMetricResponse
+from shipeasy.admin.generated.models.universe_param import UniverseParam as UniverseParam
 from shipeasy.admin.generated.models.unset_killswitch_switch_request import UnsetKillswitchSwitchRequest as UnsetKillswitchSwitchRequest
 from shipeasy.admin.generated.models.unset_killswitch_switch_response import UnsetKillswitchSwitchResponse as UnsetKillswitchSwitchResponse
+from shipeasy.admin.generated.models.update_alert_request import UpdateAlertRequest as UpdateAlertRequest
 from shipeasy.admin.generated.models.update_alert_rule_request import UpdateAlertRuleRequest as UpdateAlertRuleRequest
 from shipeasy.admin.generated.models.update_alert_rule_response import UpdateAlertRuleResponse as UpdateAlertRuleResponse
+from shipeasy.admin.generated.models.update_attribute_request import UpdateAttributeRequest as UpdateAttributeRequest
+from shipeasy.admin.generated.models.update_attribute_response import UpdateAttributeResponse as UpdateAttributeResponse
+from shipeasy.admin.generated.models.update_bug_request import UpdateBugRequest as UpdateBugRequest
+from shipeasy.admin.generated.models.update_claude_trigger_request import UpdateClaudeTriggerRequest as UpdateClaudeTriggerRequest
 from shipeasy.admin.generated.models.update_config_request import UpdateConfigRequest as UpdateConfigRequest
 from shipeasy.admin.generated.models.update_config_response import UpdateConfigResponse as UpdateConfigResponse
 from shipeasy.admin.generated.models.update_config_schema_request import UpdateConfigSchemaRequest as UpdateConfigSchemaRequest
 from shipeasy.admin.generated.models.update_config_schema_response import UpdateConfigSchemaResponse as UpdateConfigSchemaResponse
 from shipeasy.admin.generated.models.update_connector_request import UpdateConnectorRequest as UpdateConnectorRequest
 from shipeasy.admin.generated.models.update_connector_response import UpdateConnectorResponse as UpdateConnectorResponse
+from shipeasy.admin.generated.models.update_copilot_trigger_request import UpdateCopilotTriggerRequest as UpdateCopilotTriggerRequest
+from shipeasy.admin.generated.models.update_cursor_trigger_request import UpdateCursorTriggerRequest as UpdateCursorTriggerRequest
 from shipeasy.admin.generated.models.update_error_status_request import UpdateErrorStatusRequest as UpdateErrorStatusRequest
 from shipeasy.admin.generated.models.update_event_request import UpdateEventRequest as UpdateEventRequest
 from shipeasy.admin.generated.models.update_event_response import UpdateEventResponse as UpdateEventResponse
 from shipeasy.admin.generated.models.update_experiment_request import UpdateExperimentRequest as UpdateExperimentRequest
 from shipeasy.admin.generated.models.update_experiment_response import UpdateExperimentResponse as UpdateExperimentResponse
+from shipeasy.admin.generated.models.update_feature_request_request import UpdateFeatureRequestRequest as UpdateFeatureRequestRequest
 from shipeasy.admin.generated.models.update_gate_request import UpdateGateRequest as UpdateGateRequest
 from shipeasy.admin.generated.models.update_gate_response import UpdateGateResponse as UpdateGateResponse
+from shipeasy.admin.generated.models.update_gate_template_request import UpdateGateTemplateRequest as UpdateGateTemplateRequest
+from shipeasy.admin.generated.models.update_gate_template_response import UpdateGateTemplateResponse as UpdateGateTemplateResponse
+from shipeasy.admin.generated.models.update_i18n_draft_request import UpdateI18nDraftRequest as UpdateI18nDraftRequest
 from shipeasy.admin.generated.models.update_i18n_key_request import UpdateI18nKeyRequest as UpdateI18nKeyRequest
 from shipeasy.admin.generated.models.update_i18n_key_response import UpdateI18nKeyResponse as UpdateI18nKeyResponse
+from shipeasy.admin.generated.models.update_jules_trigger_request import UpdateJulesTriggerRequest as UpdateJulesTriggerRequest
 from shipeasy.admin.generated.models.update_killswitch_request import UpdateKillswitchRequest as UpdateKillswitchRequest
 from shipeasy.admin.generated.models.update_killswitch_response import UpdateKillswitchResponse as UpdateKillswitchResponse
+from shipeasy.admin.generated.models.update_metric_fields import UpdateMetricFields as UpdateMetricFields
+from shipeasy.admin.generated.models.update_metric_request import UpdateMetricRequest as UpdateMetricRequest
+from shipeasy.admin.generated.models.update_metric_with_query import UpdateMetricWithQuery as UpdateMetricWithQuery
+from shipeasy.admin.generated.models.update_metric_with_query_ir import UpdateMetricWithQueryIr as UpdateMetricWithQueryIr
+from shipeasy.admin.generated.models.update_ops_investigation_request import UpdateOpsInvestigationRequest as UpdateOpsInvestigationRequest
 from shipeasy.admin.generated.models.update_ops_item_request import UpdateOpsItemRequest as UpdateOpsItemRequest
 from shipeasy.admin.generated.models.update_ops_item_response import UpdateOpsItemResponse as UpdateOpsItemResponse
+from shipeasy.admin.generated.models.update_ops_item_status_request import UpdateOpsItemStatusRequest as UpdateOpsItemStatusRequest
+from shipeasy.admin.generated.models.update_project_request import UpdateProjectRequest as UpdateProjectRequest
+from shipeasy.admin.generated.models.update_trigger_connector_request import UpdateTriggerConnectorRequest as UpdateTriggerConnectorRequest
 from shipeasy.admin.generated.models.update_universe_request import UpdateUniverseRequest as UpdateUniverseRequest
 from shipeasy.admin.generated.models.update_universe_response import UpdateUniverseResponse as UpdateUniverseResponse
+from shipeasy.admin.generated.models.upsert_i18n_draft_key_request import UpsertI18nDraftKeyRequest as UpsertI18nDraftKeyRequest
+from shipeasy.admin.generated.models.upsert_i18n_keys_request import UpsertI18nKeysRequest as UpsertI18nKeysRequest
+from shipeasy.admin.generated.models.upsert_i18n_keys_request_keys_inner import UpsertI18nKeysRequestKeysInner as UpsertI18nKeysRequestKeysInner
+from shipeasy.admin.generated.models.upsert_i18n_keys_response import UpsertI18nKeysResponse as UpsertI18nKeysResponse
 from shipeasy.admin.generated.models.upsert_project_request import UpsertProjectRequest as UpsertProjectRequest
 from shipeasy.admin.generated.models.upsert_project_response import UpsertProjectResponse as UpsertProjectResponse
 

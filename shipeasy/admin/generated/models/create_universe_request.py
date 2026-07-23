@@ -20,6 +20,7 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.universe_param import UniverseParam
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,10 +31,13 @@ class CreateUniverseRequest(BaseModel):
     """ # noqa: E501
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable universe key. Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
+    description: Optional[Annotated[str, Field(strict=True, max_length=2000)]] = Field(default=None, description="Human-readable blurb shown in the universe picker/hovercard.")
     unit_type: Optional[StrictStr] = Field(default='user_id', description="Unit of randomisation. Typically `user_id`. Use `account_id` to keep whole accounts in the same group across an experiment.")
     holdout_range: Optional[Annotated[List[Annotated[int, Field(le=9999, strict=True, ge=0)]], Field(min_length=2, max_length=2)]] = Field(default=None, description="Inclusive `[lo, hi]` bucket range (0–9999) reserved as the **holdout** — callers hashed into this slice are excluded from every experiment in the universe. `null` disables the holdout. Pro plan or higher required.")
+    recommended_headroom: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=0, description="Basis points of reserved headroom seeded into each new experiment created in this universe (0 = none). Lets variants be appended into a running experiment without reshuffling.")
+    param_schema: Optional[List[UniverseParam]] = Field(default=None, description="The universe-owned config schema — an ordered `{ name, type, default }[]`. Experiments may only override values per variant, never add fields. `null` starts an empty schema.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "folder", "unit_type", "holdout_range"]
+    __properties: ClassVar[List[str]] = ["name", "folder", "description", "unit_type", "holdout_range", "recommended_headroom", "param_schema"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -99,6 +103,13 @@ class CreateUniverseRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in param_schema (list)
+        _items = []
+        if self.param_schema:
+            for _item_param_schema in self.param_schema:
+                if _item_param_schema:
+                    _items.append(_item_param_schema.to_dict())
+            _dict['param_schema'] = _items
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -109,10 +120,20 @@ class CreateUniverseRequest(BaseModel):
         if self.folder is None and "folder" in self.model_fields_set:
             _dict['folder'] = None
 
+        # set to None if description (nullable) is None
+        # and model_fields_set contains the field
+        if self.description is None and "description" in self.model_fields_set:
+            _dict['description'] = None
+
         # set to None if holdout_range (nullable) is None
         # and model_fields_set contains the field
         if self.holdout_range is None and "holdout_range" in self.model_fields_set:
             _dict['holdout_range'] = None
+
+        # set to None if param_schema (nullable) is None
+        # and model_fields_set contains the field
+        if self.param_schema is None and "param_schema" in self.model_fields_set:
+            _dict['param_schema'] = None
 
         return _dict
 
@@ -128,8 +149,11 @@ class CreateUniverseRequest(BaseModel):
         _obj = cls.model_validate({
             "name": obj.get("name"),
             "folder": obj.get("folder"),
+            "description": obj.get("description"),
             "unit_type": obj.get("unit_type") if obj.get("unit_type") is not None else 'user_id',
-            "holdout_range": obj.get("holdout_range")
+            "holdout_range": obj.get("holdout_range"),
+            "recommended_headroom": obj.get("recommended_headroom") if obj.get("recommended_headroom") is not None else 0,
+            "param_schema": [UniverseParam.from_dict(_item) for _item in obj["param_schema"]] if obj.get("param_schema") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

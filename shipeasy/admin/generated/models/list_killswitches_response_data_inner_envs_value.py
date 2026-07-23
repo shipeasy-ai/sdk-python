@@ -32,7 +32,8 @@ class ListKillswitchesResponseDataInnerEnvsValue(BaseModel):
     switches: Optional[Dict[str, StrictBool]] = None
     version: Annotated[int, Field(le=9007199254740991, strict=True, ge=-9007199254740991)] = Field(description="Monotonically increasing version per env.")
     published_at: StrictStr = Field(description="ISO-8601 publish timestamp for this version.", alias="publishedAt")
-    __properties: ClassVar[List[str]] = ["value", "switches", "version", "publishedAt"]
+    published_by: Optional[StrictStr] = Field(default=None, description="Email/id of the actor who published this version.", alias="publishedBy")
+    __properties: ClassVar[List[str]] = ["value", "switches", "version", "publishedAt", "publishedBy"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -73,6 +74,11 @@ class ListKillswitchesResponseDataInnerEnvsValue(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if published_by (nullable) is None
+        # and model_fields_set contains the field
+        if self.published_by is None and "published_by" in self.model_fields_set:
+            _dict['publishedBy'] = None
+
         return _dict
 
     @classmethod
@@ -88,7 +94,8 @@ class ListKillswitchesResponseDataInnerEnvsValue(BaseModel):
             "value": obj.get("value"),
             "switches": obj.get("switches"),
             "version": obj.get("version"),
-            "publishedAt": obj.get("publishedAt")
+            "publishedAt": obj.get("publishedAt"),
+            "publishedBy": obj.get("publishedBy")
         })
         return _obj
 

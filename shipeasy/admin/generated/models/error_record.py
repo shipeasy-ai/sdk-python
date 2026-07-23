@@ -20,38 +20,43 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.error_occurrence import ErrorOccurrence
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class ErrorRecord(BaseModel):
     """
-    A tracked production error — one row per distinct issue, keyed by `fingerprint`. Rows are never created by hand: an ingestion path (worker log drain / the `see()` SDK reporter) folds each occurrence into the matching row, bumping `count` and `lastSeenAt`. The admin surface only lists them, reads one, and flips `status`.  Field names are camelCase (the D1 row projected through Drizzle). Many columns are nullable because the reporting source may not supply them.
+    A tracked production error — one row per distinct issue, keyed by `fingerprint`. Rows are never created by hand: an ingestion path (worker log drain / the `see()` SDK reporter) folds each occurrence into the matching row, bumping `count` and `lastSeenAt`. The admin surface only lists them, reads one, and flips `status`.  Field names are camelCase (the D1 row projected through Drizzle). Every row column is always present on the wire; many are *nullable* because the reporting source may not supply them — `null`, never absent. Only `occurrences` is conditional (detail reads only).
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque error id.")
     project_id: StrictStr = Field(description="Project this issue belongs to.", alias="projectId")
-    fingerprint: StrictStr = Field(description="Stable dedupe key (hash of `errorType` + normalized `message` + consequence). Unique per project — every occurrence with the same fingerprint folds into this one row.")
-    caused_by_fingerprint: Optional[StrictStr] = Field(default=None, description="Fingerprint of the issue this one descends from — set when `see()` reported the same error (re-throw) or its `{ cause }` (wrap) at an inner boundary first. Points at another error's `fingerprint` in the same project (soft reference, no FK). `null` for a root issue.", alias="causedByFingerprint")
+    fingerprint: StrictStr = Field(description="Stable dedupe key — the issue TITLE (hash of `errorType` + `subject` + `outcome`, plus the violation name for violations). Unique per project — every occurrence with the same title folds into this one row; per-instance variety (message/stack/extras) lives in `occurrences`.")
+    caused_by_fingerprint: Optional[StrictStr] = Field(description="Fingerprint of the issue this one descends from — set when `see()` reported the same error (re-throw) or its `{ cause }` (wrap) at an inner boundary first. Points at another error's `fingerprint` in the same project (soft reference, no FK). `null` for a root issue.", alias="causedByFingerprint")
     message: StrictStr = Field(description="Error message text.")
-    error_type: Optional[StrictStr] = Field(default=None, description="Error class/name, e.g. `TypeError`. `null` when the source didn't supply one.", alias="errorType")
-    stack: Optional[StrictStr] = Field(default=None, description="Stack trace of the latest occurrence, or `null` if none was captured.")
-    source: Optional[StrictStr] = Field(default=None, description="Where it surfaced — Worker name (`shipeasy`, `shipeasy-worker`) or `sdk-client` / `sdk-server`. `null` if unknown.")
-    url: Optional[StrictStr] = Field(default=None, description="Latest occurrence's raw URL (with ids intact), or `null`.")
-    seen_urls: Optional[StrictStr] = Field(default=None, description="Distinct, id-normalized route templates this issue has surfaced on, as a JSON-encoded string array (e.g. `[\"https://app/dashboard/#/gates\"]`). UUIDs / numeric ids / opaque tokens are collapsed to `#` so the same route under different ids counts once. `null` if none recorded.", alias="seenUrls")
-    subject: Optional[StrictStr] = Field(default=None, description="Consequence subject — `<errorType> causes the <subject> to <outcome>`. `null` if no consequence was reported.")
-    outcome: Optional[StrictStr] = Field(default=None, description="Consequence outcome — see `subject`. `null` if no consequence was reported.")
-    side: Optional[StrictStr] = Field(default=None, description="Which SDK side reported it — `client` or `server`. `null` if unknown.")
-    env: Optional[StrictStr] = Field(default=None, description="Published env the reporting SDK ran against (e.g. `dev`, `staging`, `prod`). `null` if unknown.")
-    kind: Optional[StrictStr] = Field(default=None, description="`see()` error kind. `null` when the source didn't classify the occurrence.")
-    last_extras_json: Optional[StrictStr] = Field(default=None, description="Latest occurrence's sanitized extras, JSON-encoded. `null` if none.", alias="lastExtrasJson")
-    sdk_version: Optional[StrictStr] = Field(default=None, description="`@shipeasy/sdk` version of the latest occurrence, or `null`.", alias="sdkVersion")
-    count: Annotated[int, Field(strict=True, ge=1)] = Field(description="Number of folded occurrences for this fingerprint.")
+    error_type: Optional[StrictStr] = Field(description="Error class/name, e.g. `TypeError`. `null` when the source didn't supply one.", alias="errorType")
+    stack: Optional[StrictStr] = Field(description="Stack trace of the latest occurrence, or `null` if none was captured.")
+    source: Optional[StrictStr] = Field(description="Where it surfaced — Worker name (`shipeasy`, `shipeasy-worker`) or `sdk-client` / `sdk-server`. `null` if unknown.")
+    url: Optional[StrictStr] = Field(description="Latest occurrence's raw URL (with ids intact), or `null`.")
+    seen_urls: Optional[StrictStr] = Field(description="Distinct, id-normalized route templates this issue has surfaced on, as a JSON-encoded string array (e.g. `[\"https://app/dashboard/#/gates\"]`). UUIDs / numeric ids / opaque tokens are collapsed to `#` so the same route under different ids counts once. `null` if none recorded.", alias="seenUrls")
+    subject: Optional[StrictStr] = Field(description="Consequence subject — `<errorType> causes the <subject> to <outcome>`. `null` if no consequence was reported.")
+    outcome: Optional[StrictStr] = Field(description="Consequence outcome — see `subject`. `null` if no consequence was reported.")
+    side: Optional[StrictStr] = Field(description="Which SDK side reported it — `client` or `server`. `null` if unknown.")
+    env: Optional[StrictStr] = Field(description="Published env the reporting SDK ran against (e.g. `dev`, `staging`, `prod`). `null` if unknown.")
+    kind: Optional[StrictStr] = Field(description="`see()` error kind. `null` when the source didn't classify the occurrence.")
+    last_extras_json: Optional[StrictStr] = Field(description="Latest occurrence's sanitized extras, JSON-encoded. `null` if none.", alias="lastExtrasJson")
+    sdk_version: Optional[StrictStr] = Field(description="`@shipeasy/sdk` version of the latest occurrence, or `null`.", alias="sdkVersion")
+    count: Annotated[int, Field(strict=True, ge=1)] = Field(description="EXACT number of folded occurrences for this fingerprint — every occurrence increments it, regardless of detail-row sampling.")
+    occurrences: Optional[List[ErrorOccurrence]] = Field(default=None, description="Sampled per-instance detail rows behind this issue, newest first. Returned only by `GET /api/admin/errors/{id}` (never in list responses). The parent row's `count` / `firstSeenAt` / `lastSeenAt` are exact; these rows are a *sampled sketch* of the instances — exhaustive while the issue is small, thinning to roughly 1-in-10 past 10 occurrences, 1-in-100 past 100, and 1-in-1000 past 1000 (each row's `sampleRate` records the rate in force when it was kept), capped at the newest 100 rows.")
     status: StrictStr = Field(description="Triage state. `open` is the default; a `resolved` error reopens automatically (ingestion-side) if it recurs; `ignored` is sticky until flipped back here.")
     first_seen_at: StrictStr = Field(description="ISO-8601 timestamp of the first folded occurrence.", alias="firstSeenAt")
     last_seen_at: StrictStr = Field(description="ISO-8601 timestamp of the most recent folded occurrence. Rows are ordered by this, descending.", alias="lastSeenAt")
     created_at: StrictStr = Field(description="ISO-8601 timestamp the row was created.", alias="createdAt")
     updated_at: StrictStr = Field(description="ISO-8601 timestamp of the last mutation (e.g. a status flip).", alias="updatedAt")
-    __properties: ClassVar[List[str]] = ["id", "projectId", "fingerprint", "causedByFingerprint", "message", "errorType", "stack", "source", "url", "seenUrls", "subject", "outcome", "side", "env", "kind", "lastExtrasJson", "sdkVersion", "count", "status", "firstSeenAt", "lastSeenAt", "createdAt", "updatedAt"]
+    assignee_id: Optional[StrictStr] = Field(description="PERSON owner of the triage — a `users.id` (soft reference, same value space as a feedback item's `assigneeId`), or `null` if unassigned. Set from the ops cockpit's Owner column; independent of the agent half.", alias="assigneeId")
+    assignee_connector_id: Optional[StrictStr] = Field(description="AGENT owner — the id of a connected trigger connector (`connectors.id`), or `null`. Mutually exclusive with `assigneeAgent`.", alias="assigneeConnectorId")
+    assignee_agent: Optional[StrictStr] = Field(description="AGENT owner — a built-in hosted Shipeasy agent (`\"jarvis\"`, Enterprise-gated), or `null`. Mutually exclusive with `assigneeConnectorId`.", alias="assigneeAgent")
+    __properties: ClassVar[List[str]] = ["id", "projectId", "fingerprint", "causedByFingerprint", "message", "errorType", "stack", "source", "url", "seenUrls", "subject", "outcome", "side", "env", "kind", "lastExtrasJson", "sdkVersion", "count", "occurrences", "status", "firstSeenAt", "lastSeenAt", "createdAt", "updatedAt", "assigneeId", "assigneeConnectorId", "assigneeAgent"]
 
     @field_validator('kind')
     def kind_validate_enum(cls, value):
@@ -109,6 +114,13 @@ class ErrorRecord(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in occurrences (list)
+        _items = []
+        if self.occurrences:
+            for _item_occurrences in self.occurrences:
+                if _item_occurrences:
+                    _items.append(_item_occurrences.to_dict())
+            _dict['occurrences'] = _items
         # set to None if caused_by_fingerprint (nullable) is None
         # and model_fields_set contains the field
         if self.caused_by_fingerprint is None and "caused_by_fingerprint" in self.model_fields_set:
@@ -174,6 +186,21 @@ class ErrorRecord(BaseModel):
         if self.sdk_version is None and "sdk_version" in self.model_fields_set:
             _dict['sdkVersion'] = None
 
+        # set to None if assignee_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_id is None and "assignee_id" in self.model_fields_set:
+            _dict['assigneeId'] = None
+
+        # set to None if assignee_connector_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_connector_id is None and "assignee_connector_id" in self.model_fields_set:
+            _dict['assigneeConnectorId'] = None
+
+        # set to None if assignee_agent (nullable) is None
+        # and model_fields_set contains the field
+        if self.assignee_agent is None and "assignee_agent" in self.model_fields_set:
+            _dict['assigneeAgent'] = None
+
         return _dict
 
     @classmethod
@@ -204,11 +231,15 @@ class ErrorRecord(BaseModel):
             "lastExtrasJson": obj.get("lastExtrasJson"),
             "sdkVersion": obj.get("sdkVersion"),
             "count": obj.get("count"),
+            "occurrences": [ErrorOccurrence.from_dict(_item) for _item in obj["occurrences"]] if obj.get("occurrences") is not None else None,
             "status": obj.get("status"),
             "firstSeenAt": obj.get("firstSeenAt"),
             "lastSeenAt": obj.get("lastSeenAt"),
             "createdAt": obj.get("createdAt"),
-            "updatedAt": obj.get("updatedAt")
+            "updatedAt": obj.get("updatedAt"),
+            "assigneeId": obj.get("assigneeId"),
+            "assigneeConnectorId": obj.get("assigneeConnectorId"),
+            "assigneeAgent": obj.get("assigneeAgent")
         })
         return _obj
 

@@ -26,14 +26,17 @@ from pydantic_core import to_jsonable_python
 
 class CreateConfigRequest(BaseModel):
     """
-    Body for `POST /api/admin/configs`. `name` + `schema` required.
+    Body for `POST /api/admin/configs`. `name` + `schema` required. Per-env `dev`/`staging`/`prod` values are published to that env at version 1 (overriding `value`).
     """ # noqa: E501
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable config/killswitch key in `folder.name` form (two lowercase segments separated by a dot, e.g. `pricing.tiers`). Immutable after create.")
     description: Optional[Annotated[str, Field(strict=True, max_length=512)]] = Field(default=None, description="Optional free-form description shown in the dashboard. Max 512 chars.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
     var_schema: Dict[str, Any] = Field(description="JSON Schema (draft 2020-12) describing the shape of the config value. Top-level `type` must be `'object'`; every published value is validated against this schema.", alias="schema")
-    value: Optional[Any] = None
-    __properties: ClassVar[List[str]] = ["name", "description", "folder", "schema", "value"]
+    value: Optional[Dict[str, Any]] = Field(default=None, description="Initial config value. Either a single JSON object applied to every env, or a `{ env: value }` map seeding per-env values. Must match `schema`. Defaults to `{}` on every env when omitted.")
+    dev: Optional[Dict[str, Any]] = Field(default=None, description="Seed the **dev** env's initial value (version 1), overriding `value` for dev. Published immediately. Must match `schema`.")
+    staging: Optional[Dict[str, Any]] = Field(default=None, description="Seed the **staging** env's initial value (version 1), overriding `value` for staging. Published immediately. Must match `schema`.")
+    prod: Optional[Dict[str, Any]] = Field(default=None, description="Seed the **prod** env's initial value (version 1), overriding `value` for prod. Published immediately. Must match `schema`.")
+    __properties: ClassVar[List[str]] = ["name", "description", "folder", "schema", "value", "dev", "staging", "prod"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -102,11 +105,6 @@ class CreateConfigRequest(BaseModel):
         if self.folder is None and "folder" in self.model_fields_set:
             _dict['folder'] = None
 
-        # set to None if value (nullable) is None
-        # and model_fields_set contains the field
-        if self.value is None and "value" in self.model_fields_set:
-            _dict['value'] = None
-
         return _dict
 
     @classmethod
@@ -123,7 +121,10 @@ class CreateConfigRequest(BaseModel):
             "description": obj.get("description"),
             "folder": obj.get("folder"),
             "schema": obj.get("schema"),
-            "value": obj.get("value")
+            "value": obj.get("value"),
+            "dev": obj.get("dev"),
+            "staging": obj.get("staging"),
+            "prod": obj.get("prod")
         })
         return _obj
 

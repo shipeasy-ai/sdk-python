@@ -33,13 +33,16 @@ class ListConfigsResponseDataInner(BaseModel):
     id: StrictStr = Field(description="Stable opaque config id (`cfg_…`).")
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable config key in `folder.name` form (two lowercase segments separated by a dot, e.g. `pricing.tiers`). Used by SDKs as `Shipeasy.getConfig('<name>')`. Immutable after create.")
     description: Optional[StrictStr]
+    folder: Optional[StrictStr] = Field(description="Folder segment used for dashboard organisation, or `null` when the config lives at the root.")
     var_schema: Dict[str, Any] = Field(description="JSON Schema (draft 2020-12) describing the shape of the config value. Top-level `type` must be `'object'`; every published value is validated against this schema.", alias="schema")
+    creator_email: Optional[StrictStr] = Field(default=None, description="Resolved email of the creator (`created_by` → `users.email`), or `null` when unknown. List-only enrichment — present on `GET /api/admin/configs` rows, absent from the by-id detail — so it is optional, never required.", alias="creatorEmail")
+    created_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 creation timestamp, or `null` on legacy rows. List-only enrichment — present on `GET /api/admin/configs` rows, absent from the by-id detail — so it is optional, never required.", alias="createdAt")
     updated_at: StrictStr = Field(description="ISO-8601 timestamp of last mutation.", alias="updatedAt")
     envs: Dict[str, ListConfigsResponseDataInnerEnvsValue] = Field(description="Per-env latest published version metadata.")
     drafts: Dict[str, ListConfigsResponseDataInnerDraftsValue] = Field(description="Per-env active drafts (if any).")
     values: Optional[Dict[str, Any]] = Field(default=None, description="Per-env latest published values (only returned by `GET /{id}`, not list).")
     draft_values: Optional[Dict[str, Any]] = Field(default=None, description="Per-env draft values (only returned by `GET /{id}`).", alias="draftValues")
-    __properties: ClassVar[List[str]] = ["id", "name", "description", "schema", "updatedAt", "envs", "drafts", "values", "draftValues"]
+    __properties: ClassVar[List[str]] = ["id", "name", "description", "folder", "schema", "creatorEmail", "createdAt", "updatedAt", "envs", "drafts", "values", "draftValues"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -99,6 +102,21 @@ class ListConfigsResponseDataInner(BaseModel):
         if self.description is None and "description" in self.model_fields_set:
             _dict['description'] = None
 
+        # set to None if folder (nullable) is None
+        # and model_fields_set contains the field
+        if self.folder is None and "folder" in self.model_fields_set:
+            _dict['folder'] = None
+
+        # set to None if creator_email (nullable) is None
+        # and model_fields_set contains the field
+        if self.creator_email is None and "creator_email" in self.model_fields_set:
+            _dict['creatorEmail'] = None
+
+        # set to None if created_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.created_at is None and "created_at" in self.model_fields_set:
+            _dict['createdAt'] = None
+
         return _dict
 
     @classmethod
@@ -114,7 +132,10 @@ class ListConfigsResponseDataInner(BaseModel):
             "id": obj.get("id"),
             "name": obj.get("name"),
             "description": obj.get("description"),
+            "folder": obj.get("folder"),
             "schema": obj.get("schema"),
+            "creatorEmail": obj.get("creatorEmail"),
+            "createdAt": obj.get("createdAt"),
             "updatedAt": obj.get("updatedAt"),
             "envs": dict(
                 (_k, ListConfigsResponseDataInnerEnvsValue.from_dict(_v))

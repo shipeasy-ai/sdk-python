@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -27,9 +28,9 @@ class SetI18nLabelRequest(BaseModel):
     """
     Body for `POST /api/admin/i18n/set`. Upserts one key's value and publishes the profile live.
     """ # noqa: E501
-    key: StrictStr = Field(description="Dotted key path to set, e.g. `home.cta`.")
+    key: Annotated[str, Field(min_length=1, strict=True, max_length=256)] = Field(description="Dotted key path to set, e.g. `home.cta`.")
     value: StrictStr = Field(description="New value for the key. Inserted when the key is new, overwritten when it exists.")
-    profile: Optional[StrictStr] = Field(default=None, description="Profile name to target, e.g. `en:prod`. Omit to target the project's default-marked profile.")
+    profile: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=64)]] = Field(default=None, description="Profile name to target, e.g. `en:prod`. Omit to target the project's default-marked profile.")
     description: Optional[StrictStr] = Field(default=None, description="Optional human note to store with the key.")
     __properties: ClassVar[List[str]] = ["key", "value", "profile", "description"]
 

@@ -19,7 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from shipeasy.admin.generated.models.list_experiments_response_data_inner import ListExperimentsResponseDataInner
+from shipeasy.admin.generated.models.experiment_api_row import ExperimentApiRow
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -28,9 +28,8 @@ class ListExperimentsResponse(BaseModel):
     """
     ListExperimentsResponse
     """ # noqa: E501
-    data: List[ListExperimentsResponseDataInner]
+    data: List[ExperimentApiRow]
     next_cursor: Optional[StrictStr]
-    additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["data", "next_cursor"]
 
     model_config = ConfigDict(
@@ -63,10 +62,8 @@ class ListExperimentsResponse(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
-        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
-            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -81,11 +78,6 @@ class ListExperimentsResponse(BaseModel):
                 if _item_data:
                     _items.append(_item_data.to_dict())
             _dict['data'] = _items
-        # puts key-value pairs in additional_properties in the top level
-        if self.additional_properties is not None:
-            for _key, _value in self.additional_properties.items():
-                _dict[_key] = _value
-
         # set to None if next_cursor (nullable) is None
         # and model_fields_set contains the field
         if self.next_cursor is None and "next_cursor" in self.model_fields_set:
@@ -103,14 +95,9 @@ class ListExperimentsResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": [ListExperimentsResponseDataInner.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
+            "data": [ExperimentApiRow.from_dict(_item) for _item in obj["data"]] if obj.get("data") is not None else None,
             "next_cursor": obj.get("next_cursor")
         })
-        # store additional fields in additional_properties
-        for _key in obj.keys():
-            if _key not in cls.__properties:
-                _obj.additional_properties[_key] = obj.get(_key)
-
         return _obj
 
 

@@ -32,9 +32,12 @@ class ListKillswitchesResponseDataInner(BaseModel):
     id: StrictStr = Field(description="Stable opaque killswitch id.")
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable config key in `folder.name` form (two lowercase segments separated by a dot, e.g. `pricing.tiers`). Used by SDKs as `Shipeasy.getConfig('<name>')`. Immutable after create.")
     description: Optional[StrictStr] = Field(description="Free-form description or `null`.")
+    folder: Optional[StrictStr] = Field(description="Folder segment used for dashboard organisation, or `null` when the killswitch lives at the root.")
+    creator_email: Optional[StrictStr] = Field(description="Resolved email of the creator (`created_by` → `users.email`), or `null` when unknown.", alias="creatorEmail")
+    created_at: Optional[StrictStr] = Field(description="ISO-8601 creation timestamp, or `null` on legacy rows created before the column existed.", alias="createdAt")
     updated_at: StrictStr = Field(description="ISO-8601 timestamp of last mutation.", alias="updatedAt")
     envs: Dict[str, ListKillswitchesResponseDataInnerEnvsValue] = Field(description="Per-env latest value, switches, version, and publish timestamp.")
-    __properties: ClassVar[List[str]] = ["id", "name", "description", "updatedAt", "envs"]
+    __properties: ClassVar[List[str]] = ["id", "name", "description", "folder", "creatorEmail", "createdAt", "updatedAt", "envs"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -87,6 +90,21 @@ class ListKillswitchesResponseDataInner(BaseModel):
         if self.description is None and "description" in self.model_fields_set:
             _dict['description'] = None
 
+        # set to None if folder (nullable) is None
+        # and model_fields_set contains the field
+        if self.folder is None and "folder" in self.model_fields_set:
+            _dict['folder'] = None
+
+        # set to None if creator_email (nullable) is None
+        # and model_fields_set contains the field
+        if self.creator_email is None and "creator_email" in self.model_fields_set:
+            _dict['creatorEmail'] = None
+
+        # set to None if created_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.created_at is None and "created_at" in self.model_fields_set:
+            _dict['createdAt'] = None
+
         return _dict
 
     @classmethod
@@ -102,6 +120,9 @@ class ListKillswitchesResponseDataInner(BaseModel):
             "id": obj.get("id"),
             "name": obj.get("name"),
             "description": obj.get("description"),
+            "folder": obj.get("folder"),
+            "creatorEmail": obj.get("creatorEmail"),
+            "createdAt": obj.get("createdAt"),
             "updatedAt": obj.get("updatedAt"),
             "envs": dict(
                 (_k, ListKillswitchesResponseDataInnerEnvsValue.from_dict(_v))

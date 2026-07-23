@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from typing import Optional, Set
@@ -28,9 +28,19 @@ class UpsertProjectRequest(BaseModel):
     """
     Body for `POST /api/admin/projects/upsert`. Only `domain` is required; the owner is resolved from the caller's session.
     """ # noqa: E501
-    domain: Annotated[str, Field(min_length=1, strict=True, max_length=2048)] = Field(description="Hostname-like project identifier (e.g. `acme.com`). Use `*` to allow any origin. The project is keyed by `(owner_email, domain)`, so a second call with the same domain returns the existing project.")
+    domain: Annotated[str, Field(min_length=1, strict=True, max_length=2048)] = Field(description="Lowercase bare hostname (e.g. `acme.com`, `app.acme.com`, `*.acme.com`), or `*` to allow any origin. Full URLs with `https://` are not accepted. The project is keyed by `(owner_email, domain)`, so a second call with the same domain returns the existing project.")
     name: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=100)]] = Field(default=None, description="Human-readable project name. Defaults to the domain on first create.")
     __properties: ClassVar[List[str]] = ["domain", "name"]
+
+    @field_validator('domain')
+    def domain_validate_regular_expression(cls, value):
+        """Validates the regular expression"""
+        if not isinstance(value, str):
+            value = str(value)
+
+        if not re.match(r"^(\*|(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+)$", value):
+            raise ValueError(r"must validate the regular expression /^(\*|(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+)$/")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,

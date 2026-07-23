@@ -16,13 +16,15 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import Field, StrictStr
-from typing import Optional
+from typing import List, Optional
 from typing_extensions import Annotated
 from shipeasy.admin.generated.models.create_gate_request import CreateGateRequest
 from shipeasy.admin.generated.models.create_gate_response import CreateGateResponse
 from shipeasy.admin.generated.models.delete_gate_response import DeleteGateResponse
 from shipeasy.admin.generated.models.disable_gate_response import DisableGateResponse
 from shipeasy.admin.generated.models.enable_gate_response import EnableGateResponse
+from shipeasy.admin.generated.models.gate_api_row import GateApiRow
+from shipeasy.admin.generated.models.list_gate_activity_response_inner import ListGateActivityResponseInner
 from shipeasy.admin.generated.models.list_gates_response import ListGatesResponse
 from shipeasy.admin.generated.models.update_gate_request import UpdateGateRequest
 from shipeasy.admin.generated.models.update_gate_response import UpdateGateResponse
@@ -355,7 +357,7 @@ class FlagsApi:
     @validate_call
     def delete_gate(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -432,7 +434,7 @@ class FlagsApi:
     @validate_call
     def delete_gate_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -509,7 +511,7 @@ class FlagsApi:
     @validate_call
     def delete_gate_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -649,7 +651,7 @@ class FlagsApi:
     @validate_call
     def disable_gate(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -704,7 +706,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "DisableGateResponse",
+            '200': "DisableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -726,7 +728,7 @@ class FlagsApi:
     @validate_call
     def disable_gate_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -781,7 +783,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "DisableGateResponse",
+            '200': "DisableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -803,7 +805,7 @@ class FlagsApi:
     @validate_call
     def disable_gate_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -858,7 +860,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "DisableGateResponse",
+            '200': "DisableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -943,7 +945,7 @@ class FlagsApi:
     @validate_call
     def enable_gate(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -998,7 +1000,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "EnableGateResponse",
+            '200': "EnableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -1020,7 +1022,7 @@ class FlagsApi:
     @validate_call
     def enable_gate_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1075,7 +1077,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "EnableGateResponse",
+            '200': "EnableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -1097,7 +1099,7 @@ class FlagsApi:
     @validate_call
     def enable_gate_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1152,7 +1154,7 @@ class FlagsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "EnableGateResponse",
+            '200': "EnableGateResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -1235,11 +1237,617 @@ class FlagsApi:
 
 
     @validate_call
+    def get_gate(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> GateApiRow:
+        """Get one gate
+
+        Returns the full gate row — including the gatekeeper `stack`, resolved creator/last-editor emails, and the edit `version` — for one gate, addressed by id or `name`.  **Use case:** Inspect a single gate's current rollout, rules, and stack before editing it, without paging through the whole list.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_gate_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GateApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_gate_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[GateApiRow]:
+        """Get one gate
+
+        Returns the full gate row — including the gatekeeper `stack`, resolved creator/last-editor emails, and the edit `version` — for one gate, addressed by id or `name`.  **Use case:** Inspect a single gate's current rollout, rules, and stack before editing it, without paging through the whole list.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_gate_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GateApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_gate_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get one gate
+
+        Returns the full gate row — including the gatekeeper `stack`, resolved creator/last-editor emails, and the edit `version` — for one gate, addressed by id or `name`.  **Use case:** Inspect a single gate's current rollout, rules, and stack before editing it, without paging through the whole list.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_gate_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "GateApiRow",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_gate_serialize(
+        self,
+        id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/api/admin/gates/{id}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def list_gate_activity(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        limit: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Max rows to return (1–100). Defaults to 20.")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> List[ListGateActivityResponseInner]:
+        """List gate activity
+
+        Returns recent audit rows for one gate (create, update, enable, disable, delete) ordered newest first. Use the `limit` query parameter to cap the result (1–100, default 20).  **Use case:** Render the activity feed in the gate detail panel or answer \"who ramped this gate, and when?\" during an incident review.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param limit: Max rows to return (1–100). Defaults to 20.
+        :type limit: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_gate_activity_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            limit=limit,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[ListGateActivityResponseInner]",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def list_gate_activity_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        limit: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Max rows to return (1–100). Defaults to 20.")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[List[ListGateActivityResponseInner]]:
+        """List gate activity
+
+        Returns recent audit rows for one gate (create, update, enable, disable, delete) ordered newest first. Use the `limit` query parameter to cap the result (1–100, default 20).  **Use case:** Render the activity feed in the gate detail panel or answer \"who ramped this gate, and when?\" during an incident review.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param limit: Max rows to return (1–100). Defaults to 20.
+        :type limit: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_gate_activity_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            limit=limit,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[ListGateActivityResponseInner]",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def list_gate_activity_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        limit: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Max rows to return (1–100). Defaults to 20.")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """List gate activity
+
+        Returns recent audit rows for one gate (create, update, enable, disable, delete) ordered newest first. Use the `limit` query parameter to cap the result (1–100, default 20).  **Use case:** Render the activity feed in the gate detail panel or answer \"who ramped this gate, and when?\" during an incident review.
+
+        :param id: Stable opaque gate id (`gat_…`) or the gate's `name`. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param limit: Max rows to return (1–100). Defaults to 20.
+        :type limit: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_gate_activity_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            limit=limit,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[ListGateActivityResponseInner]",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _list_gate_activity_serialize(
+        self,
+        id,
+        x_project_id,
+        limit,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        if limit is not None:
+            
+            _query_params.append(('limit', limit))
+            
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/api/admin/gates/{id}/activity',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def list_gates(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1263,6 +1871,8 @@ class FlagsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1289,6 +1899,7 @@ class FlagsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1321,6 +1932,7 @@ class FlagsApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1344,6 +1956,8 @@ class FlagsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1370,6 +1984,7 @@ class FlagsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1402,6 +2017,7 @@ class FlagsApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1425,6 +2041,8 @@ class FlagsApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1451,6 +2069,7 @@ class FlagsApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1478,6 +2097,7 @@ class FlagsApi:
         x_project_id,
         limit,
         cursor,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -1507,6 +2127,10 @@ class FlagsApi:
         if cursor is not None:
             
             _query_params.append(('cursor', cursor))
+            
+        if q is not None:
+            
+            _query_params.append(('q', q))
             
         # process the header parameters
         if x_project_id is not None:
@@ -1550,7 +2174,7 @@ class FlagsApi:
     @validate_call
     def update_gate(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         update_gate_request: UpdateGateRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1631,7 +2255,7 @@ class FlagsApi:
     @validate_call
     def update_gate_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         update_gate_request: UpdateGateRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1712,7 +2336,7 @@ class FlagsApi:
     @validate_call
     def update_gate_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque gate id (`gat_…`) or the gate's `name`.")],
         update_gate_request: UpdateGateRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[

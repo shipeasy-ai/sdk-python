@@ -18,8 +18,11 @@ from typing_extensions import Annotated
 from pydantic import Field, StrictStr, field_validator
 from typing import List, Optional
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.ack_ops_item_request import AckOpsItemRequest
+from shipeasy.admin.generated.models.ack_ops_item_response import AckOpsItemResponse
 from shipeasy.admin.generated.models.create_ops_item_request import CreateOpsItemRequest
 from shipeasy.admin.generated.models.create_ops_item_response import CreateOpsItemResponse
+from shipeasy.admin.generated.models.delete_ops_item_response import DeleteOpsItemResponse
 from shipeasy.admin.generated.models.get_ops_item_response import GetOpsItemResponse
 from shipeasy.admin.generated.models.link_pr_to_ops_item_request import LinkPrToOpsItemRequest
 from shipeasy.admin.generated.models.link_pr_to_ops_item_response import LinkPrToOpsItemResponse
@@ -45,6 +48,325 @@ class OpsApi:
         if api_client is None:
             api_client = ApiClient.get_default()
         self.api_client = api_client
+
+
+    @validate_call
+    def ack_ops_item(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        ack_ops_item_request: Optional[AckOpsItemRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> AckOpsItemResponse:
+        """Ack an item (start a run)
+
+        Acknowledge a queue item — a person or an AI agent declaring \"I'm on this now\". Opens a run: stamps who picked the item up and when, assigns them as owner, and moves the item into the matching working status (`investigating_by_ai` for an AI ack, `in_progress` for a human one). The dashboard renders the open run as a live working indicator (which agent + time since the run started).  **AI ack.** Pass `agent` with your own agent type (`claude`, `cursor`, `copilot`, `jules`; `gemini` aliases `jules`) and, when you have one, the run's `sessionId` so the dashboard can deep-link to the session. If the project has no connected trigger connector of that type the call fails with `AGENT_NOT_CONNECTED` — list the available agents with `ops agents list` and use one of those (or connect the agent under Settings → Triggers).  **Completion.** The run closes automatically on the loop's final actions — linking the fixing PR (`link-pr`), an ops-notify escalation, or a completion status change (`ready_for_qa`/`resolved`) — and the dashboard then shows the run result (final action, PR, duration, session link). A repeat ack supersedes the previous open run.  **Use case:** Call this first when picking an item up, so the team sees who/what is working on it in real time.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param ack_ops_item_request:
+        :type ack_ops_item_request: AckOpsItemRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ack_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            ack_ops_item_request=ack_ops_item_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "AckOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def ack_ops_item_with_http_info(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        ack_ops_item_request: Optional[AckOpsItemRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[AckOpsItemResponse]:
+        """Ack an item (start a run)
+
+        Acknowledge a queue item — a person or an AI agent declaring \"I'm on this now\". Opens a run: stamps who picked the item up and when, assigns them as owner, and moves the item into the matching working status (`investigating_by_ai` for an AI ack, `in_progress` for a human one). The dashboard renders the open run as a live working indicator (which agent + time since the run started).  **AI ack.** Pass `agent` with your own agent type (`claude`, `cursor`, `copilot`, `jules`; `gemini` aliases `jules`) and, when you have one, the run's `sessionId` so the dashboard can deep-link to the session. If the project has no connected trigger connector of that type the call fails with `AGENT_NOT_CONNECTED` — list the available agents with `ops agents list` and use one of those (or connect the agent under Settings → Triggers).  **Completion.** The run closes automatically on the loop's final actions — linking the fixing PR (`link-pr`), an ops-notify escalation, or a completion status change (`ready_for_qa`/`resolved`) — and the dashboard then shows the run result (final action, PR, duration, session link). A repeat ack supersedes the previous open run.  **Use case:** Call this first when picking an item up, so the team sees who/what is working on it in real time.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param ack_ops_item_request:
+        :type ack_ops_item_request: AckOpsItemRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ack_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            ack_ops_item_request=ack_ops_item_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "AckOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def ack_ops_item_without_preload_content(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        ack_ops_item_request: Optional[AckOpsItemRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Ack an item (start a run)
+
+        Acknowledge a queue item — a person or an AI agent declaring \"I'm on this now\". Opens a run: stamps who picked the item up and when, assigns them as owner, and moves the item into the matching working status (`investigating_by_ai` for an AI ack, `in_progress` for a human one). The dashboard renders the open run as a live working indicator (which agent + time since the run started).  **AI ack.** Pass `agent` with your own agent type (`claude`, `cursor`, `copilot`, `jules`; `gemini` aliases `jules`) and, when you have one, the run's `sessionId` so the dashboard can deep-link to the session. If the project has no connected trigger connector of that type the call fails with `AGENT_NOT_CONNECTED` — list the available agents with `ops agents list` and use one of those (or connect the agent under Settings → Triggers).  **Completion.** The run closes automatically on the loop's final actions — linking the fixing PR (`link-pr`), an ops-notify escalation, or a completion status change (`ready_for_qa`/`resolved`) — and the dashboard then shows the run result (final action, PR, duration, session link). A repeat ack supersedes the previous open run.  **Use case:** Call this first when picking an item up, so the team sees who/what is working on it in real time.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param ack_ops_item_request:
+        :type ack_ops_item_request: AckOpsItemRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ack_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            ack_ops_item_request=ack_ops_item_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "AckOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _ack_ops_item_serialize(
+        self,
+        handle,
+        x_project_id,
+        ack_ops_item_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if handle is not None:
+            _path_params['handle'] = handle
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if ack_ops_item_request is not None:
+            _body_params = ack_ops_item_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/api/admin/ops/{handle}/ack',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
 
 
     @validate_call
@@ -355,9 +677,303 @@ class OpsApi:
 
 
     @validate_call
+    def delete_ops_item(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> DeleteOpsItemResponse:
+        """Delete a queue item
+
+        Permanently delete a queue item — any type — along with its comment thread, attachments, tags, and investigation records. A human (dashboard) action: the route is never allow-listed for restricted ops keys. Irreversible; to take an item out of the queue without destroying it, set its status (`wont_fix`/`resolved`) instead.  **Use case:** Remove a junk or duplicate report for good.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "DeleteOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def delete_ops_item_with_http_info(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[DeleteOpsItemResponse]:
+        """Delete a queue item
+
+        Permanently delete a queue item — any type — along with its comment thread, attachments, tags, and investigation records. A human (dashboard) action: the route is never allow-listed for restricted ops keys. Irreversible; to take an item out of the queue without destroying it, set its status (`wont_fix`/`resolved`) instead.  **Use case:** Remove a junk or duplicate report for good.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "DeleteOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def delete_ops_item_without_preload_content(
+        self,
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Delete a queue item
+
+        Permanently delete a queue item — any type — along with its comment thread, attachments, tags, and investigation records. A human (dashboard) action: the route is never allow-listed for restricted ops keys. Irreversible; to take an item out of the queue without destroying it, set its status (`wont_fix`/`resolved`) instead.  **Use case:** Remove a junk or duplicate report for good.
+
+        :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
+        :type handle: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_ops_item_serialize(
+            handle=handle,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "DeleteOpsItemResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _delete_ops_item_serialize(
+        self,
+        handle,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if handle is not None:
+            _path_params['handle'] = handle
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='DELETE',
+            resource_path='/api/admin/ops/{handle}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def get_ops_item(
         self,
-        handle: Annotated[Optional[StrictStr], Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -434,7 +1050,7 @@ class OpsApi:
     @validate_call
     def get_ops_item_with_http_info(
         self,
-        handle: Annotated[Optional[StrictStr], Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -511,7 +1127,7 @@ class OpsApi:
     @validate_call
     def get_ops_item_without_preload_content(
         self,
-        handle: Annotated[Optional[StrictStr], Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -651,7 +1267,7 @@ class OpsApi:
     @validate_call
     def link_pr_to_ops_item(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         link_pr_to_ops_item_request: LinkPrToOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -710,7 +1326,7 @@ class OpsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "LinkPrToOpsItemResponse",
+            '200': "LinkPrToOpsItemResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -732,7 +1348,7 @@ class OpsApi:
     @validate_call
     def link_pr_to_ops_item_with_http_info(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         link_pr_to_ops_item_request: LinkPrToOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -791,7 +1407,7 @@ class OpsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "LinkPrToOpsItemResponse",
+            '200': "LinkPrToOpsItemResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -813,7 +1429,7 @@ class OpsApi:
     @validate_call
     def link_pr_to_ops_item_without_preload_content(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         link_pr_to_ops_item_request: LinkPrToOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -872,7 +1488,7 @@ class OpsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "LinkPrToOpsItemResponse",
+            '200': "LinkPrToOpsItemResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -975,8 +1591,9 @@ class OpsApi:
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         type: Annotated[Optional[StrictStr], Field(description="Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.")] = None,
-        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max items to return (1–500).")] = None,
+        owner: Annotated[Optional[StrictStr], Field(description="Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -992,16 +1609,18 @@ class OpsApi:
     ) -> List[ListOpsItemsResponseInner]:
         """List the operational queue
 
-        Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
+        Returns the unified ops queue (bugs, feature requests, errors, alerts) in work order — highest priority first, oldest first within a priority — so consumers work it top-down. Filter by `type` and/or `status`, and cap with `limit`. Human-gated holding states (items awaiting human sign-off in the dashboard) are never returned by `all`/default status.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
         :param type: Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.
         :type type: str
-        :param status: Filter by lifecycle status, or `all`.
+        :param status: Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.
         :type status: str
         :param limit: Max items to return (1–500).
         :type limit: int
+        :param owner: Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.
+        :type owner: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1029,6 +1648,7 @@ class OpsApi:
             type=type,
             status=status,
             limit=limit,
+            owner=owner,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1060,8 +1680,9 @@ class OpsApi:
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         type: Annotated[Optional[StrictStr], Field(description="Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.")] = None,
-        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max items to return (1–500).")] = None,
+        owner: Annotated[Optional[StrictStr], Field(description="Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1077,16 +1698,18 @@ class OpsApi:
     ) -> ApiResponse[List[ListOpsItemsResponseInner]]:
         """List the operational queue
 
-        Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
+        Returns the unified ops queue (bugs, feature requests, errors, alerts) in work order — highest priority first, oldest first within a priority — so consumers work it top-down. Filter by `type` and/or `status`, and cap with `limit`. Human-gated holding states (items awaiting human sign-off in the dashboard) are never returned by `all`/default status.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
         :param type: Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.
         :type type: str
-        :param status: Filter by lifecycle status, or `all`.
+        :param status: Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.
         :type status: str
         :param limit: Max items to return (1–500).
         :type limit: int
+        :param owner: Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.
+        :type owner: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1114,6 +1737,7 @@ class OpsApi:
             type=type,
             status=status,
             limit=limit,
+            owner=owner,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1145,8 +1769,9 @@ class OpsApi:
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         type: Annotated[Optional[StrictStr], Field(description="Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.")] = None,
-        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max items to return (1–500).")] = None,
+        owner: Annotated[Optional[StrictStr], Field(description="Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1162,16 +1787,18 @@ class OpsApi:
     ) -> RESTResponseType:
         """List the operational queue
 
-        Returns the unified ops queue (bugs, feature requests, errors, alerts), newest first. Filter by `type` and/or `status`, and cap with `limit`.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
+        Returns the unified ops queue (bugs, feature requests, errors, alerts) in work order — highest priority first, oldest first within a priority — so consumers work it top-down. Filter by `type` and/or `status`, and cap with `limit`. Human-gated holding states (items awaiting human sign-off in the dashboard) are never returned by `all`/default status.  **Use case:** Pull the open queue to triage — e.g. every `bug` still `open` — before working items down one by one.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
         :param type: Filter by item type (`bug`/`feature_request`/`error`/`alert`), or `all`.
         :type type: str
-        :param status: Filter by lifecycle status, or `all`.
+        :param status: Filter by lifecycle status, or `all`. The human-gated holding states (`pending_approval`, `triage`) are excluded from `all`/default and returned only when requested as the exact status.
         :type status: str
         :param limit: Max items to return (1–500).
         :type limit: int
+        :param owner: Narrow to items owned by one person OR one agent. Matches a person by `users.id`, email, or display name, and an agent by connector id, display name, or kebab-case handle — e.g. `owner=Claude` or `owner=alice@acme.dev`. Case-insensitive exact match, applied over the returned page.
+        :type owner: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1199,6 +1826,7 @@ class OpsApi:
             type=type,
             status=status,
             limit=limit,
+            owner=owner,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1227,6 +1855,7 @@ class OpsApi:
         type,
         status,
         limit,
+        owner,
         _request_auth,
         _content_type,
         _headers,
@@ -1260,6 +1889,10 @@ class OpsApi:
         if limit is not None:
             
             _query_params.append(('limit', limit))
+            
+        if owner is not None:
+            
+            _query_params.append(('owner', owner))
             
         # process the header parameters
         if x_project_id is not None:
@@ -1320,7 +1953,7 @@ class OpsApi:
     ) -> NotifyOpsResponse:
         """Raise an attention notification
 
-        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey`.  **Use case:** Escalate something that needs a human, deduped so repeats don't spam the bell.
+        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey` — re-raising with the same key updates the one card instead of stacking duplicates. It never reads, marks read, or deletes the feed, so it is safe for restricted ops keys.  **Use case:** Escalate work that can't land in code (a product decision, a credential only a human has, a resource only a human may edit), deduped so repeats don't spam the bell.
 
         :param notify_ops_request: (required)
         :type notify_ops_request: NotifyOpsRequest
@@ -1397,7 +2030,7 @@ class OpsApi:
     ) -> ApiResponse[NotifyOpsResponse]:
         """Raise an attention notification
 
-        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey`.  **Use case:** Escalate something that needs a human, deduped so repeats don't spam the bell.
+        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey` — re-raising with the same key updates the one card instead of stacking duplicates. It never reads, marks read, or deletes the feed, so it is safe for restricted ops keys.  **Use case:** Escalate work that can't land in code (a product decision, a credential only a human has, a resource only a human may edit), deduped so repeats don't spam the bell.
 
         :param notify_ops_request: (required)
         :type notify_ops_request: NotifyOpsRequest
@@ -1474,7 +2107,7 @@ class OpsApi:
     ) -> RESTResponseType:
         """Raise an attention notification
 
-        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey`.  **Use case:** Escalate something that needs a human, deduped so repeats don't spam the bell.
+        Raise a 'needs your attention' bell notification. Create-only and idempotent on `dedupeKey` — re-raising with the same key updates the one card instead of stacking duplicates. It never reads, marks read, or deletes the feed, so it is safe for restricted ops keys.  **Use case:** Escalate work that can't land in code (a product decision, a credential only a human has, a resource only a human may edit), deduped so repeats don't spam the bell.
 
         :param notify_ops_request: (required)
         :type notify_ops_request: NotifyOpsRequest
@@ -1610,7 +2243,7 @@ class OpsApi:
     @validate_call
     def update_ops_item(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         update_ops_item_request: UpdateOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1628,7 +2261,7 @@ class OpsApi:
     ) -> UpdateOpsItemResponse:
         """Update a queue item
 
-        Update a queue item's `status` and/or `priority`. Other fields are immutable.  **Use case:** Move an item through its lifecycle (triage → in_progress → resolved) as you work it.
+        Update a queue item. The body is validated against the item's stored type: a `bug` accepts its content fields (title, steps-to-reproduce, actual/expected result) plus `status`/`priority`/`notify` and a GitHub PR link; a `feature_request` its content (title, description, use-case) plus the same triage fields; `error`/`alert`/`measure_plan` accept `status`/`priority`/`notify` only (their content is platform-owned). Pass at least one field.  Completing an `error` ticket (status `resolved` or `ready_for_qa`) also resolves the tracked error it links to; the error reopens automatically if it recurs — so completing is safe pre-deploy.  **Use cases**  - **Start working an item** — `{ \"status\": \"in_progress\" }`. - **Hand off for review** — `{ \"status\": \"ready_for_qa\" }` once the fix landed (the mode PR-based loops use). - **Triage** — `{ \"priority\": \"high\" }`, content edits on bug/feature items.
 
         :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
         :type handle: str
@@ -1691,7 +2324,7 @@ class OpsApi:
     @validate_call
     def update_ops_item_with_http_info(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         update_ops_item_request: UpdateOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1709,7 +2342,7 @@ class OpsApi:
     ) -> ApiResponse[UpdateOpsItemResponse]:
         """Update a queue item
 
-        Update a queue item's `status` and/or `priority`. Other fields are immutable.  **Use case:** Move an item through its lifecycle (triage → in_progress → resolved) as you work it.
+        Update a queue item. The body is validated against the item's stored type: a `bug` accepts its content fields (title, steps-to-reproduce, actual/expected result) plus `status`/`priority`/`notify` and a GitHub PR link; a `feature_request` its content (title, description, use-case) plus the same triage fields; `error`/`alert`/`measure_plan` accept `status`/`priority`/`notify` only (their content is platform-owned). Pass at least one field.  Completing an `error` ticket (status `resolved` or `ready_for_qa`) also resolves the tracked error it links to; the error reopens automatically if it recurs — so completing is safe pre-deploy.  **Use cases**  - **Start working an item** — `{ \"status\": \"in_progress\" }`. - **Hand off for review** — `{ \"status\": \"ready_for_qa\" }` once the fix landed (the mode PR-based loops use). - **Triage** — `{ \"priority\": \"high\" }`, content edits on bug/feature items.
 
         :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
         :type handle: str
@@ -1772,7 +2405,7 @@ class OpsApi:
     @validate_call
     def update_ops_item_without_preload_content(
         self,
-        handle: Annotated[StrictStr, Field(description="Per-project item number (e.g. `7`) or the full ops item id.")],
+        handle: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Per-project item number (e.g. `7`) or the full ops item id.")],
         update_ops_item_request: UpdateOpsItemRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1790,7 +2423,7 @@ class OpsApi:
     ) -> RESTResponseType:
         """Update a queue item
 
-        Update a queue item's `status` and/or `priority`. Other fields are immutable.  **Use case:** Move an item through its lifecycle (triage → in_progress → resolved) as you work it.
+        Update a queue item. The body is validated against the item's stored type: a `bug` accepts its content fields (title, steps-to-reproduce, actual/expected result) plus `status`/`priority`/`notify` and a GitHub PR link; a `feature_request` its content (title, description, use-case) plus the same triage fields; `error`/`alert`/`measure_plan` accept `status`/`priority`/`notify` only (their content is platform-owned). Pass at least one field.  Completing an `error` ticket (status `resolved` or `ready_for_qa`) also resolves the tracked error it links to; the error reopens automatically if it recurs — so completing is safe pre-deploy.  **Use cases**  - **Start working an item** — `{ \"status\": \"in_progress\" }`. - **Hand off for review** — `{ \"status\": \"ready_for_qa\" }` once the fix landed (the mode PR-based loops use). - **Triage** — `{ \"priority\": \"high\" }`, content edits on bug/feature items.
 
         :param handle: Per-project item number (e.g. `7`) or the full ops item id. (required)
         :type handle: str

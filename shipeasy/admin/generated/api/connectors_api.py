@@ -27,6 +27,7 @@ from shipeasy.admin.generated.models.fire_connector_response import FireConnecto
 from shipeasy.admin.generated.models.test_connector_response import TestConnectorResponse
 from shipeasy.admin.generated.models.update_connector_request import UpdateConnectorRequest
 from shipeasy.admin.generated.models.update_connector_response import UpdateConnectorResponse
+from shipeasy.admin.generated.models.update_trigger_connector_request import UpdateTriggerConnectorRequest
 
 from shipeasy.admin.generated.api_client import ApiClient, RequestSerialized
 from shipeasy.admin.generated.api_response import ApiResponse
@@ -356,7 +357,7 @@ class ConnectorsApi:
     @validate_call
     def delete_connector(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -433,7 +434,7 @@ class ConnectorsApi:
     @validate_call
     def delete_connector_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -510,7 +511,7 @@ class ConnectorsApi:
     @validate_call
     def delete_connector_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -650,7 +651,7 @@ class ConnectorsApi:
     @validate_call
     def fire_connector(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         fire_connector_request: Optional[FireConnectorRequest] = None,
         _request_timeout: Union[
@@ -716,6 +717,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -731,7 +733,7 @@ class ConnectorsApi:
     @validate_call
     def fire_connector_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         fire_connector_request: Optional[FireConnectorRequest] = None,
         _request_timeout: Union[
@@ -797,6 +799,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -812,7 +815,7 @@ class ConnectorsApi:
     @validate_call
     def fire_connector_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         fire_connector_request: Optional[FireConnectorRequest] = None,
         _request_timeout: Union[
@@ -878,6 +881,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -972,7 +976,7 @@ class ConnectorsApi:
     @validate_call
     def get_connector(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1049,7 +1053,7 @@ class ConnectorsApi:
     @validate_call
     def get_connector_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1126,7 +1130,7 @@ class ConnectorsApi:
     @validate_call
     def get_connector_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1267,6 +1271,7 @@ class ConnectorsApi:
     def list_connectors(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1286,6 +1291,8 @@ class ConnectorsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1310,6 +1317,7 @@ class ConnectorsApi:
 
         _param = self._list_connectors_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1340,6 +1348,7 @@ class ConnectorsApi:
     def list_connectors_with_http_info(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1359,6 +1368,8 @@ class ConnectorsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1383,6 +1394,7 @@ class ConnectorsApi:
 
         _param = self._list_connectors_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1413,6 +1425,7 @@ class ConnectorsApi:
     def list_connectors_without_preload_content(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1432,6 +1445,8 @@ class ConnectorsApi:
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1456,6 +1471,7 @@ class ConnectorsApi:
 
         _param = self._list_connectors_serialize(
             x_project_id=x_project_id,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1481,6 +1497,7 @@ class ConnectorsApi:
     def _list_connectors_serialize(
         self,
         x_project_id,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -1503,6 +1520,10 @@ class ConnectorsApi:
 
         # process the path parameters
         # process the query parameters
+        if q is not None:
+            
+            _query_params.append(('q', q))
+            
         # process the header parameters
         if x_project_id is not None:
             _header_params['X-Project-Id'] = x_project_id
@@ -1545,7 +1566,7 @@ class ConnectorsApi:
     @validate_call
     def test_connector(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1607,6 +1628,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -1622,7 +1644,7 @@ class ConnectorsApi:
     @validate_call
     def test_connector_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1684,6 +1706,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -1699,7 +1722,7 @@ class ConnectorsApi:
     @validate_call
     def test_connector_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1761,6 +1784,7 @@ class ConnectorsApi:
             '404': "Error",
             '409': "Error",
             '422': "Error",
+            '502': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -1839,7 +1863,7 @@ class ConnectorsApi:
     @validate_call
     def update_connector(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         update_connector_request: UpdateConnectorRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1920,7 +1944,7 @@ class ConnectorsApi:
     @validate_call
     def update_connector_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         update_connector_request: UpdateConnectorRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2001,7 +2025,7 @@ class ConnectorsApi:
     @validate_call
     def update_connector_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque connector id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id.")],
         update_connector_request: UpdateConnectorRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -2143,6 +2167,328 @@ class ConnectorsApi:
         return self.api_client.param_serialize(
             method='PATCH',
             resource_path='/api/admin/connectors/{id}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def update_trigger_connector(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id. Its stored `provider` must match the body's `provider`.")],
+        update_trigger_connector_request: UpdateTriggerConnectorRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> UpdateConnectorResponse:
+        """Update a trigger connector
+
+        Edit an existing coding-agent **trigger** connector (`claude_trigger` / `cursor_trigger` / `copilot_trigger` / `jules_trigger`) — replace its non-secret `config` and, optionally, rotate its credential secret(s). Discriminated on `provider`; the id in the path selects the connector and its `provider` must match the body.  Unlike the generic `PATCH /api/admin/connectors/{id}` (which cannot touch secrets), this endpoint always replaces the non-secret `config` wholesale and merges any supplied secret over the stored credential cipher — so a single half of a two-key pair (e.g. just the ops key) can be rotated on its own. A blank/omitted secret leaves the stored cipher untouched.  The response carries only `{ id }` — re-fetch via `GET /api/admin/connectors/{id}` for the new row.  **Use case:** Re-point a Cursor trigger at a new repo ref, or rotate a Claude trigger's fire token, without deleting and re-creating the connector.
+
+        :param id: Stable opaque connector id. Its stored `provider` must match the body's `provider`. (required)
+        :type id: str
+        :param update_trigger_connector_request: (required)
+        :type update_trigger_connector_request: UpdateTriggerConnectorRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_trigger_connector_serialize(
+            id=id,
+            update_trigger_connector_request=update_trigger_connector_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpdateConnectorResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def update_trigger_connector_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id. Its stored `provider` must match the body's `provider`.")],
+        update_trigger_connector_request: UpdateTriggerConnectorRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[UpdateConnectorResponse]:
+        """Update a trigger connector
+
+        Edit an existing coding-agent **trigger** connector (`claude_trigger` / `cursor_trigger` / `copilot_trigger` / `jules_trigger`) — replace its non-secret `config` and, optionally, rotate its credential secret(s). Discriminated on `provider`; the id in the path selects the connector and its `provider` must match the body.  Unlike the generic `PATCH /api/admin/connectors/{id}` (which cannot touch secrets), this endpoint always replaces the non-secret `config` wholesale and merges any supplied secret over the stored credential cipher — so a single half of a two-key pair (e.g. just the ops key) can be rotated on its own. A blank/omitted secret leaves the stored cipher untouched.  The response carries only `{ id }` — re-fetch via `GET /api/admin/connectors/{id}` for the new row.  **Use case:** Re-point a Cursor trigger at a new repo ref, or rotate a Claude trigger's fire token, without deleting and re-creating the connector.
+
+        :param id: Stable opaque connector id. Its stored `provider` must match the body's `provider`. (required)
+        :type id: str
+        :param update_trigger_connector_request: (required)
+        :type update_trigger_connector_request: UpdateTriggerConnectorRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_trigger_connector_serialize(
+            id=id,
+            update_trigger_connector_request=update_trigger_connector_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpdateConnectorResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def update_trigger_connector_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque connector id. Its stored `provider` must match the body's `provider`.")],
+        update_trigger_connector_request: UpdateTriggerConnectorRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Update a trigger connector
+
+        Edit an existing coding-agent **trigger** connector (`claude_trigger` / `cursor_trigger` / `copilot_trigger` / `jules_trigger`) — replace its non-secret `config` and, optionally, rotate its credential secret(s). Discriminated on `provider`; the id in the path selects the connector and its `provider` must match the body.  Unlike the generic `PATCH /api/admin/connectors/{id}` (which cannot touch secrets), this endpoint always replaces the non-secret `config` wholesale and merges any supplied secret over the stored credential cipher — so a single half of a two-key pair (e.g. just the ops key) can be rotated on its own. A blank/omitted secret leaves the stored cipher untouched.  The response carries only `{ id }` — re-fetch via `GET /api/admin/connectors/{id}` for the new row.  **Use case:** Re-point a Cursor trigger at a new repo ref, or rotate a Claude trigger's fire token, without deleting and re-creating the connector.
+
+        :param id: Stable opaque connector id. Its stored `provider` must match the body's `provider`. (required)
+        :type id: str
+        :param update_trigger_connector_request: (required)
+        :type update_trigger_connector_request: UpdateTriggerConnectorRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_trigger_connector_serialize(
+            id=id,
+            update_trigger_connector_request=update_trigger_connector_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpdateConnectorResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _update_trigger_connector_serialize(
+        self,
+        id,
+        update_trigger_connector_request,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if update_trigger_connector_request is not None:
+            _body_params = update_trigger_connector_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='PATCH',
+            resource_path='/api/admin/connectors/{id}/trigger',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

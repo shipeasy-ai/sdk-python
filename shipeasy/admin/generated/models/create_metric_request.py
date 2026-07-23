@@ -13,151 +13,125 @@
 
 
 from __future__ import annotations
-import pprint
-import re  # noqa: F401
 import json
+import pprint
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
+from typing import Any, List, Optional
+from shipeasy.admin.generated.models.create_metric_with_query import CreateMetricWithQuery
+from shipeasy.admin.generated.models.create_metric_with_query_ir import CreateMetricWithQueryIr
+from pydantic import StrictStr, Field
+from typing import Union, List, Set, Optional, Dict
+from typing_extensions import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
-from typing import Any, ClassVar, Dict, List, Optional, Union
-from typing_extensions import Annotated
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir import ListMetricsResponseInnerQueryIr
-from typing import Optional, Set
-from typing_extensions import Self
-from pydantic_core import to_jsonable_python
+CREATEMETRICREQUEST_ONE_OF_SCHEMAS = ["CreateMetricWithQuery", "CreateMetricWithQueryIr"]
 
 class CreateMetricRequest(BaseModel):
     """
-    Body for `POST /api/admin/metrics`. Requires `name`, `event_name`, and exactly one of `query` / `query_ir`.
-    """ # noqa: E501
-    name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable metric key. Single segment or `folder.name`; lowercase letters, digits, `_`/`-`; max 128 chars.")
-    folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
-    event_name: Annotated[str, Field(min_length=1, strict=True)] = Field(description="Source event the query reads from.")
-    query: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=4096)]] = Field(default=None, description="Metric query DSL string, e.g. `sum(purchase, amount)`. Provide this OR `query_ir`.")
-    query_ir: Optional[ListMetricsResponseInnerQueryIr] = None
-    winsorize_pct: Optional[Annotated[int, Field(le=99, strict=True, ge=1)]] = Field(default=99, description="Winsorise percentile (1–99) to clamp outliers. Defaults to 99.")
-    min_detectable_effect: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Minimum detectable effect (relative, 0–1) for power planning. `null` to omit.")
-    direction: Optional[StrictStr] = Field(default='higher_better', description="Desired direction of movement. `higher_better` (default), `lower_better`, or `neutral` (guardrail).")
-    additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "folder", "event_name", "query", "query_ir", "winsorize_pct", "min_detectable_effect", "direction"]
-
-    @field_validator('name')
-    def name_validate_regular_expression(cls, value):
-        """Validates the regular expression"""
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$", value):
-            raise ValueError(r"must validate the regular expression /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$/")
-        return value
-
-    @field_validator('folder')
-    def folder_validate_regular_expression(cls, value):
-        """Validates the regular expression"""
-        if value is None:
-            return value
-
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z0-9_-]+$", value):
-            raise ValueError(r"must validate the regular expression /^[a-zA-Z0-9_-]+$/")
-        return value
-
-    @field_validator('direction')
-    def direction_validate_enum(cls, value):
-        """Validates the enum"""
-        if value is None:
-            return value
-
-        if value not in set(['higher_better', 'lower_better', 'neutral']):
-            raise ValueError("must be one of enum values ('higher_better', 'lower_better', 'neutral')")
-        return value
+    Body for `POST /api/admin/metrics`. Requires `name`, `event_name`, and exactly one of `query` / `query_ir` — modelled as a `oneOf` of two strict variants, so supplying both (or neither) is rejected.
+    """
+    # data type: CreateMetricWithQuery
+    oneof_schema_1_validator: Optional[CreateMetricWithQuery] = None
+    # data type: CreateMetricWithQueryIr
+    oneof_schema_2_validator: Optional[CreateMetricWithQueryIr] = None
+    actual_instance: Optional[Union[CreateMetricWithQuery, CreateMetricWithQueryIr]] = None
+    one_of_schemas: Set[str] = { "CreateMetricWithQuery", "CreateMetricWithQueryIr" }
 
     model_config = ConfigDict(
-        validate_by_name=True,
-        validate_by_alias=True,
         validate_assignment=True,
         protected_namespaces=(),
     )
 
 
-    def to_str(self) -> str:
-        """Returns the string representation of the model using alias"""
-        return pprint.pformat(self.model_dump(by_alias=True))
+    def __init__(self, *args, **kwargs) -> None:
+        if args:
+            if len(args) > 1:
+                raise ValueError("If a position argument is used, only 1 is allowed to set `actual_instance`")
+            if kwargs:
+                raise ValueError("If a position argument is used, keyword arguments cannot be used.")
+            super().__init__(actual_instance=args[0])
+        else:
+            super().__init__(**kwargs)
+
+    @field_validator('actual_instance')
+    def actual_instance_must_validate_oneof(cls, v):
+        instance = CreateMetricRequest.model_construct()
+        error_messages = []
+        match = 0
+        # validate data type: CreateMetricWithQuery
+        if not isinstance(v, CreateMetricWithQuery):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `CreateMetricWithQuery`")
+        else:
+            match += 1
+        # validate data type: CreateMetricWithQueryIr
+        if not isinstance(v, CreateMetricWithQueryIr):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `CreateMetricWithQueryIr`")
+        else:
+            match += 1
+        if match > 1:
+            # more than 1 match
+            raise ValueError("Multiple matches found when setting `actual_instance` in CreateMetricRequest with oneOf schemas: CreateMetricWithQuery, CreateMetricWithQueryIr. Details: " + ", ".join(error_messages))
+        elif match == 0:
+            # no match
+            raise ValueError("No match found when setting `actual_instance` in CreateMetricRequest with oneOf schemas: CreateMetricWithQuery, CreateMetricWithQueryIr. Details: " + ", ".join(error_messages))
+        else:
+            return v
+
+    @classmethod
+    def from_dict(cls, obj: Union[str, Dict[str, Any]]) -> Self:
+        return cls.from_json(json.dumps(obj))
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Self:
+        """Returns the object represented by the json string"""
+        instance = cls.model_construct()
+        error_messages = []
+        match = 0
+
+        # deserialize data into CreateMetricWithQuery
+        try:
+            instance.actual_instance = CreateMetricWithQuery.from_json(json_str)
+            match += 1
+        except (ValidationError, ValueError) as e:
+            error_messages.append(str(e))
+        # deserialize data into CreateMetricWithQueryIr
+        try:
+            instance.actual_instance = CreateMetricWithQueryIr.from_json(json_str)
+            match += 1
+        except (ValidationError, ValueError) as e:
+            error_messages.append(str(e))
+
+        if match > 1:
+            # more than 1 match
+            raise ValueError("Multiple matches found when deserializing the JSON string into CreateMetricRequest with oneOf schemas: CreateMetricWithQuery, CreateMetricWithQueryIr. Details: " + ", ".join(error_messages))
+        elif match == 0:
+            # no match
+            raise ValueError("No match found when deserializing the JSON string into CreateMetricRequest with oneOf schemas: CreateMetricWithQuery, CreateMetricWithQueryIr. Details: " + ", ".join(error_messages))
+        else:
+            return instance
 
     def to_json(self) -> str:
-        """Returns the JSON representation of the model using alias"""
-        return json.dumps(to_jsonable_python(self.to_dict()))
+        """Returns the JSON representation of the actual instance"""
+        if self.actual_instance is None:
+            return "null"
 
-    @classmethod
-    def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of CreateMetricRequest from a JSON string"""
-        return cls.from_dict(json.loads(json_str))
+        if hasattr(self.actual_instance, "to_json") and callable(self.actual_instance.to_json):
+            return self.actual_instance.to_json()
+        else:
+            return json.dumps(self.actual_instance)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Return the dictionary representation of the model using alias.
-
-        This has the following differences from calling pydantic's
-        `self.model_dump(by_alias=True)`:
-
-        * `None` is only added to the output dict for nullable fields that
-          were set at model initialization. Other fields with value `None`
-          are ignored.
-        * Fields in `self.additional_properties` are added to the output dict.
-        """
-        excluded_fields: Set[str] = set([
-            "additional_properties",
-        ])
-
-        _dict = self.model_dump(
-            by_alias=True,
-            exclude=excluded_fields,
-            exclude_none=True,
-        )
-        # override the default output from pydantic by calling `to_dict()` of query_ir
-        if self.query_ir:
-            _dict['query_ir'] = self.query_ir.to_dict()
-        # puts key-value pairs in additional_properties in the top level
-        if self.additional_properties is not None:
-            for _key, _value in self.additional_properties.items():
-                _dict[_key] = _value
-
-        # set to None if folder (nullable) is None
-        # and model_fields_set contains the field
-        if self.folder is None and "folder" in self.model_fields_set:
-            _dict['folder'] = None
-
-        # set to None if min_detectable_effect (nullable) is None
-        # and model_fields_set contains the field
-        if self.min_detectable_effect is None and "min_detectable_effect" in self.model_fields_set:
-            _dict['min_detectable_effect'] = None
-
-        return _dict
-
-    @classmethod
-    def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of CreateMetricRequest from a dict"""
-        if obj is None:
+    def to_dict(self) -> Optional[Union[Dict[str, Any], CreateMetricWithQuery, CreateMetricWithQueryIr]]:
+        """Returns the dict representation of the actual instance"""
+        if self.actual_instance is None:
             return None
 
-        if not isinstance(obj, dict):
-            return cls.model_validate(obj)
+        if hasattr(self.actual_instance, "to_dict") and callable(self.actual_instance.to_dict):
+            return self.actual_instance.to_dict()
+        else:
+            # primitive type
+            return self.actual_instance
 
-        _obj = cls.model_validate({
-            "name": obj.get("name"),
-            "folder": obj.get("folder"),
-            "event_name": obj.get("event_name"),
-            "query": obj.get("query"),
-            "query_ir": ListMetricsResponseInnerQueryIr.from_dict(obj["query_ir"]) if obj.get("query_ir") is not None else None,
-            "winsorize_pct": obj.get("winsorize_pct") if obj.get("winsorize_pct") is not None else 99,
-            "min_detectable_effect": obj.get("min_detectable_effect"),
-            "direction": obj.get("direction") if obj.get("direction") is not None else 'higher_better'
-        })
-        # store additional fields in additional_properties
-        for _key in obj.keys():
-            if _key not in cls.__properties:
-                _obj.additional_properties[_key] = obj.get(_key)
-
-        return _obj
+    def to_str(self) -> str:
+        """Returns the string representation of the actual instance"""
+        return pprint.pformat(self.model_dump())
 
 

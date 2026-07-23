@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +29,8 @@ class SetExperimentMetricsRequestMetricsInner(BaseModel):
     """ # noqa: E501
     metric_id: StrictStr = Field(description="Existing metric id in the project.")
     role: StrictStr = Field(description="Metric role. `goal` drives the decision, `guardrail` blocks ship if degraded, `secondary` is informational.")
-    __properties: ClassVar[List[str]] = ["metric_id", "role"]
+    min_effect_of_interest: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Per-experiment override of the metric's `default_min_effect_of_interest` (relative, 0–1) — the smallest change worth acting on for THIS experiment's decision, which depends on the intervention's cost/risk. `null`/omitted falls back to the metric default. For a `guardrail` this is the non-inferiority margin (how large a regression is tolerated); for a `goal` it is the superiority threshold.")
+    __properties: ClassVar[List[str]] = ["metric_id", "role", "min_effect_of_interest"]
 
     @field_validator('role')
     def role_validate_enum(cls, value):
@@ -77,6 +78,11 @@ class SetExperimentMetricsRequestMetricsInner(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if min_effect_of_interest (nullable) is None
+        # and model_fields_set contains the field
+        if self.min_effect_of_interest is None and "min_effect_of_interest" in self.model_fields_set:
+            _dict['min_effect_of_interest'] = None
+
         return _dict
 
     @classmethod
@@ -90,7 +96,8 @@ class SetExperimentMetricsRequestMetricsInner(BaseModel):
 
         _obj = cls.model_validate({
             "metric_id": obj.get("metric_id"),
-            "role": obj.get("role")
+            "role": obj.get("role"),
+            "min_effect_of_interest": obj.get("min_effect_of_interest")
         })
         return _obj
 

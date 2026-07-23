@@ -17,11 +17,11 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
-from shipeasy.admin.generated.models.list_gates_response_data_inner_rules_inner import ListGatesResponseDataInnerRulesInner
-from shipeasy.admin.generated.models.list_gates_response_data_inner_stack_inner import ListGatesResponseDataInnerStackInner
+from shipeasy.admin.generated.models.gate_api_row_rules_inner import GateApiRowRulesInner
+from shipeasy.admin.generated.models.gate_api_row_stack_inner import GateApiRowStackInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -31,19 +31,20 @@ class CreateGateRequest(BaseModel):
     Body for `POST /api/admin/gates`. At minimum supply `name`; everything else has sensible defaults.
     """ # noqa: E501
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable gate key used by SDKs (`Shipeasy.checkGate(user, '<name>')`). Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create — rename = delete + recreate.")
+    type: Optional[StrictStr] = Field(default='targeting', description="Gate kind. `targeting` (default) is a normal flag with the full builder. `holdout` is a **restricted** flag — only a public rollout % and a whitelist are allowed; attribute rules and a gatekeeper stack are rejected. Used as an experiment's `holdout_gate`.")
     enabled: Optional[StrictBool] = Field(default=True, description="Master switch. Defaults to `true`. Set `false` to create the gate disabled (evaluates to `false` regardless of rules/rollout); flip on via `POST /{id}/enable` or PATCH.")
     rollout_pct: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=0, description="Initial rollout in **basis points** (0–10000 = 0%–100%) — `100` here means **1%**, not 100%. Use `rollout_percent` (0–100) below if you'd rather think in percent. Use `0` to create the gate dark and ramp via PATCH after deploy validation.")
     rollout_percent: Optional[Union[Annotated[float, Field(le=100, strict=True, ge=0)], Annotated[int, Field(le=100, strict=True, ge=0)]]] = Field(default=None, description="Initial rollout as a **percentage** (0–100, fractional ok). Friendlier alias for `rollout_pct`; converted internally to basis points (e.g. `100` here = 10000 bp = 100%). If both `rollout_pct` and `rollout_percent` are set, `rollout_percent` wins.")
-    rules: Optional[List[ListGatesResponseDataInnerRulesInner]] = Field(default=None, description="Targeting predicates. AND-combined. If non-empty, the gate returns `true` only for callers that satisfy every rule **and** fall under `rollout_pct`.")
+    rules: Optional[List[GateApiRowRulesInner]] = Field(default=None, description="Targeting predicates. AND-combined. If non-empty, the gate returns `true` only for callers that satisfy every rule **and** fall under `rollout_pct`.")
     salt: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=64)]] = Field(default=None, description="Hash salt for percentage bucketing. Auto-generated if omitted. Provide explicitly to keep a gate's buckets stable across delete/recreate. **Immutable after create** — there is no PATCH for `salt` because changing it would re-bucket every caller.")
-    stack: Optional[List[ListGatesResponseDataInnerStackInner]] = Field(default=None, description="Optional gatekeeper stack. When provided, takes precedence over `rules` + `rollout_pct` at evaluation time. Omit (or pass `null`) for a flat gate.")
+    stack: Optional[List[GateApiRowStackInner]] = Field(default=None, description="Optional gatekeeper stack. When provided, takes precedence over `rules` + `rollout_pct` at evaluation time. Omit (or pass `null`) for a flat gate.")
     title: Optional[Annotated[str, Field(strict=True, max_length=140)]] = Field(default=None, description="Human-readable title shown in the dashboard. Free-form, no key format constraint.")
     description: Optional[Annotated[str, Field(strict=True, max_length=2000)]] = Field(default=None, description="Long-form description / runbook. Markdown is rendered in the dashboard.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
     group: Optional[Annotated[str, Field(strict=True, max_length=64)]] = Field(default=None, description="Group label for dashboard organisation (e.g. team or product area).")
     owner_email: Optional[Annotated[str, Field(strict=True, max_length=190)]] = Field(default=None, description="Owner contact. Displayed verbatim; not used for auth.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "enabled", "rollout_pct", "rollout_percent", "rules", "salt", "stack", "title", "description", "folder", "group", "owner_email"]
+    __properties: ClassVar[List[str]] = ["name", "type", "enabled", "rollout_pct", "rollout_percent", "rules", "salt", "stack", "title", "description", "folder", "group", "owner_email"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -53,6 +54,16 @@ class CreateGateRequest(BaseModel):
 
         if not re.match(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$", value):
             raise ValueError(r"must validate the regular expression /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$/")
+        return value
+
+    @field_validator('type')
+    def type_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['targeting', 'holdout']):
+            raise ValueError("must be one of enum values ('targeting', 'holdout')")
         return value
 
     @field_validator('folder')
@@ -151,12 +162,13 @@ class CreateGateRequest(BaseModel):
 
         _obj = cls.model_validate({
             "name": obj.get("name"),
+            "type": obj.get("type") if obj.get("type") is not None else 'targeting',
             "enabled": obj.get("enabled") if obj.get("enabled") is not None else True,
             "rollout_pct": obj.get("rollout_pct") if obj.get("rollout_pct") is not None else 0,
             "rollout_percent": obj.get("rollout_percent"),
-            "rules": [ListGatesResponseDataInnerRulesInner.from_dict(_item) for _item in obj["rules"]] if obj.get("rules") is not None else None,
+            "rules": [GateApiRowRulesInner.from_dict(_item) for _item in obj["rules"]] if obj.get("rules") is not None else None,
             "salt": obj.get("salt"),
-            "stack": [ListGatesResponseDataInnerStackInner.from_dict(_item) for _item in obj["stack"]] if obj.get("stack") is not None else None,
+            "stack": [GateApiRowStackInner.from_dict(_item) for _item in obj["stack"]] if obj.get("stack") is not None else None,
             "title": obj.get("title"),
             "description": obj.get("description"),
             "folder": obj.get("folder"),

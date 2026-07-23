@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +30,8 @@ class UpdateI18nKeyRequest(BaseModel):
     """ # noqa: E501
     value: StrictStr = Field(description="New value for the key (the only overwrite path).")
     description: Optional[StrictStr] = Field(default=None, description="Optional human note to store with the key.")
-    __properties: ClassVar[List[str]] = ["value", "description"]
+    variables: Optional[Annotated[List[Annotated[str, Field(min_length=1, strict=True, max_length=64)]], Field(max_length=32)]] = Field(default=None, description="Explicit `{{var}}` placeholder names in the value. Omit to auto-derive them from the value.")
+    __properties: ClassVar[List[str]] = ["value", "description", "variables"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,7 +85,8 @@ class UpdateI18nKeyRequest(BaseModel):
 
         _obj = cls.model_validate({
             "value": obj.get("value"),
-            "description": obj.get("description")
+            "description": obj.get("description"),
+            "variables": obj.get("variables")
         })
         return _obj
 

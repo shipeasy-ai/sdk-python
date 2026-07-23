@@ -18,17 +18,19 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional
+from shipeasy.admin.generated.models.github_pr_link import GithubPrLink
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class LinkPrToOpsItemResponse(BaseModel):
     """
-    Response for the update / link-pr endpoints.
+    Response for `POST /api/admin/ops/{handle}/link-pr` — the item id and the resulting PR link.
     """ # noqa: E501
     id: StrictStr = Field(description="Item id that was updated.")
-    __properties: ClassVar[List[str]] = ["id"]
+    pr: Optional[GithubPrLink] = Field(description="The PR link now recorded on the item (`connectorData.github.pr`), or `null` after an unlink (`prNumber: null`).")
+    __properties: ClassVar[List[str]] = ["id", "pr"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -69,6 +71,14 @@ class LinkPrToOpsItemResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of pr
+        if self.pr:
+            _dict['pr'] = self.pr.to_dict()
+        # set to None if pr (nullable) is None
+        # and model_fields_set contains the field
+        if self.pr is None and "pr" in self.model_fields_set:
+            _dict['pr'] = None
+
         return _dict
 
     @classmethod
@@ -81,7 +91,8 @@ class LinkPrToOpsItemResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id")
+            "id": obj.get("id"),
+            "pr": GithubPrLink.from_dict(obj["pr"]) if obj.get("pr") is not None else None
         })
         return _obj
 

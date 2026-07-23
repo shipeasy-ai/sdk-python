@@ -28,7 +28,7 @@ class SetExperimentMetricsResponse(BaseModel):
     """
     SetExperimentMetricsResponse
     """ # noqa: E501
-    id: Optional[StrictStr] = Field(description="Optional gate name. Only callers that pass the gate are enrolled in the experiment.")
+    id: Optional[StrictStr] = Field(description="Optional gate name (a `targeting`-type flag). Only callers that pass the gate are enrolled in the experiment.")
     metrics: List[SetExperimentMetricsResponseMetricsInner]
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["id", "metrics"]

@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from shipeasy.admin.generated.models.get_current_project_response_module_translations import GetCurrentProjectResponseModuleTranslations
 from typing import Optional, Set
@@ -26,7 +26,7 @@ from pydantic_core import to_jsonable_python
 
 class GetCurrentProjectResponse(BaseModel):
     """
-    The project the caller's auth header resolves to. The shape is open — additional project fields may be present.
+    The project the caller's auth header resolves to. The shape is open — additional project fields may be present. Stripe billing internals (`stripeCustomerId`, the `stripeItemId*` family) are intentionally undocumented.
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque project id.")
     name: StrictStr = Field(description="Project name.")
@@ -44,16 +44,51 @@ class GetCurrentProjectResponse(BaseModel):
     module_gates: GetCurrentProjectResponseModuleTranslations = Field(alias="moduleGates")
     module_experiments: GetCurrentProjectResponseModuleTranslations = Field(alias="moduleExperiments")
     module_feedback: GetCurrentProjectResponseModuleTranslations = Field(alias="moduleFeedback")
+    min_sample_size: Optional[StrictInt] = Field(default=None, description="Verdict power guard — minimum users per arm before a ship/hold verdict.", alias="minSampleSize")
+    min_runtime_days: Optional[StrictInt] = Field(default=None, description="Minimum days an experiment must run before a verdict (peeking guard).", alias="minRuntimeDays")
+    default_power: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Target statistical power (1−β) feeding the realized-MDE calculation.", alias="defaultPower")
+    ci_confidence: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Confidence level for the interval surfaced on results.", alias="ciConfidence")
+    default_allocation_pct: Optional[StrictInt] = Field(default=None, description="Default traffic allocation (basis points) new experiments start with.", alias="defaultAllocationPct")
+    default_holdout_bp: StrictInt = Field(description="Default holdout carve-out (basis points) that seeds each new universe's holdout (0 = none).", alias="defaultHoldoutBp")
+    default_winsorize_pct: Optional[StrictInt] = Field(default=None, description="Default winsorization percentile new metrics start with.", alias="defaultWinsorizePct")
+    default_mei: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Default minimum effect of interest (relative, 0–1) new metrics start with, or null.", alias="defaultMei")
+    cuped_baseline_days: Optional[StrictInt] = Field(default=None, description="CUPED baseline window — days of pre-experiment history, frozen at start.", alias="cupedBaselineDays")
+    cuped_min_overlap: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="CUPED selection-bias guard — min share of users with a baseline, else skip.", alias="cupedMinOverlap")
+    cuped_min_baseline_users: Optional[StrictInt] = Field(default=None, description="CUPED — minimum users with a baseline before it runs at all.", alias="cupedMinBaselineUsers")
+    msprt_tau_mei_factor: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="mSPRT prior width — τ = minimum effect of interest × this factor.", alias="msprtTauMeiFactor")
+    msprt_tau_sd_factor: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="mSPRT fallback prior width — τ = this × control SD when no MEI is set.", alias="msprtTauSdFactor")
+    srm_threshold: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="SRM chi-square p-value below which the run is called invalid.", alias="srmThreshold")
+    slug: Optional[StrictStr] = Field(description="URL-safe project identifier used in app URLs and SDK config, or `null` if unset.")
+    logo: Optional[StrictStr] = Field(description="Cache-busted URL of the project logo (served from the admin logo route), or `null` when no logo is set.")
+    default_env: StrictStr = Field(description="Default environment new resources are scoped to.", alias="defaultEnv")
+    timezone: StrictStr = Field(description="IANA timezone the project's daily analysis runs in.")
+    stat_method: StrictStr = Field(description="Statistical method the experiment analyzer uses.", alias="statMethod")
+    sig_threshold: StrictStr = Field(description="Significance threshold (alpha) for experiment analysis, as a decimal string (e.g. `\"0.05\"`).", alias="sigThreshold")
+    auto_rollback: StrictBool = Field(description="Whether a failing guardrail auto-rolls back the experiment.", alias="autoRollback")
+    min_sample_days: StrictInt = Field(description="Minimum number of days an experiment must run before it can be called.", alias="minSampleDays")
+    module_user: GetCurrentProjectResponseModuleTranslations = Field(alias="moduleUser")
+    module_events: GetCurrentProjectResponseModuleTranslations = Field(alias="moduleEvents")
+    allow_public_tickets: GetCurrentProjectResponseModuleTranslations = Field(alias="allowPublicTickets")
+    stripe_subscription_id: Optional[StrictStr] = Field(description="Stripe subscription id backing the project's billing, or `null` when unsubscribed.", alias="stripeSubscriptionId")
+    scheduled_interval: Optional[StrictStr] = Field(description="Pending billing-interval change deferred to period end (only the annual→monthly downgrade), or `null` when no switch is pending.", alias="scheduledInterval")
+    spend_limit_enabled: GetCurrentProjectResponseModuleTranslations = Field(alias="spendLimitEnabled")
+    spend_limit_usd: Optional[StrictInt] = Field(description="Advisory monthly spend limit in whole USD, or `null` if unset.", alias="spendLimitUsd")
+    spend_alert_email: Optional[StrictStr] = Field(description="Email address the spend alert is sent to, or `null` if unset.", alias="spendAlertEmail")
+    default_assignee_pending_approval: Optional[StrictStr] = Field(description="Default person owner (user id) auto-assigned to new `pending_approval` feedback items, or `null` when unset.", alias="defaultAssigneePendingApproval")
+    default_assignee_connector_pending_approval: Optional[StrictStr] = Field(description="Default agent owner (connector id) auto-assigned to new `pending_approval` feedback items, or `null` when unset.", alias="defaultAssigneeConnectorPendingApproval")
+    default_assignee_open: Optional[StrictStr] = Field(description="Default person owner (user id) auto-assigned to new `open` feedback items, or `null` when unset.", alias="defaultAssigneeOpen")
+    default_assignee_connector_open: Optional[StrictStr] = Field(description="Default agent owner (connector id) auto-assigned to new `open` feedback items, or `null` when unset.", alias="defaultAssigneeConnectorOpen")
+    deleted_at: Optional[StrictStr] = Field(description="ISO-8601 timestamp the project was soft-deleted (purged after a 14-day grace period), or `null` when live.", alias="deletedAt")
     created_at: StrictStr = Field(description="ISO-8601 timestamp of project creation.", alias="createdAt")
     updated_at: StrictStr = Field(description="ISO-8601 timestamp of last update.", alias="updatedAt")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "name", "domain", "ownerEmail", "plan", "status", "subscriptionStatus", "billingInterval", "currentPeriodEnd", "trialEndsAt", "cancelAtPeriodEnd", "moduleTranslations", "moduleConfigs", "moduleGates", "moduleExperiments", "moduleFeedback", "createdAt", "updatedAt"]
+    __properties: ClassVar[List[str]] = ["id", "name", "domain", "ownerEmail", "plan", "status", "subscriptionStatus", "billingInterval", "currentPeriodEnd", "trialEndsAt", "cancelAtPeriodEnd", "moduleTranslations", "moduleConfigs", "moduleGates", "moduleExperiments", "moduleFeedback", "minSampleSize", "minRuntimeDays", "defaultPower", "ciConfidence", "defaultAllocationPct", "defaultHoldoutBp", "defaultWinsorizePct", "defaultMei", "cupedBaselineDays", "cupedMinOverlap", "cupedMinBaselineUsers", "msprtTauMeiFactor", "msprtTauSdFactor", "srmThreshold", "slug", "logo", "defaultEnv", "timezone", "statMethod", "sigThreshold", "autoRollback", "minSampleDays", "moduleUser", "moduleEvents", "allowPublicTickets", "stripeSubscriptionId", "scheduledInterval", "spendLimitEnabled", "spendLimitUsd", "spendAlertEmail", "defaultAssigneePendingApproval", "defaultAssigneeConnectorPendingApproval", "defaultAssigneeOpen", "defaultAssigneeConnectorOpen", "deletedAt", "createdAt", "updatedAt"]
 
     @field_validator('plan')
     def plan_validate_enum(cls, value):
         """Validates the enum"""
-        if value not in set(['free', 'paid']):
-            raise ValueError("must be one of enum values ('free', 'paid')")
+        if value not in set(['free', 'pro', 'business', 'enterprise']):
+            raise ValueError("must be one of enum values ('free', 'pro', 'business', 'enterprise')")
         return value
 
     @field_validator('status')
@@ -66,6 +101,30 @@ class GetCurrentProjectResponse(BaseModel):
     @field_validator('billing_interval')
     def billing_interval_validate_enum(cls, value):
         """Validates the enum"""
+        if value not in set(['monthly', 'annual']):
+            raise ValueError("must be one of enum values ('monthly', 'annual')")
+        return value
+
+    @field_validator('default_env')
+    def default_env_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['dev', 'staging', 'prod']):
+            raise ValueError("must be one of enum values ('dev', 'staging', 'prod')")
+        return value
+
+    @field_validator('stat_method')
+    def stat_method_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['sequential', 'fixed', 'bayesian']):
+            raise ValueError("must be one of enum values ('sequential', 'fixed', 'bayesian')")
+        return value
+
+    @field_validator('scheduled_interval')
+    def scheduled_interval_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
         if value not in set(['monthly', 'annual']):
             raise ValueError("must be one of enum values ('monthly', 'annual')")
         return value
@@ -126,6 +185,18 @@ class GetCurrentProjectResponse(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of module_feedback
         if self.module_feedback:
             _dict['moduleFeedback'] = self.module_feedback.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of module_user
+        if self.module_user:
+            _dict['moduleUser'] = self.module_user.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of module_events
+        if self.module_events:
+            _dict['moduleEvents'] = self.module_events.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of allow_public_tickets
+        if self.allow_public_tickets:
+            _dict['allowPublicTickets'] = self.allow_public_tickets.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of spend_limit_enabled
+        if self.spend_limit_enabled:
+            _dict['spendLimitEnabled'] = self.spend_limit_enabled.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -145,6 +216,66 @@ class GetCurrentProjectResponse(BaseModel):
         # and model_fields_set contains the field
         if self.trial_ends_at is None and "trial_ends_at" in self.model_fields_set:
             _dict['trialEndsAt'] = None
+
+        # set to None if default_mei (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_mei is None and "default_mei" in self.model_fields_set:
+            _dict['defaultMei'] = None
+
+        # set to None if slug (nullable) is None
+        # and model_fields_set contains the field
+        if self.slug is None and "slug" in self.model_fields_set:
+            _dict['slug'] = None
+
+        # set to None if logo (nullable) is None
+        # and model_fields_set contains the field
+        if self.logo is None and "logo" in self.model_fields_set:
+            _dict['logo'] = None
+
+        # set to None if stripe_subscription_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.stripe_subscription_id is None and "stripe_subscription_id" in self.model_fields_set:
+            _dict['stripeSubscriptionId'] = None
+
+        # set to None if scheduled_interval (nullable) is None
+        # and model_fields_set contains the field
+        if self.scheduled_interval is None and "scheduled_interval" in self.model_fields_set:
+            _dict['scheduledInterval'] = None
+
+        # set to None if spend_limit_usd (nullable) is None
+        # and model_fields_set contains the field
+        if self.spend_limit_usd is None and "spend_limit_usd" in self.model_fields_set:
+            _dict['spendLimitUsd'] = None
+
+        # set to None if spend_alert_email (nullable) is None
+        # and model_fields_set contains the field
+        if self.spend_alert_email is None and "spend_alert_email" in self.model_fields_set:
+            _dict['spendAlertEmail'] = None
+
+        # set to None if default_assignee_pending_approval (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_assignee_pending_approval is None and "default_assignee_pending_approval" in self.model_fields_set:
+            _dict['defaultAssigneePendingApproval'] = None
+
+        # set to None if default_assignee_connector_pending_approval (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_assignee_connector_pending_approval is None and "default_assignee_connector_pending_approval" in self.model_fields_set:
+            _dict['defaultAssigneeConnectorPendingApproval'] = None
+
+        # set to None if default_assignee_open (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_assignee_open is None and "default_assignee_open" in self.model_fields_set:
+            _dict['defaultAssigneeOpen'] = None
+
+        # set to None if default_assignee_connector_open (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_assignee_connector_open is None and "default_assignee_connector_open" in self.model_fields_set:
+            _dict['defaultAssigneeConnectorOpen'] = None
+
+        # set to None if deleted_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.deleted_at is None and "deleted_at" in self.model_fields_set:
+            _dict['deletedAt'] = None
 
         return _dict
 
@@ -174,6 +305,41 @@ class GetCurrentProjectResponse(BaseModel):
             "moduleGates": GetCurrentProjectResponseModuleTranslations.from_dict(obj["moduleGates"]) if obj.get("moduleGates") is not None else None,
             "moduleExperiments": GetCurrentProjectResponseModuleTranslations.from_dict(obj["moduleExperiments"]) if obj.get("moduleExperiments") is not None else None,
             "moduleFeedback": GetCurrentProjectResponseModuleTranslations.from_dict(obj["moduleFeedback"]) if obj.get("moduleFeedback") is not None else None,
+            "minSampleSize": obj.get("minSampleSize"),
+            "minRuntimeDays": obj.get("minRuntimeDays"),
+            "defaultPower": obj.get("defaultPower"),
+            "ciConfidence": obj.get("ciConfidence"),
+            "defaultAllocationPct": obj.get("defaultAllocationPct"),
+            "defaultHoldoutBp": obj.get("defaultHoldoutBp"),
+            "defaultWinsorizePct": obj.get("defaultWinsorizePct"),
+            "defaultMei": obj.get("defaultMei"),
+            "cupedBaselineDays": obj.get("cupedBaselineDays"),
+            "cupedMinOverlap": obj.get("cupedMinOverlap"),
+            "cupedMinBaselineUsers": obj.get("cupedMinBaselineUsers"),
+            "msprtTauMeiFactor": obj.get("msprtTauMeiFactor"),
+            "msprtTauSdFactor": obj.get("msprtTauSdFactor"),
+            "srmThreshold": obj.get("srmThreshold"),
+            "slug": obj.get("slug"),
+            "logo": obj.get("logo"),
+            "defaultEnv": obj.get("defaultEnv"),
+            "timezone": obj.get("timezone"),
+            "statMethod": obj.get("statMethod"),
+            "sigThreshold": obj.get("sigThreshold"),
+            "autoRollback": obj.get("autoRollback"),
+            "minSampleDays": obj.get("minSampleDays"),
+            "moduleUser": GetCurrentProjectResponseModuleTranslations.from_dict(obj["moduleUser"]) if obj.get("moduleUser") is not None else None,
+            "moduleEvents": GetCurrentProjectResponseModuleTranslations.from_dict(obj["moduleEvents"]) if obj.get("moduleEvents") is not None else None,
+            "allowPublicTickets": GetCurrentProjectResponseModuleTranslations.from_dict(obj["allowPublicTickets"]) if obj.get("allowPublicTickets") is not None else None,
+            "stripeSubscriptionId": obj.get("stripeSubscriptionId"),
+            "scheduledInterval": obj.get("scheduledInterval"),
+            "spendLimitEnabled": GetCurrentProjectResponseModuleTranslations.from_dict(obj["spendLimitEnabled"]) if obj.get("spendLimitEnabled") is not None else None,
+            "spendLimitUsd": obj.get("spendLimitUsd"),
+            "spendAlertEmail": obj.get("spendAlertEmail"),
+            "defaultAssigneePendingApproval": obj.get("defaultAssigneePendingApproval"),
+            "defaultAssigneeConnectorPendingApproval": obj.get("defaultAssigneeConnectorPendingApproval"),
+            "defaultAssigneeOpen": obj.get("defaultAssigneeOpen"),
+            "defaultAssigneeConnectorOpen": obj.get("defaultAssigneeConnectorOpen"),
+            "deletedAt": obj.get("deletedAt"),
             "createdAt": obj.get("createdAt"),
             "updatedAt": obj.get("updatedAt")
         })

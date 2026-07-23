@@ -354,6 +354,7 @@ class APIKeysApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -377,6 +378,8 @@ class APIKeysApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -403,6 +406,7 @@ class APIKeysApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -435,6 +439,7 @@ class APIKeysApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -458,6 +463,8 @@ class APIKeysApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -484,6 +491,7 @@ class APIKeysApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -516,6 +524,7 @@ class APIKeysApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Page size (1–500). Defaults to 100.")] = None,
         cursor: Annotated[Optional[StrictStr], Field(description="Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -539,6 +548,8 @@ class APIKeysApi:
         :type limit: int
         :param cursor: Opaque cursor returned in the previous page's `next_cursor`. Omit for the first page.
         :type cursor: str
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -565,6 +576,7 @@ class APIKeysApi:
             x_project_id=x_project_id,
             limit=limit,
             cursor=cursor,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -592,6 +604,7 @@ class APIKeysApi:
         x_project_id,
         limit,
         cursor,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -621,6 +634,10 @@ class APIKeysApi:
         if cursor is not None:
             
             _query_params.append(('cursor', cursor))
+            
+        if q is not None:
+            
+            _query_params.append(('q', q))
             
         # process the header parameters
         if x_project_id is not None:
@@ -664,7 +681,7 @@ class APIKeysApi:
     @validate_call
     def revoke_key(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque key id (UUID) returned by `create` / `list`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque key id (UUID) returned by `create` / `list`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -741,7 +758,7 @@ class APIKeysApi:
     @validate_call
     def revoke_key_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque key id (UUID) returned by `create` / `list`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque key id (UUID) returned by `create` / `list`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -818,7 +835,7 @@ class APIKeysApi:
     @validate_call
     def revoke_key_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque key id (UUID) returned by `create` / `list`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque key id (UUID) returned by `create` / `list`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,

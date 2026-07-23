@@ -20,15 +20,15 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.experiment_api_row_groups_inner import ExperimentApiRowGroupsInner
 from shipeasy.admin.generated.models.experiment_inline_metric import ExperimentInlineMetric
-from shipeasy.admin.generated.models.list_experiments_response_data_inner_groups_inner import ListExperimentsResponseDataInnerGroupsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class UpdateExperimentRequest(BaseModel):
     """
-    Body for `PATCH /api/admin/experiments/{id}`. Partial — only supplied fields change. `allocation_pct`, `groups`, `salt`, `universe`, `params` are immutable while the experiment is running (stop first).
+    Body for `PATCH /api/admin/experiments/{id}`. Partial — only supplied fields change. `allocation_pct`, `salt`, `universe` and existing group weights/values are immutable while running (stop first); a new variant may still be appended into the reserved tail.
     """ # noqa: E501
     name: Optional[Annotated[str, Field(strict=True, max_length=128)]] = Field(default=None, description="Stable experiment key. Single segment or `folder.name` (a-z, 0-9, `_`/`-`; max 128 chars). Used by SDKs as `Shipeasy.getExperiment(user, '<name>')`. Immutable after create.")
     description: Optional[Annotated[str, Field(strict=True, max_length=2000)]] = None
@@ -39,12 +39,14 @@ class UpdateExperimentRequest(BaseModel):
     bucket_by: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=128)]] = Field(default=None, description="User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
     targeting_gate: Optional[StrictStr] = None
+    holdout_gate: Optional[StrictStr] = Field(default=None, description="Per-experiment holdout gate — the name of a `holdout`-type flag, or `null` to clear. A caller the flag passes is held out.")
     allocation_pct: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="Basis-points allocation (0–10000). Use `allocation_percent` (0–100) for percent. Immutable while the experiment is running.")
+    reserved_headroom: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="Basis points of the split kept empty for appended variants. Group weights must sum to `10000 − reserved_headroom`. May be shrunk (never grown into existing weights) while running when appending a variant.")
     allocation_percent: Optional[Union[Annotated[float, Field(le=100, strict=True, ge=0)], Annotated[int, Field(le=100, strict=True, ge=0)]]] = Field(default=None, description="Allocation as a **percentage** (0–100). Friendlier alias for `allocation_pct`; converted to basis points server-side. Wins over `allocation_pct` if both are supplied. Immutable while running.")
     salt: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=64)]] = Field(default=None, description="Hash salt. Immutable while running.")
     universe: Optional[StrictStr] = Field(default=None, description="New universe name. Immutable while running. Returns `422` if the universe doesn't exist.")
-    params: Optional[Dict[str, StrictStr]] = Field(default=None, description="Map of param-name → scalar type. Defines the shape of `groups[].params`. Example: `{ headline: 'string', show_cta: 'bool' }`.")
-    groups: Optional[Annotated[List[ListExperimentsResponseDataInnerGroupsInner], Field(min_length=2)]] = Field(default=None, description="Replacement groups. Weights must sum to 10000. Immutable while running.")
+    params: Optional[Dict[str, StrictStr]] = Field(default=None, description="**Deprecated** — the universe owns the config schema (`param_schema`). Retained for back-compat. Map of param-name → scalar type.")
+    groups: Optional[Annotated[List[ExperimentApiRowGroupsInner], Field(min_length=2)]] = Field(default=None, description="Replacement groups. Weights must sum to `10000 − reserved_headroom`. Existing weights/values are immutable while running; a new variant may be appended into the reserved tail.")
     significance_threshold: Optional[Union[Annotated[float, Field(le=0.5, strict=True, ge=0.00010)], Annotated[int, Field(le=0, strict=True, ge=1)]]] = None
     min_runtime_days: Optional[Annotated[int, Field(le=365, strict=True, ge=0)]] = None
     min_sample_size: Optional[Annotated[int, Field(le=9007199254740991, strict=True, ge=1)]] = None
@@ -52,7 +54,7 @@ class UpdateExperimentRequest(BaseModel):
     goal_metric: Optional[ExperimentInlineMetric] = Field(default=None, description="Replaces the goal metric — DSL `query` or `event` (+`aggregation`/`value`) the server compiles (event auto-upserted).")
     guardrail_metrics: Optional[Annotated[List[ExperimentInlineMetric], Field(max_length=10)]] = Field(default=None, description="Replaces the guardrail set wholesale (event auto-upserted per entry).")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "description", "hypothesis", "tag", "owner_email", "audience", "bucket_by", "folder", "targeting_gate", "allocation_pct", "allocation_percent", "salt", "universe", "params", "groups", "significance_threshold", "min_runtime_days", "min_sample_size", "sequential_testing", "goal_metric", "guardrail_metrics"]
+    __properties: ClassVar[List[str]] = ["name", "description", "hypothesis", "tag", "owner_email", "audience", "bucket_by", "folder", "targeting_gate", "holdout_gate", "allocation_pct", "reserved_headroom", "allocation_percent", "salt", "universe", "params", "groups", "significance_threshold", "min_runtime_days", "min_sample_size", "sequential_testing", "goal_metric", "guardrail_metrics"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -207,6 +209,11 @@ class UpdateExperimentRequest(BaseModel):
         if self.targeting_gate is None and "targeting_gate" in self.model_fields_set:
             _dict['targeting_gate'] = None
 
+        # set to None if holdout_gate (nullable) is None
+        # and model_fields_set contains the field
+        if self.holdout_gate is None and "holdout_gate" in self.model_fields_set:
+            _dict['holdout_gate'] = None
+
         return _dict
 
     @classmethod
@@ -228,12 +235,14 @@ class UpdateExperimentRequest(BaseModel):
             "bucket_by": obj.get("bucket_by"),
             "folder": obj.get("folder"),
             "targeting_gate": obj.get("targeting_gate"),
+            "holdout_gate": obj.get("holdout_gate"),
             "allocation_pct": obj.get("allocation_pct"),
+            "reserved_headroom": obj.get("reserved_headroom"),
             "allocation_percent": obj.get("allocation_percent"),
             "salt": obj.get("salt"),
             "universe": obj.get("universe"),
             "params": obj.get("params"),
-            "groups": [ListExperimentsResponseDataInnerGroupsInner.from_dict(_item) for _item in obj["groups"]] if obj.get("groups") is not None else None,
+            "groups": [ExperimentApiRowGroupsInner.from_dict(_item) for _item in obj["groups"]] if obj.get("groups") is not None else None,
             "significance_threshold": obj.get("significance_threshold"),
             "min_runtime_days": obj.get("min_runtime_days"),
             "min_sample_size": obj.get("min_sample_size"),

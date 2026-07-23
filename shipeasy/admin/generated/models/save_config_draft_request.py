@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, ClassVar, Dict, List
 from shipeasy.admin.generated.models.env import Env
 from typing import Optional, Set
 from typing_extensions import Self
@@ -29,7 +29,7 @@ class SaveConfigDraftRequest(BaseModel):
     Body for `PUT /api/admin/configs/{id}/drafts`. Stages a value for a single env without publishing.
     """ # noqa: E501
     env: Env
-    value: Optional[Any]
+    value: Dict[str, Any] = Field(description="Draft value to stage on `env`. Validated against the config's current schema.")
     __properties: ClassVar[List[str]] = ["env", "value"]
 
     model_config = ConfigDict(
@@ -71,11 +71,6 @@ class SaveConfigDraftRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if value (nullable) is None
-        # and model_fields_set contains the field
-        if self.value is None and "value" in self.model_fields_set:
-            _dict['value'] = None
-
         return _dict
 
     @classmethod

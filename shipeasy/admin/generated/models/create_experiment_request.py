@@ -20,8 +20,8 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.experiment_api_row_groups_inner import ExperimentApiRowGroupsInner
 from shipeasy.admin.generated.models.experiment_inline_metric import ExperimentInlineMetric
-from shipeasy.admin.generated.models.list_experiments_response_data_inner_groups_inner import ListExperimentsResponseDataInnerGroupsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -39,12 +39,14 @@ class CreateExperimentRequest(BaseModel):
     bucket_by: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=128)]] = Field(default=None, description="User-attribute name used as the bucketing key — e.g. `user_id` (default), `session_id`, `device_id`, or a custom attribute like `company_id` to keep a whole org on one variant. Defaults to `user_id` when omitted.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
     universe: Annotated[str, Field(min_length=1, strict=True)] = Field(description="Name of an existing universe in the project. Returns `422` if the universe doesn't exist.")
-    targeting_gate: Optional[StrictStr] = Field(default=None, description="Optional gate name. Only callers that pass the gate are enrolled in the experiment.")
-    allocation_pct: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=0, description="Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Use `allocation_percent` (0–100) below to think in percent. Immutable while the experiment is running.")
+    targeting_gate: Optional[StrictStr] = Field(default=None, description="Optional gate name (a `targeting`-type flag). Only callers that pass the gate are enrolled in the experiment.")
+    holdout_gate: Optional[StrictStr] = Field(default=None, description="Optional gate name (a `targeting`-type flag). Only callers that pass the gate are enrolled in the experiment.")
+    allocation_pct: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=0, description="Share of the (gated) audience allocated to the experiment, in basis points (0–10000 = 0%–100%). `0` = unallocated. Under pooled assignment this is the size of the universe-pool slice claimed. Use `allocation_percent` (0–100) below to think in percent. Immutable while the experiment is running.")
     allocation_percent: Optional[Union[Annotated[float, Field(le=100, strict=True, ge=0)], Annotated[int, Field(le=100, strict=True, ge=0)]]] = Field(default=None, description="Allocation as a **percentage** (0–100, fractional ok). Friendlier alias for `allocation_pct`; converted to basis points server-side (e.g. `50` = 5000 bp). If both are set, `allocation_percent` wins.")
+    reserved_headroom: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="Basis points of this experiment's split kept empty (0–10000) so a new variant can be appended into it while running without reshuffling. Group weights must sum to `10000 − reserved_headroom`. Defaults to the universe's `recommended_headroom` when omitted.")
     salt: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=64)]] = Field(default=None, description="Hash salt for bucketing. Auto-generated if omitted. Immutable while running.")
-    params: Optional[Dict[str, StrictStr]] = Field(default=None, description="Map of param-name → scalar type. Defines the shape of `groups[].params`. Example: `{ headline: 'string', show_cta: 'bool' }`.")
-    groups: Annotated[List[ListExperimentsResponseDataInnerGroupsInner], Field(min_length=2)] = Field(description="Two or more variants. Weights must sum to exactly 10000 (100%). Immutable while running.")
+    params: Optional[Dict[str, StrictStr]] = Field(default=None, description="**Deprecated** — the universe now owns the config schema (`param_schema`). Retained for back-compat; new experiments should leave this empty and declare params on the universe. Map of param-name → scalar type.")
+    groups: Annotated[List[ExperimentApiRowGroupsInner], Field(min_length=2)] = Field(description="Two or more variants. Weights must sum to `10000 − reserved_headroom`. Existing weights are immutable while running, but a new variant may be appended into the reserved tail.")
     significance_threshold: Optional[Union[Annotated[float, Field(le=0.5, strict=True, ge=0.00010)], Annotated[int, Field(le=0, strict=True, ge=1)]]] = Field(default=0.05, description="p-value cutoff used by the analysis pass. Defaults to `0.05`. Values other than 0.05 require Pro plan or higher.")
     min_runtime_days: Optional[Annotated[int, Field(le=365, strict=True, ge=0)]] = Field(default=0, description="Minimum days the experiment must run before results are considered conclusive.")
     min_sample_size: Optional[Annotated[int, Field(le=9007199254740991, strict=True, ge=1)]] = Field(default=100, description="Minimum exposures per group before results are considered conclusive.")
@@ -52,7 +54,7 @@ class CreateExperimentRequest(BaseModel):
     goal_metric: Optional[ExperimentInlineMetric] = Field(default=None, description="Single goal metric defined inline — either a DSL `query` or an `event` (+`aggregation`/`value`) the server compiles. Attaching one is required before the experiment can be started. The underlying event is auto-created if missing.")
     guardrail_metrics: Optional[Annotated[List[ExperimentInlineMetric], Field(max_length=10)]] = Field(default=None, description="Up to 10 guardrail metrics defined inline. Each is upserted (event + metric) and attached with role=guardrail.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "description", "hypothesis", "tag", "owner_email", "audience", "bucket_by", "folder", "universe", "targeting_gate", "allocation_pct", "allocation_percent", "salt", "params", "groups", "significance_threshold", "min_runtime_days", "min_sample_size", "sequential_testing", "goal_metric", "guardrail_metrics"]
+    __properties: ClassVar[List[str]] = ["name", "description", "hypothesis", "tag", "owner_email", "audience", "bucket_by", "folder", "universe", "targeting_gate", "holdout_gate", "allocation_pct", "allocation_percent", "reserved_headroom", "salt", "params", "groups", "significance_threshold", "min_runtime_days", "min_sample_size", "sequential_testing", "goal_metric", "guardrail_metrics"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -204,6 +206,11 @@ class CreateExperimentRequest(BaseModel):
         if self.targeting_gate is None and "targeting_gate" in self.model_fields_set:
             _dict['targeting_gate'] = None
 
+        # set to None if holdout_gate (nullable) is None
+        # and model_fields_set contains the field
+        if self.holdout_gate is None and "holdout_gate" in self.model_fields_set:
+            _dict['holdout_gate'] = None
+
         return _dict
 
     @classmethod
@@ -226,11 +233,13 @@ class CreateExperimentRequest(BaseModel):
             "folder": obj.get("folder"),
             "universe": obj.get("universe"),
             "targeting_gate": obj.get("targeting_gate"),
+            "holdout_gate": obj.get("holdout_gate"),
             "allocation_pct": obj.get("allocation_pct") if obj.get("allocation_pct") is not None else 0,
             "allocation_percent": obj.get("allocation_percent"),
+            "reserved_headroom": obj.get("reserved_headroom"),
             "salt": obj.get("salt"),
             "params": obj.get("params"),
-            "groups": [ListExperimentsResponseDataInnerGroupsInner.from_dict(_item) for _item in obj["groups"]] if obj.get("groups") is not None else None,
+            "groups": [ExperimentApiRowGroupsInner.from_dict(_item) for _item in obj["groups"]] if obj.get("groups") is not None else None,
             "significance_threshold": obj.get("significance_threshold") if obj.get("significance_threshold") is not None else 0.05,
             "min_runtime_days": obj.get("min_runtime_days") if obj.get("min_runtime_days") is not None else 0,
             "min_sample_size": obj.get("min_sample_size") if obj.get("min_sample_size") is not None else 100,

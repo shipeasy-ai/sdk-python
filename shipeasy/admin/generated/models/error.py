@@ -26,12 +26,16 @@ from pydantic_core import to_jsonable_python
 
 class Error(BaseModel):
     """
-    Uniform error envelope returned by every admin endpoint on a non-2xx status. `error` is the human-readable message; `code` is the stable machine code (present whenever the failure maps to a catalogued `ErrorCode`); `detail` carries extra context (validation paths, conflicting field).
+    Uniform error envelope returned by every admin endpoint on a non-2xx status. `error` is the human-readable message; `code` is the stable machine code (present whenever the failure maps to a catalogued `ErrorCode`); `detail` carries extra context (validation paths, conflicting field); `fields` maps each failing input field to its own message; `instructions` is optional actionable guidance for resolving the error; `schema` echoes back the expected JSON Schema when a value failed schema validation.
     """ # noqa: E501
     error: StrictStr = Field(description="Human-readable error message.")
     code: Optional[ErrorCode] = None
     detail: Optional[StrictStr] = Field(default=None, description="Extra context (validation details, conflicting field, referenced row).")
-    __properties: ClassVar[List[str]] = ["error", "code", "detail"]
+    fields: Optional[Dict[str, StrictStr]] = Field(default=None, description="Per-field validation messages, keyed by the submitted field's path (dot-notation for nested fields, e.g. `groups.0.weight`). Present when structural validation failed on one or more specific input fields, so a client form can attach each message to its own input instead of collapsing everything into one banner.")
+    instructions: Optional[StrictStr] = Field(default=None, description="Actionable guidance for resolving this error — what to check or change next.")
+    var_schema: Optional[Dict[str, Any]] = Field(default=None, description="The expected JSON Schema (draft 2020-12) the submitted value must satisfy. Returned only when a value failed schema validation (e.g. a config `value` that does not match its config's saved schema), so the caller can correct the value and retry without re-fetching.", alias="schema")
+    additional_properties: Dict[str, Any] = {}
+    __properties: ClassVar[List[str]] = ["error", "code", "detail", "fields", "instructions", "schema"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -63,8 +67,10 @@ class Error(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
+        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
+            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -72,6 +78,11 @@ class Error(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # puts key-value pairs in additional_properties in the top level
+        if self.additional_properties is not None:
+            for _key, _value in self.additional_properties.items():
+                _dict[_key] = _value
+
         return _dict
 
     @classmethod
@@ -86,8 +97,16 @@ class Error(BaseModel):
         _obj = cls.model_validate({
             "error": obj.get("error"),
             "code": obj.get("code"),
-            "detail": obj.get("detail")
+            "detail": obj.get("detail"),
+            "fields": obj.get("fields"),
+            "instructions": obj.get("instructions"),
+            "schema": obj.get("schema")
         })
+        # store additional fields in additional_properties
+        for _key in obj.keys():
+            if _key not in cls.__properties:
+                _obj.additional_properties[_key] = obj.get(_key)
+
         return _obj
 
 

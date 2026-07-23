@@ -26,12 +26,12 @@ from pydantic_core import to_jsonable_python
 
 class NotifyOpsRequest(BaseModel):
     """
-    Body for `POST /api/admin/notifications`.
+    Body for `POST /api/admin/notifications`. In `title`, `summary`, and each step, reference admin entities inline with tokens — `#42` (feedback item), `@gate:<name>` (alias `@flag:`), `@experiment:<name>` (`@exp:`), `@config:<name>`, `@killswitch:<name>` (`@ks:`), `@metric:<name>`, `@universe:<name>`, `@alert:<name>` — where `<name>` is the entity's immutable name/slug (e.g. `features.checkout`). The dashboard renders each token as a live hover chip deep-linking to the entity; tokens degrade to plain text elsewhere, so they're always safe to use.
     """ # noqa: E501
     title: Annotated[str, Field(min_length=1, strict=True, max_length=200)] = Field(description="One-line headline of what's blocked.")
-    summary: Annotated[str, Field(min_length=1, strict=True, max_length=280)] = Field(description="One sentence: why it can't be fixed in code.")
-    steps: Optional[List[StrictStr]] = Field(default=None, description="Ordered steps the human should take to unblock.")
-    href: Optional[StrictStr] = Field(default=None, description="Dashboard-relative deep link to the related item.")
+    summary: Annotated[str, Field(min_length=1, strict=True, max_length=280)] = Field(description="One sentence: why it can't be fixed in code. Renders markdown.")
+    steps: Optional[List[StrictStr]] = Field(default=None, description="Ordered steps the human should take to unblock — self-contained (the human reads only this card, not the agent's transcript), 3–6 steps, each naming the exact file, command, env var, or dashboard page. Renders markdown.")
+    href: Optional[StrictStr] = Field(default=None, description="Dashboard-relative deep link to the related item. `null` is accepted and treated as \"no link\".")
     dedupe_key: Optional[StrictStr] = Field(default=None, description="Stable per-escalation key (e.g. `feedback:7`) so re-runs dedupe to one row.", alias="dedupeKey")
     __properties: ClassVar[List[str]] = ["title", "summary", "steps", "href", "dedupeKey"]
 
@@ -74,6 +74,11 @@ class NotifyOpsRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if href (nullable) is None
+        # and model_fields_set contains the field
+        if self.href is None and "href" in self.model_fields_set:
+            _dict['href'] = None
+
         return _dict
 
     @classmethod

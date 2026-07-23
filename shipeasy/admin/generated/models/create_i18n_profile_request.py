@@ -17,20 +17,29 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Any, ClassVar, Dict, List
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class CreateI18nProfileRequest(BaseModel):
     """
-    Body for `POST /api/admin/i18n/profiles`. Only `name` is required.
+    Body for `POST /api/admin/i18n/profiles`. Only `name` is accepted.
     """ # noqa: E501
-    name: StrictStr = Field(description="Profile handle to create, e.g. `en:prod` or `fr:prod`.")
-    locales: Optional[List[StrictStr]] = Field(default=None, description="Locales this profile carries, e.g. `[\"fr\", \"fr-CA\"]`. Defaults to `[\"en\"]`.")
-    default_locale: Optional[StrictStr] = Field(default=None, description="Default locale for the profile. Defaults to the first entry of `locales`.")
-    __properties: ClassVar[List[str]] = ["name", "locales", "default_locale"]
+    name: Annotated[str, Field(min_length=1, strict=True, max_length=64)] = Field(description="Profile handle to create, e.g. `en:prod` or `fr:prod`. Lowercase alphanumeric start, then letters/digits/`_`/`:`/`.`/`-`; max 64 chars. The locale is encoded in the handle, so no separate locale fields are accepted.")
+    __properties: ClassVar[List[str]] = ["name"]
+
+    @field_validator('name')
+    def name_validate_regular_expression(cls, value):
+        """Validates the regular expression"""
+        if not isinstance(value, str):
+            value = str(value)
+
+        if not re.match(r"^[a-z0-9][a-z0-9_:.-]*$", value):
+            raise ValueError(r"must validate the regular expression /^[a-z0-9][a-z0-9_:.-]*$/")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,9 +92,7 @@ class CreateI18nProfileRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "name": obj.get("name"),
-            "locales": obj.get("locales"),
-            "default_locale": obj.get("default_locale")
+            "name": obj.get("name")
         })
         return _obj
 

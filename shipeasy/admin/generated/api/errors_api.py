@@ -45,7 +45,7 @@ class ErrorsApi:
     @validate_call
     def file_error_ticket(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -62,7 +62,7 @@ class ErrorsApi:
     ) -> FileErrorTicketResponse:
         """File a feedback ticket for an error
 
-        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via `/shipeasy:ops:work`.
+        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via the `shipeasy-ops-work` skill.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -122,7 +122,7 @@ class ErrorsApi:
     @validate_call
     def file_error_ticket_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -139,7 +139,7 @@ class ErrorsApi:
     ) -> ApiResponse[FileErrorTicketResponse]:
         """File a feedback ticket for an error
 
-        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via `/shipeasy:ops:work`.
+        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via the `shipeasy-ops-work` skill.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -199,7 +199,7 @@ class ErrorsApi:
     @validate_call
     def file_error_ticket_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -216,7 +216,7 @@ class ErrorsApi:
     ) -> RESTResponseType:
         """File a feedback ticket for an error
 
-        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via `/shipeasy:ops:work`.
+        Files a feedback ticket (`type: \"error\"`) for a tracked production error — the \"File an issue\" action on the errors dashboard. The ticket carries the error's fingerprint as its `sourceRef` so it dedupes against, and joins back to, the tracked error. Takes no body.  Idempotent: if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), that existing ticket is returned instead of creating a duplicate. Returns `404` if the error does not exist.  **Use case:** Promote a noisy tracked error into an actionable ticket in the ops queue (the same item the worker auto-files once an error crosses its occurrence threshold), so it can be triaged, assigned, and burned down via the `shipeasy-ops-work` skill.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -339,7 +339,7 @@ class ErrorsApi:
     @validate_call
     def get_error(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -356,7 +356,7 @@ class ErrorsApi:
     ) -> ErrorRecord:
         """Get a tracked error
 
-        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence. Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or to render the detail panel behind a row in the errors list.
+        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence, plus `occurrences` — the sampled per-instance detail rows behind the issue (newest first; exhaustive while the issue is small, thinned at volume, capped at 100). Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or walk `occurrences` to see how the failing message/stack varies across instances.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -416,7 +416,7 @@ class ErrorsApi:
     @validate_call
     def get_error_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -433,7 +433,7 @@ class ErrorsApi:
     ) -> ApiResponse[ErrorRecord]:
         """Get a tracked error
 
-        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence. Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or to render the detail panel behind a row in the errors list.
+        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence, plus `occurrences` — the sampled per-instance detail rows behind the issue (newest first; exhaustive while the issue is small, thinned at volume, capped at 100). Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or walk `occurrences` to see how the failing message/stack varies across instances.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -493,7 +493,7 @@ class ErrorsApi:
     @validate_call
     def get_error_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -510,7 +510,7 @@ class ErrorsApi:
     ) -> RESTResponseType:
         """Get a tracked error
 
-        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence. Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or to render the detail panel behind a row in the errors list.
+        Returns a single tracked error by its id, including the latest occurrence's stack, extras, and consequence, plus `occurrences` — the sampled per-instance detail rows behind the issue (newest first; exhaustive while the issue is small, thinned at volume, capped at 100). Returns `404` if no such error exists in the project.  **Use case:** Drill into one issue — fetch its full stack and `seenUrls` to investigate, or walk `occurrences` to see how the failing message/stack varies across instances.
 
         :param id: Stable opaque error id (`err_…`). (required)
         :type id: str
@@ -633,7 +633,7 @@ class ErrorsApi:
     @validate_call
     def get_error_series(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         error_series_request: ErrorSeriesRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -714,7 +714,7 @@ class ErrorsApi:
     @validate_call
     def get_error_series_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         error_series_request: ErrorSeriesRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -795,7 +795,7 @@ class ErrorsApi:
     @validate_call
     def get_error_series_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         error_series_request: ErrorSeriesRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1283,9 +1283,303 @@ class ErrorsApi:
 
 
     @validate_call
+    def resolve_error(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ErrorRecord:
+        """Resolve a tracked error
+
+        Marks one tracked error `resolved` — the single-purpose \"close out\" action. Takes no body; it is `PATCH /api/admin/errors/{id}` pinned to `{ \"status\": \"resolved\" }`, exposed so tooling can close an error without being handed the full open/resolved/ignored status machine. A resolved error reopens automatically (ingestion-side) if it recurs, so resolving is always safe: a premature resolve un-does itself on the next occurrence. Returns the updated row; `404` if the error does not exist.  **Use case:** Close out a tracked error from an agent or script once its fix has shipped — e.g. after a deploy, resolve every open issue the change addressed and let recurrence reopen anything that wasn't actually fixed.
+
+        :param id: Stable opaque error id (`err_…`). (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resolve_error_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ErrorRecord",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def resolve_error_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ErrorRecord]:
+        """Resolve a tracked error
+
+        Marks one tracked error `resolved` — the single-purpose \"close out\" action. Takes no body; it is `PATCH /api/admin/errors/{id}` pinned to `{ \"status\": \"resolved\" }`, exposed so tooling can close an error without being handed the full open/resolved/ignored status machine. A resolved error reopens automatically (ingestion-side) if it recurs, so resolving is always safe: a premature resolve un-does itself on the next occurrence. Returns the updated row; `404` if the error does not exist.  **Use case:** Close out a tracked error from an agent or script once its fix has shipped — e.g. after a deploy, resolve every open issue the change addressed and let recurrence reopen anything that wasn't actually fixed.
+
+        :param id: Stable opaque error id (`err_…`). (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resolve_error_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ErrorRecord",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def resolve_error_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Resolve a tracked error
+
+        Marks one tracked error `resolved` — the single-purpose \"close out\" action. Takes no body; it is `PATCH /api/admin/errors/{id}` pinned to `{ \"status\": \"resolved\" }`, exposed so tooling can close an error without being handed the full open/resolved/ignored status machine. A resolved error reopens automatically (ingestion-side) if it recurs, so resolving is always safe: a premature resolve un-does itself on the next occurrence. Returns the updated row; `404` if the error does not exist.  **Use case:** Close out a tracked error from an agent or script once its fix has shipped — e.g. after a deploy, resolve every open issue the change addressed and let recurrence reopen anything that wasn't actually fixed.
+
+        :param id: Stable opaque error id (`err_…`). (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resolve_error_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ErrorRecord",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _resolve_error_serialize(
+        self,
+        id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/api/admin/errors/{id}/resolve',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def update_error_status(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         update_error_status_request: UpdateErrorStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1366,7 +1660,7 @@ class ErrorsApi:
     @validate_call
     def update_error_status_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         update_error_status_request: UpdateErrorStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1447,7 +1741,7 @@ class ErrorsApi:
     @validate_call
     def update_error_status_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque error id (`err_…`).")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque error id (`err_…`).")],
         update_error_status_request: UpdateErrorStatusRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[

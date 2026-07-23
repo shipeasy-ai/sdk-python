@@ -26,12 +26,15 @@ from pydantic_core import to_jsonable_python
 
 class UpdateConfigRequest(BaseModel):
     """
-    Body for `PATCH /api/admin/configs/{id}`. Partial — only supplied fields change. `value` republishes on every env.
+    Body for `PATCH /api/admin/configs/{id}`. Partial — only supplied fields change. `value` republishes on every env; per-env `dev`/`staging`/`prod` publish a new version to just that env.
     """ # noqa: E501
     var_schema: Optional[Dict[str, Any]] = Field(default=None, description="Replacement schema. When supplied, the new schema is validated against every published value before it lands.", alias="schema")
-    value: Optional[Any] = None
+    value: Optional[Dict[str, Any]] = Field(default=None, description="Flat value applied to **every** env. Publishes a new version per env. To publish one env only, pass that env's key (`dev`/`staging`/`prod`) instead.")
+    dev: Optional[Dict[str, Any]] = Field(default=None, description="Publish a new version to the **dev** env only, immediately (no draft). Overrides `value` for dev. Must match the effective schema.")
+    staging: Optional[Dict[str, Any]] = Field(default=None, description="Publish a new version to the **staging** env only, immediately (no draft). Overrides `value` for staging. Must match the effective schema.")
+    prod: Optional[Dict[str, Any]] = Field(default=None, description="Publish a new version to the **prod** env only, immediately (no draft). Overrides `value` for prod. Must match the effective schema.")
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
-    __properties: ClassVar[List[str]] = ["schema", "value", "folder"]
+    __properties: ClassVar[List[str]] = ["schema", "value", "dev", "staging", "prod", "folder"]
 
     @field_validator('folder')
     def folder_validate_regular_expression(cls, value):
@@ -85,11 +88,6 @@ class UpdateConfigRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if value (nullable) is None
-        # and model_fields_set contains the field
-        if self.value is None and "value" in self.model_fields_set:
-            _dict['value'] = None
-
         # set to None if folder (nullable) is None
         # and model_fields_set contains the field
         if self.folder is None and "folder" in self.model_fields_set:
@@ -109,6 +107,9 @@ class UpdateConfigRequest(BaseModel):
         _obj = cls.model_validate({
             "schema": obj.get("schema"),
             "value": obj.get("value"),
+            "dev": obj.get("dev"),
+            "staging": obj.get("staging"),
+            "prod": obj.get("prod"),
             "folder": obj.get("folder")
         })
         return _obj

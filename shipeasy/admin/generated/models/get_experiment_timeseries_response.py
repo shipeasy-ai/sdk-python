@@ -17,10 +17,10 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, ClassVar, Dict, List
+from shipeasy.admin.generated.models.experiment_result_row import ExperimentResultRow
 from shipeasy.admin.generated.models.get_experiment_timeseries_response_experiment import GetExperimentTimeseriesResponseExperiment
-from shipeasy.admin.generated.models.get_experiment_timeseries_response_series_inner import GetExperimentTimeseriesResponseSeriesInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,7 +30,7 @@ class GetExperimentTimeseriesResponse(BaseModel):
     GetExperimentTimeseriesResponse
     """ # noqa: E501
     experiment: GetExperimentTimeseriesResponseExperiment
-    series: List[GetExperimentTimeseriesResponseSeriesInner]
+    series: List[ExperimentResultRow] = Field(description="Every daily analysis slice (same row shape as `/results`), oldest to newest.")
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["experiment", "series"]
 
@@ -103,7 +103,7 @@ class GetExperimentTimeseriesResponse(BaseModel):
 
         _obj = cls.model_validate({
             "experiment": GetExperimentTimeseriesResponseExperiment.from_dict(obj["experiment"]) if obj.get("experiment") is not None else None,
-            "series": [GetExperimentTimeseriesResponseSeriesInner.from_dict(_item) for _item in obj["series"]] if obj.get("series") is not None else None
+            "series": [ExperimentResultRow.from_dict(_item) for _item in obj["series"]] if obj.get("series") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

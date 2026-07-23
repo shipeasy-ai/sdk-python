@@ -15,7 +15,7 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import Field, StrictBool, StrictStr
+from pydantic import Field, StrictStr
 from typing import List, Optional
 from typing_extensions import Annotated
 from shipeasy.admin.generated.models.approve_event_request import ApproveEventRequest
@@ -49,7 +49,7 @@ class EventsApi:
     @validate_call
     def approve_event(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         approve_event_request: ApproveEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -108,7 +108,7 @@ class EventsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ApproveEventResponse",
+            '200': "ApproveEventResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -130,7 +130,7 @@ class EventsApi:
     @validate_call
     def approve_event_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         approve_event_request: ApproveEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -189,7 +189,7 @@ class EventsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ApproveEventResponse",
+            '200': "ApproveEventResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -211,7 +211,7 @@ class EventsApi:
     @validate_call
     def approve_event_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         approve_event_request: ApproveEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -270,7 +270,7 @@ class EventsApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ApproveEventResponse",
+            '200': "ApproveEventResponse",
             '400': "Error",
             '401': "Error",
             '403': "Error",
@@ -678,7 +678,7 @@ class EventsApi:
     @validate_call
     def delete_event(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -755,7 +755,7 @@ class EventsApi:
     @validate_call
     def delete_event_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -832,7 +832,7 @@ class EventsApi:
     @validate_call
     def delete_event_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -972,7 +972,7 @@ class EventsApi:
     @validate_call
     def get_event(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1049,7 +1049,7 @@ class EventsApi:
     @validate_call
     def get_event_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1126,7 +1126,7 @@ class EventsApi:
     @validate_call
     def get_event_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
             None,
@@ -1267,7 +1267,7 @@ class EventsApi:
     def list_events(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
-        pending: Annotated[Optional[StrictBool], Field(description="When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1283,12 +1283,12 @@ class EventsApi:
     ) -> List[ListEventsResponseInner]:
         """List events
 
-        Returns every catalogued event in the project, including pending auto-discovered names. Pass `?pending=true` to return only the unapproved queue.  **Use case:** Snapshot the event catalog — for example to review the `pending` auto-discovery queue (`?pending=true`) before approving names, or to confirm which events your metrics can reference.
+        Returns every catalogued event in the project, including pending auto-discovered names. Each row carries its own `pending` flag, so the unapproved queue can be filtered client-side.  **Use case:** Snapshot the event catalog — for example to review the pending auto-discovery queue before approving names, or to confirm which events your metrics can reference.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
-        :param pending: When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.
-        :type pending: bool
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1313,7 +1313,7 @@ class EventsApi:
 
         _param = self._list_events_serialize(
             x_project_id=x_project_id,
-            pending=pending,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1344,7 +1344,7 @@ class EventsApi:
     def list_events_with_http_info(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
-        pending: Annotated[Optional[StrictBool], Field(description="When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1360,12 +1360,12 @@ class EventsApi:
     ) -> ApiResponse[List[ListEventsResponseInner]]:
         """List events
 
-        Returns every catalogued event in the project, including pending auto-discovered names. Pass `?pending=true` to return only the unapproved queue.  **Use case:** Snapshot the event catalog — for example to review the `pending` auto-discovery queue (`?pending=true`) before approving names, or to confirm which events your metrics can reference.
+        Returns every catalogued event in the project, including pending auto-discovered names. Each row carries its own `pending` flag, so the unapproved queue can be filtered client-side.  **Use case:** Snapshot the event catalog — for example to review the pending auto-discovery queue before approving names, or to confirm which events your metrics can reference.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
-        :param pending: When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.
-        :type pending: bool
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1390,7 +1390,7 @@ class EventsApi:
 
         _param = self._list_events_serialize(
             x_project_id=x_project_id,
-            pending=pending,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1421,7 +1421,7 @@ class EventsApi:
     def list_events_without_preload_content(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
-        pending: Annotated[Optional[StrictBool], Field(description="When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1437,12 +1437,12 @@ class EventsApi:
     ) -> RESTResponseType:
         """List events
 
-        Returns every catalogued event in the project, including pending auto-discovered names. Pass `?pending=true` to return only the unapproved queue.  **Use case:** Snapshot the event catalog — for example to review the `pending` auto-discovery queue (`?pending=true`) before approving names, or to confirm which events your metrics can reference.
+        Returns every catalogued event in the project, including pending auto-discovered names. Each row carries its own `pending` flag, so the unapproved queue can be filtered client-side.  **Use case:** Snapshot the event catalog — for example to review the pending auto-discovery queue before approving names, or to confirm which events your metrics can reference.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
-        :param pending: When `true`, return only pending (auto-discovered, unapproved) events. Omit to return the full catalog.
-        :type pending: bool
+        :param q: Case-insensitive substring filter across the resource's human-readable text columns (e.g. `name`, `title`, `description`). OR-matched across those columns; omit to return everything.
+        :type q: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1467,7 +1467,7 @@ class EventsApi:
 
         _param = self._list_events_serialize(
             x_project_id=x_project_id,
-            pending=pending,
+            q=q,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1493,7 +1493,7 @@ class EventsApi:
     def _list_events_serialize(
         self,
         x_project_id,
-        pending,
+        q,
         _request_auth,
         _content_type,
         _headers,
@@ -1516,9 +1516,9 @@ class EventsApi:
 
         # process the path parameters
         # process the query parameters
-        if pending is not None:
+        if q is not None:
             
-            _query_params.append(('pending', pending))
+            _query_params.append(('q', q))
             
         # process the header parameters
         if x_project_id is not None:
@@ -1562,7 +1562,7 @@ class EventsApi:
     @validate_call
     def update_event(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         update_event_request: UpdateEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1643,7 +1643,7 @@ class EventsApi:
     @validate_call
     def update_event_with_http_info(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         update_event_request: UpdateEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1724,7 +1724,7 @@ class EventsApi:
     @validate_call
     def update_event_without_preload_content(
         self,
-        id: Annotated[StrictStr, Field(description="Stable opaque event id (`evt_…`) or the event's `name`.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="Stable opaque event id (`evt_…`) or the event's `name`.")],
         update_event_request: UpdateEventRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[

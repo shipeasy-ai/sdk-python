@@ -17,20 +17,60 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
+from shipeasy.admin.generated.models.attribute_type import AttributeType
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class ListAttributesResponseInner(BaseModel):
     """
-    One auto-inferred targeting attribute.
+    One declared or auto-inferred targeting attribute row.
     """ # noqa: E501
+    id: StrictStr = Field(description="Stable opaque attribute id.")
     name: StrictStr = Field(description="Attribute key as seen in evaluation context (e.g. `plan`, `country`).")
-    type: Optional[StrictStr] = Field(default=None, description="Inferred value type (`string`, `number`, `boolean`, …) when known.")
+    type: AttributeType
+    enum_values: Optional[List[StrictStr]] = Field(default=None, description="Allowed values for `enum` attributes, else `null`.", alias="enumValues")
+    required: Optional[StrictInt] = Field(default=None, description="Whether the attribute must be present on the evaluation context (D1 stores the flag as `0`/`1`).")
+    description: Optional[StrictStr] = Field(default=None, description="Human note shown in the dashboard, or `null`.")
+    sdk_path: Optional[StrictStr] = Field(default=None, description="Dotted path the SDK reads the value from, or `null`.", alias="sdkPath")
+    created_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 creation timestamp.", alias="createdAt")
+    source: Optional[StrictStr] = Field(default=None, description="How the attribute came to exist — `auto` (inferred by the `/sdk/evaluate` sampler) or `manual` (declared via the UI/API).")
+    last_seen_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 timestamp of the most recent SDK sample that carried this attribute, or `null` when never sampled.", alias="lastSeenAt")
+    deprecated: Optional[StrictInt] = Field(default=None, description="`1` when an auto-discovered attribute has stopped appearing in samples. Deprecated attributes stay listed; pickers may hide or de-rank them.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["name", "type"]
+    __properties: ClassVar[List[str]] = ["id", "name", "type", "enumValues", "required", "description", "sdkPath", "createdAt", "source", "lastSeenAt", "deprecated"]
+
+    @field_validator('required')
+    def required_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set([0, 1]):
+            raise ValueError("must be one of enum values (0, 1)")
+        return value
+
+    @field_validator('source')
+    def source_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['auto', 'manual']):
+            raise ValueError("must be one of enum values ('auto', 'manual')")
+        return value
+
+    @field_validator('deprecated')
+    def deprecated_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set([0, 1]):
+            raise ValueError("must be one of enum values (0, 1)")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -78,6 +118,26 @@ class ListAttributesResponseInner(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if enum_values (nullable) is None
+        # and model_fields_set contains the field
+        if self.enum_values is None and "enum_values" in self.model_fields_set:
+            _dict['enumValues'] = None
+
+        # set to None if description (nullable) is None
+        # and model_fields_set contains the field
+        if self.description is None and "description" in self.model_fields_set:
+            _dict['description'] = None
+
+        # set to None if sdk_path (nullable) is None
+        # and model_fields_set contains the field
+        if self.sdk_path is None and "sdk_path" in self.model_fields_set:
+            _dict['sdkPath'] = None
+
+        # set to None if last_seen_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.last_seen_at is None and "last_seen_at" in self.model_fields_set:
+            _dict['lastSeenAt'] = None
+
         return _dict
 
     @classmethod
@@ -90,8 +150,17 @@ class ListAttributesResponseInner(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "id": obj.get("id"),
             "name": obj.get("name"),
-            "type": obj.get("type")
+            "type": obj.get("type"),
+            "enumValues": obj.get("enumValues"),
+            "required": obj.get("required"),
+            "description": obj.get("description"),
+            "sdkPath": obj.get("sdkPath"),
+            "createdAt": obj.get("createdAt"),
+            "source": obj.get("source"),
+            "lastSeenAt": obj.get("lastSeenAt"),
+            "deprecated": obj.get("deprecated")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

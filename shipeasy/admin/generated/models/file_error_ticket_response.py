@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -28,7 +28,7 @@ class FileErrorTicketResponse(BaseModel):
     The feedback ticket that tracks this error. Idempotent — if an open `error` ticket already tracks this fingerprint (hand- or auto-filed), the existing one is returned instead of creating a duplicate.
     """ # noqa: E501
     id: StrictStr = Field(description="Feedback ticket id.")
-    number: StrictInt = Field(description="Human-facing per-project ticket number.")
+    number: Optional[StrictInt] = Field(description="Human-facing per-project ticket number. `null` only on the idempotent dedupe path when the pre-existing ticket is a legacy row created before per-project numbering.")
     __properties: ClassVar[List[str]] = ["id", "number"]
 
     model_config = ConfigDict(
@@ -70,6 +70,11 @@ class FileErrorTicketResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if number (nullable) is None
+        # and model_fields_set contains the field
+        if self.number is None and "number" in self.model_fields_set:
+            _dict['number'] = None
+
         return _dict
 
     @classmethod

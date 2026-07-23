@@ -19,8 +19,8 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List
+from shipeasy.admin.generated.models.experiment_result_row import ExperimentResultRow
 from shipeasy.admin.generated.models.get_experiment_results_response_experiment import GetExperimentResultsResponseExperiment
-from shipeasy.admin.generated.models.get_experiment_results_response_results_inner import GetExperimentResultsResponseResultsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,7 +30,7 @@ class GetExperimentResultsResponse(BaseModel):
     GetExperimentResultsResponse
     """ # noqa: E501
     experiment: GetExperimentResultsResponseExperiment
-    results: List[GetExperimentResultsResponseResultsInner]
+    results: List[ExperimentResultRow] = Field(description="One analysis row per metric/group/day — the persisted `experiment_results` rows for this experiment.")
     verdict: StrictStr = Field(description="Server-computed decision from the goal metric + guardrails + SRM vs. the significance threshold and min runtime: `ship` (goal significant + guardrails pass), `hold` (a guardrail regressed), `wait` (inconclusive / under-powered), `invalid` (sample-ratio mismatch), `draft` (never started).")
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["experiment", "results", "verdict"]
@@ -111,7 +111,7 @@ class GetExperimentResultsResponse(BaseModel):
 
         _obj = cls.model_validate({
             "experiment": GetExperimentResultsResponseExperiment.from_dict(obj["experiment"]) if obj.get("experiment") is not None else None,
-            "results": [GetExperimentResultsResponseResultsInner.from_dict(_item) for _item in obj["results"]] if obj.get("results") is not None else None,
+            "results": [ExperimentResultRow.from_dict(_item) for _item in obj["results"]] if obj.get("results") is not None else None,
             "verdict": obj.get("verdict")
         })
         # store additional fields in additional_properties

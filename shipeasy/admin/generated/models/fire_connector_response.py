@@ -17,19 +17,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from typing import Any, ClassVar, Dict, List
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class FireConnectorResponse(BaseModel):
     """
-    Result of firing a trigger connector. `{ ok: true }` on success; `{ ok: false, error }` when the dispatch fails (the request still returns HTTP 200).
+    Result of a successful trigger fire: `{ ok: true }`. When the downstream dispatch fails the endpoint returns HTTP 502 (see the `Error` response), never `ok: false`.
     """ # noqa: E501
-    ok: StrictBool = Field(description="`true` when the trigger run was successfully kicked off; `false` when the dispatch itself failed (still HTTP 200, with `error` set).")
-    error: Optional[StrictStr] = Field(default=None, description="Failure reason. Present only when `ok` is `false` — the fire reached the handler but the underlying dispatch to the provider failed.")
-    __properties: ClassVar[List[str]] = ["ok", "error"]
+    ok: StrictBool = Field(description="Always `true` — a successful fire returns HTTP 200. A dispatch failure returns HTTP 502 with the `Error` envelope, not this body.")
+    __properties: ClassVar[List[str]] = ["ok"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -82,8 +81,7 @@ class FireConnectorResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "ok": obj.get("ok"),
-            "error": obj.get("error")
+            "ok": obj.get("ok")
         })
         return _obj
 

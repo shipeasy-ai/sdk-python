@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -27,9 +27,10 @@ class SetExperimentMetricsResponseMetricsInner(BaseModel):
     """
     SetExperimentMetricsResponseMetricsInner
     """ # noqa: E501
-    metric_id: Optional[StrictStr] = Field(description="Optional gate name. Only callers that pass the gate are enrolled in the experiment.")
+    metric_id: Optional[StrictStr] = Field(description="Optional gate name (a `targeting`-type flag). Only callers that pass the gate are enrolled in the experiment.")
     role: StrictStr
-    __properties: ClassVar[List[str]] = ["metric_id", "role"]
+    min_effect_of_interest: Optional[Union[StrictFloat, StrictInt]] = Field(description="The resolved per-experiment override, or `null` when this attachment inherits the metric's `default_min_effect_of_interest`.")
+    __properties: ClassVar[List[str]] = ["metric_id", "role", "min_effect_of_interest"]
 
     @field_validator('role')
     def role_validate_enum(cls, value):
@@ -82,6 +83,11 @@ class SetExperimentMetricsResponseMetricsInner(BaseModel):
         if self.metric_id is None and "metric_id" in self.model_fields_set:
             _dict['metric_id'] = None
 
+        # set to None if min_effect_of_interest (nullable) is None
+        # and model_fields_set contains the field
+        if self.min_effect_of_interest is None and "min_effect_of_interest" in self.model_fields_set:
+            _dict['min_effect_of_interest'] = None
+
         return _dict
 
     @classmethod
@@ -95,7 +101,8 @@ class SetExperimentMetricsResponseMetricsInner(BaseModel):
 
         _obj = cls.model_validate({
             "metric_id": obj.get("metric_id"),
-            "role": obj.get("role")
+            "role": obj.get("role"),
+            "min_effect_of_interest": obj.get("min_effect_of_interest")
         })
         return _obj
 

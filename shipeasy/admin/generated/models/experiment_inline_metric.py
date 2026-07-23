@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
@@ -33,7 +33,8 @@ class ExperimentInlineMetric(BaseModel):
     event: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=256)]] = Field(default=None, description="Event name to build the metric from server-side. Auto-created if missing.")
     aggregation: Optional[StrictStr] = Field(default=None, description="Reducer for the `event` form. Defaults to `count_users`.")
     value: Optional[Annotated[str, Field(min_length=1, strict=True, max_length=256)]] = Field(default=None, description="Numeric event property for `sum`/`avg` (with `event`).")
-    __properties: ClassVar[List[str]] = ["name", "query", "event", "aggregation", "value"]
+    min_effect_of_interest: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Per-experiment override of the metric's default minimum effect of interest (relative, 0–1) — the smallest change worth acting on for this experiment's decision. `null`/omitted inherits the metric default. For a guardrail, the non-inferiority margin.")
+    __properties: ClassVar[List[str]] = ["name", "query", "event", "aggregation", "value", "min_effect_of_interest"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -97,6 +98,11 @@ class ExperimentInlineMetric(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if min_effect_of_interest (nullable) is None
+        # and model_fields_set contains the field
+        if self.min_effect_of_interest is None and "min_effect_of_interest" in self.model_fields_set:
+            _dict['min_effect_of_interest'] = None
+
         return _dict
 
     @classmethod
@@ -113,7 +119,8 @@ class ExperimentInlineMetric(BaseModel):
             "query": obj.get("query"),
             "event": obj.get("event"),
             "aggregation": obj.get("aggregation"),
-            "value": obj.get("value")
+            "value": obj.get("value"),
+            "min_effect_of_interest": obj.get("min_effect_of_interest")
         })
         return _obj
 

@@ -19,12 +19,15 @@ from pydantic import Field, StrictStr
 from typing import Optional
 from typing_extensions import Annotated
 from shipeasy.admin.generated.models.list_i18n_keys_response import ListI18nKeysResponse
+from shipeasy.admin.generated.models.ok_response import OkResponse
 from shipeasy.admin.generated.models.push_i18n_keys_request import PushI18nKeysRequest
 from shipeasy.admin.generated.models.push_i18n_keys_response import PushI18nKeysResponse
 from shipeasy.admin.generated.models.set_i18n_label_request import SetI18nLabelRequest
 from shipeasy.admin.generated.models.set_i18n_label_response import SetI18nLabelResponse
 from shipeasy.admin.generated.models.update_i18n_key_request import UpdateI18nKeyRequest
 from shipeasy.admin.generated.models.update_i18n_key_response import UpdateI18nKeyResponse
+from shipeasy.admin.generated.models.upsert_i18n_keys_request import UpsertI18nKeysRequest
+from shipeasy.admin.generated.models.upsert_i18n_keys_response import UpsertI18nKeysResponse
 
 from shipeasy.admin.generated.api_client import ApiClient, RequestSerialized
 from shipeasy.admin.generated.api_response import ApiResponse
@@ -45,13 +48,308 @@ class KeysApi:
 
 
     @validate_call
+    def delete_i18n_key(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> OkResponse:
+        """Delete one i18n key
+
+        Permanently delete a single key from its profile. The profile's KV snapshot is rebuilt and the CDN purged as part of this call, so the removal goes live on its own.  **Use case:** Remove a stale or mistakenly-pushed key without touching the rest of the profile.
+
+        :param id: The key's id. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_i18n_key_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "OkResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def delete_i18n_key_with_http_info(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[OkResponse]:
+        """Delete one i18n key
+
+        Permanently delete a single key from its profile. The profile's KV snapshot is rebuilt and the CDN purged as part of this call, so the removal goes live on its own.  **Use case:** Remove a stale or mistakenly-pushed key without touching the rest of the profile.
+
+        :param id: The key's id. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_i18n_key_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "OkResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def delete_i18n_key_without_preload_content(
+        self,
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Delete one i18n key
+
+        Permanently delete a single key from its profile. The profile's KV snapshot is rebuilt and the CDN purged as part of this call, so the removal goes live on its own.  **Use case:** Remove a stale or mistakenly-pushed key without touching the rest of the profile.
+
+        :param id: The key's id. (required)
+        :type id: str
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_i18n_key_serialize(
+            id=id,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "OkResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _delete_i18n_key_serialize(
+        self,
+        id,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if id is not None:
+            _path_params['id'] = id
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='DELETE',
+            resource_path='/api/admin/i18n/keys/{id}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def list_i18n_keys(
         self,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         profile_id: Annotated[Optional[StrictStr], Field(description="Profile id to list keys for.")] = None,
         prefix: Annotated[Optional[StrictStr], Field(description="Only keys whose name starts with this.")] = None,
-        q: Annotated[Optional[StrictStr], Field(description="Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max keys to return (1–500).")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Number of keys to skip before returning `limit` rows (offset pagination).")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -75,10 +373,12 @@ class KeysApi:
         :type profile_id: str
         :param prefix: Only keys whose name starts with this.
         :type prefix: str
-        :param q: Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
+        :param q: Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
         :type q: str
         :param limit: Max keys to return (1–500).
         :type limit: int
+        :param offset: Number of keys to skip before returning `limit` rows (offset pagination).
+        :type offset: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -107,6 +407,7 @@ class KeysApi:
             prefix=prefix,
             q=q,
             limit=limit,
+            offset=offset,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -139,8 +440,9 @@ class KeysApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         profile_id: Annotated[Optional[StrictStr], Field(description="Profile id to list keys for.")] = None,
         prefix: Annotated[Optional[StrictStr], Field(description="Only keys whose name starts with this.")] = None,
-        q: Annotated[Optional[StrictStr], Field(description="Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max keys to return (1–500).")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Number of keys to skip before returning `limit` rows (offset pagination).")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -164,10 +466,12 @@ class KeysApi:
         :type profile_id: str
         :param prefix: Only keys whose name starts with this.
         :type prefix: str
-        :param q: Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
+        :param q: Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
         :type q: str
         :param limit: Max keys to return (1–500).
         :type limit: int
+        :param offset: Number of keys to skip before returning `limit` rows (offset pagination).
+        :type offset: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -196,6 +500,7 @@ class KeysApi:
             prefix=prefix,
             q=q,
             limit=limit,
+            offset=offset,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -228,8 +533,9 @@ class KeysApi:
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         profile_id: Annotated[Optional[StrictStr], Field(description="Profile id to list keys for.")] = None,
         prefix: Annotated[Optional[StrictStr], Field(description="Only keys whose name starts with this.")] = None,
-        q: Annotated[Optional[StrictStr], Field(description="Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
+        q: Annotated[Optional[Annotated[str, Field(strict=True, max_length=100)]], Field(description="Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.")] = None,
         limit: Annotated[Optional[Annotated[int, Field(le=500, strict=True, ge=1)]], Field(description="Max keys to return (1–500).")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Number of keys to skip before returning `limit` rows (offset pagination).")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -253,10 +559,12 @@ class KeysApi:
         :type profile_id: str
         :param prefix: Only keys whose name starts with this.
         :type prefix: str
-        :param q: Free-text search — matches keys whose name OR value contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
+        :param q: Free-text search — matches keys whose name, value, OR description contains this substring (case-insensitive). Use it to find the key behind a piece of on-screen copy.
         :type q: str
         :param limit: Max keys to return (1–500).
         :type limit: int
+        :param offset: Number of keys to skip before returning `limit` rows (offset pagination).
+        :type offset: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -285,6 +593,7 @@ class KeysApi:
             prefix=prefix,
             q=q,
             limit=limit,
+            offset=offset,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -314,6 +623,7 @@ class KeysApi:
         prefix,
         q,
         limit,
+        offset,
         _request_auth,
         _content_type,
         _headers,
@@ -351,6 +661,10 @@ class KeysApi:
         if limit is not None:
             
             _query_params.append(('limit', limit))
+            
+        if offset is not None:
+            
+            _query_params.append(('offset', offset))
             
         # process the header parameters
         if x_project_id is not None:
@@ -1008,7 +1322,7 @@ class KeysApi:
     @validate_call
     def update_i18n_key(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="The key's id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
         update_i18n_key_request: UpdateI18nKeyRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1026,7 +1340,7 @@ class KeysApi:
     ) -> UpdateI18nKeyResponse:
         """Update one i18n key
 
-        Overwrite a single existing key's value — the only overwrite path.  **Use case:** Correct or re-translate a single string in place.
+        Overwrite a single existing key's value — the only overwrite path.  The change goes live on its own: the profile's KV snapshot is rebuilt and the CDN purged as part of this call, so no separate profile publish is needed.  **Use case:** Correct or re-translate a single string in place.
 
         :param id: The key's id. (required)
         :type id: str
@@ -1089,7 +1403,7 @@ class KeysApi:
     @validate_call
     def update_i18n_key_with_http_info(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="The key's id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
         update_i18n_key_request: UpdateI18nKeyRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1107,7 +1421,7 @@ class KeysApi:
     ) -> ApiResponse[UpdateI18nKeyResponse]:
         """Update one i18n key
 
-        Overwrite a single existing key's value — the only overwrite path.  **Use case:** Correct or re-translate a single string in place.
+        Overwrite a single existing key's value — the only overwrite path.  The change goes live on its own: the profile's KV snapshot is rebuilt and the CDN purged as part of this call, so no separate profile publish is needed.  **Use case:** Correct or re-translate a single string in place.
 
         :param id: The key's id. (required)
         :type id: str
@@ -1170,7 +1484,7 @@ class KeysApi:
     @validate_call
     def update_i18n_key_without_preload_content(
         self,
-        id: Annotated[Optional[StrictStr], Field(description="The key's id.")],
+        id: Annotated[str, Field(min_length=1, strict=True, max_length=128, description="The key's id.")],
         update_i18n_key_request: UpdateI18nKeyRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
         _request_timeout: Union[
@@ -1188,7 +1502,7 @@ class KeysApi:
     ) -> RESTResponseType:
         """Update one i18n key
 
-        Overwrite a single existing key's value — the only overwrite path.  **Use case:** Correct or re-translate a single string in place.
+        Overwrite a single existing key's value — the only overwrite path.  The change goes live on its own: the profile's KV snapshot is rebuilt and the CDN purged as part of this call, so no separate profile publish is needed.  **Use case:** Correct or re-translate a single string in place.
 
         :param id: The key's id. (required)
         :type id: str
@@ -1312,6 +1626,313 @@ class KeysApi:
         return self.api_client.param_serialize(
             method='PUT',
             resource_path='/api/admin/i18n/keys/{id}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def upsert_i18n_keys(
+        self,
+        upsert_i18n_keys_request: UpsertI18nKeysRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> UpsertI18nKeysResponse:
+        """Bulk upsert i18n keys (overwrite)
+
+        Bulk upsert keys into a profile — existing keys ARE overwritten, new ones inserted. The profile's KV snapshot is rebuilt and the CDN purged before the call returns, so the edits go live on their own.  This is the overwrite counterpart of the insert-only `pushI18nKeys`. It backs the devtools overlay's in-product \"Apply changes\" label editing and is deliberately not surfaced by the CLI or MCP — those surfaces only expose the insert-only push so a whole `en.json` can't wholesale-overwrite prod.  **Use case:** Apply a batch of in-product label edits (devtools overlay) in one call.
+
+        :param upsert_i18n_keys_request: (required)
+        :type upsert_i18n_keys_request: UpsertI18nKeysRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._upsert_i18n_keys_serialize(
+            upsert_i18n_keys_request=upsert_i18n_keys_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpsertI18nKeysResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def upsert_i18n_keys_with_http_info(
+        self,
+        upsert_i18n_keys_request: UpsertI18nKeysRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[UpsertI18nKeysResponse]:
+        """Bulk upsert i18n keys (overwrite)
+
+        Bulk upsert keys into a profile — existing keys ARE overwritten, new ones inserted. The profile's KV snapshot is rebuilt and the CDN purged before the call returns, so the edits go live on their own.  This is the overwrite counterpart of the insert-only `pushI18nKeys`. It backs the devtools overlay's in-product \"Apply changes\" label editing and is deliberately not surfaced by the CLI or MCP — those surfaces only expose the insert-only push so a whole `en.json` can't wholesale-overwrite prod.  **Use case:** Apply a batch of in-product label edits (devtools overlay) in one call.
+
+        :param upsert_i18n_keys_request: (required)
+        :type upsert_i18n_keys_request: UpsertI18nKeysRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._upsert_i18n_keys_serialize(
+            upsert_i18n_keys_request=upsert_i18n_keys_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpsertI18nKeysResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def upsert_i18n_keys_without_preload_content(
+        self,
+        upsert_i18n_keys_request: UpsertI18nKeysRequest,
+        x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Bulk upsert i18n keys (overwrite)
+
+        Bulk upsert keys into a profile — existing keys ARE overwritten, new ones inserted. The profile's KV snapshot is rebuilt and the CDN purged before the call returns, so the edits go live on their own.  This is the overwrite counterpart of the insert-only `pushI18nKeys`. It backs the devtools overlay's in-product \"Apply changes\" label editing and is deliberately not surfaced by the CLI or MCP — those surfaces only expose the insert-only push so a whole `en.json` can't wholesale-overwrite prod.  **Use case:** Apply a batch of in-product label edits (devtools overlay) in one call.
+
+        :param upsert_i18n_keys_request: (required)
+        :type upsert_i18n_keys_request: UpsertI18nKeysRequest
+        :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
+        :type x_project_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._upsert_i18n_keys_serialize(
+            upsert_i18n_keys_request=upsert_i18n_keys_request,
+            x_project_id=x_project_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "UpsertI18nKeysResponse",
+            '400': "Error",
+            '401': "Error",
+            '403': "Error",
+            '404': "Error",
+            '409': "Error",
+            '422': "Error",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _upsert_i18n_keys_serialize(
+        self,
+        upsert_i18n_keys_request,
+        x_project_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        if x_project_id is not None:
+            _header_params['X-Project-Id'] = x_project_id
+        # process the form parameters
+        # process the body parameter
+        if upsert_i18n_keys_request is not None:
+            _body_params = upsert_i18n_keys_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'bearerSdkKey'
+        ]
+
+        return self.api_client.param_serialize(
+            method='PUT',
+            resource_path='/api/admin/i18n/keys',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

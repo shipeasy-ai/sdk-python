@@ -13,98 +13,137 @@
 
 
 from __future__ import annotations
+from inspect import getfullargspec
+import json
 import pprint
 import re  # noqa: F401
-import json
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
+from typing import Optional
+from shipeasy.admin.generated.models.update_bug_request import UpdateBugRequest
+from shipeasy.admin.generated.models.update_feature_request_request import UpdateFeatureRequestRequest
+from shipeasy.admin.generated.models.update_ops_item_status_request import UpdateOpsItemStatusRequest
+from typing import Union, Any, List, Set, TYPE_CHECKING, Optional, Dict
+from typing_extensions import Literal, Self
+from pydantic import Field
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
-from typing import Any, ClassVar, Dict, List, Optional
-from typing import Optional, Set
-from typing_extensions import Self
-from pydantic_core import to_jsonable_python
+UPDATEOPSITEMREQUEST_ANY_OF_SCHEMAS = ["UpdateBugRequest", "UpdateFeatureRequestRequest", "UpdateOpsItemStatusRequest"]
 
 class UpdateOpsItemRequest(BaseModel):
     """
-    Body for `PATCH /api/admin/ops/{handle}`. Pass at least one of `status` / `priority`.
-    """ # noqa: E501
-    status: Optional[StrictStr] = Field(default=None, description="New lifecycle status.")
-    priority: Optional[StrictStr] = Field(default=None, description="New triage priority.")
-    __properties: ClassVar[List[str]] = ["status", "priority"]
+    Body for `PATCH /api/admin/ops/{handle}`. The body is type-less — the server validates it against the stored item's type: a `bug` accepts the bug content fields, a `feature_request` the feature fields, and `error`/`alert`/`measure_plan` only `status`/`priority`/`notify`. Pass at least one field.
+    """
 
-    @field_validator('status')
-    def status_validate_enum(cls, value):
-        """Validates the enum"""
-        if value is None:
-            return value
+    # data type: UpdateBugRequest
+    anyof_schema_1_validator: Optional[UpdateBugRequest] = None
+    # data type: UpdateFeatureRequestRequest
+    anyof_schema_2_validator: Optional[UpdateFeatureRequestRequest] = None
+    # data type: UpdateOpsItemStatusRequest
+    anyof_schema_3_validator: Optional[UpdateOpsItemStatusRequest] = None
+    if TYPE_CHECKING:
+        actual_instance: Optional[Union[UpdateBugRequest, UpdateFeatureRequestRequest, UpdateOpsItemStatusRequest]] = None
+    else:
+        actual_instance: Any = None
+    any_of_schemas: Set[str] = { "UpdateBugRequest", "UpdateFeatureRequestRequest", "UpdateOpsItemStatusRequest" }
 
-        if value not in set(['open', 'triaged', 'in_progress', 'ready_for_qa', 'resolved', 'wont_fix']):
-            raise ValueError("must be one of enum values ('open', 'triaged', 'in_progress', 'ready_for_qa', 'resolved', 'wont_fix')")
-        return value
+    model_config = {
+        "validate_assignment": True,
+        "protected_namespaces": (),
+    }
 
-    @field_validator('priority')
-    def priority_validate_enum(cls, value):
-        """Validates the enum"""
-        if value is None:
-            return value
+    def __init__(self, *args, **kwargs) -> None:
+        if args:
+            if len(args) > 1:
+                raise ValueError("If a position argument is used, only 1 is allowed to set `actual_instance`")
+            if kwargs:
+                raise ValueError("If a position argument is used, keyword arguments cannot be used.")
+            super().__init__(actual_instance=args[0])
+        else:
+            super().__init__(**kwargs)
 
-        if value not in set(['nice_to_have', 'medium', 'high', 'critical']):
-            raise ValueError("must be one of enum values ('nice_to_have', 'medium', 'high', 'critical')")
-        return value
+    @field_validator('actual_instance')
+    def actual_instance_must_validate_anyof(cls, v):
+        instance = UpdateOpsItemRequest.model_construct()
+        error_messages = []
+        # validate data type: UpdateBugRequest
+        if not isinstance(v, UpdateBugRequest):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `UpdateBugRequest`")
+        else:
+            return v
 
-    model_config = ConfigDict(
-        validate_by_name=True,
-        validate_by_alias=True,
-        validate_assignment=True,
-        protected_namespaces=(),
-    )
+        # validate data type: UpdateFeatureRequestRequest
+        if not isinstance(v, UpdateFeatureRequestRequest):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `UpdateFeatureRequestRequest`")
+        else:
+            return v
 
+        # validate data type: UpdateOpsItemStatusRequest
+        if not isinstance(v, UpdateOpsItemStatusRequest):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `UpdateOpsItemStatusRequest`")
+        else:
+            return v
 
-    def to_str(self) -> str:
-        """Returns the string representation of the model using alias"""
-        return pprint.pformat(self.model_dump(by_alias=True))
+        if error_messages:
+            # no match
+            raise ValueError("No match found when setting the actual_instance in UpdateOpsItemRequest with anyOf schemas: UpdateBugRequest, UpdateFeatureRequestRequest, UpdateOpsItemStatusRequest. Details: " + ", ".join(error_messages))
+        else:
+            return v
+
+    @classmethod
+    def from_dict(cls, obj: Dict[str, Any]) -> Self:
+        return cls.from_json(json.dumps(obj))
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Self:
+        """Returns the object represented by the json string"""
+        instance = cls.model_construct()
+        error_messages = []
+        # anyof_schema_1_validator: Optional[UpdateBugRequest] = None
+        try:
+            instance.actual_instance = UpdateBugRequest.from_json(json_str)
+            return instance
+        except (ValidationError, ValueError) as e:
+             error_messages.append(str(e))
+        # anyof_schema_2_validator: Optional[UpdateFeatureRequestRequest] = None
+        try:
+            instance.actual_instance = UpdateFeatureRequestRequest.from_json(json_str)
+            return instance
+        except (ValidationError, ValueError) as e:
+             error_messages.append(str(e))
+        # anyof_schema_3_validator: Optional[UpdateOpsItemStatusRequest] = None
+        try:
+            instance.actual_instance = UpdateOpsItemStatusRequest.from_json(json_str)
+            return instance
+        except (ValidationError, ValueError) as e:
+             error_messages.append(str(e))
+
+        if error_messages:
+            # no match
+            raise ValueError("No match found when deserializing the JSON string into UpdateOpsItemRequest with anyOf schemas: UpdateBugRequest, UpdateFeatureRequestRequest, UpdateOpsItemStatusRequest. Details: " + ", ".join(error_messages))
+        else:
+            return instance
 
     def to_json(self) -> str:
-        """Returns the JSON representation of the model using alias"""
-        return json.dumps(to_jsonable_python(self.to_dict()))
+        """Returns the JSON representation of the actual instance"""
+        if self.actual_instance is None:
+            return "null"
 
-    @classmethod
-    def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of UpdateOpsItemRequest from a JSON string"""
-        return cls.from_dict(json.loads(json_str))
+        if hasattr(self.actual_instance, "to_json") and callable(self.actual_instance.to_json):
+            return self.actual_instance.to_json()
+        else:
+            return json.dumps(self.actual_instance)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Return the dictionary representation of the model using alias.
-
-        This has the following differences from calling pydantic's
-        `self.model_dump(by_alias=True)`:
-
-        * `None` is only added to the output dict for nullable fields that
-          were set at model initialization. Other fields with value `None`
-          are ignored.
-        """
-        excluded_fields: Set[str] = set([
-        ])
-
-        _dict = self.model_dump(
-            by_alias=True,
-            exclude=excluded_fields,
-            exclude_none=True,
-        )
-        return _dict
-
-    @classmethod
-    def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of UpdateOpsItemRequest from a dict"""
-        if obj is None:
+    def to_dict(self) -> Optional[Union[Dict[str, Any], UpdateBugRequest, UpdateFeatureRequestRequest, UpdateOpsItemStatusRequest]]:
+        """Returns the dict representation of the actual instance"""
+        if self.actual_instance is None:
             return None
 
-        if not isinstance(obj, dict):
-            return cls.model_validate(obj)
+        if hasattr(self.actual_instance, "to_dict") and callable(self.actual_instance.to_dict):
+            return self.actual_instance.to_dict()
+        else:
+            return self.actual_instance
 
-        _obj = cls.model_validate({
-            "status": obj.get("status"),
-            "priority": obj.get("priority")
-        })
-        return _obj
+    def to_str(self) -> str:
+        """Returns the string representation of the actual instance"""
+        return pprint.pformat(self.model_dump())
 
 

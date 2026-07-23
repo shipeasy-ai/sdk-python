@@ -19,7 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
-from shipeasy.admin.generated.models.list_metrics_response_inner_query_ir import ListMetricsResponseInnerQueryIr
+from shipeasy.admin.generated.models.query_ir import QueryIr
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -32,17 +32,20 @@ class GetMetricResponse(BaseModel):
     name: StrictStr = Field(description="Metric key.")
     folder: Optional[StrictStr] = Field(description="Folder grouping the metric, or `null`.")
     event_name: StrictStr = Field(description="Source event name (camelCase in response).", alias="eventName")
-    aggregation: StrictStr = Field(description="Legacy aggregation enum derived from the IR (`count_users`, `sum`, `ratio`, …).")
-    value_path: Optional[StrictStr] = Field(description="Numeric value label for sum/avg metrics, or `null`.", alias="valuePath")
-    query: Optional[StrictStr] = Field(default=None, description="Rendered DSL text form of the query, or `null` if it could not be rendered.")
-    query_ir: Optional[ListMetricsResponseInnerQueryIr] = Field(default=None, alias="queryIr")
+    query: Optional[StrictStr] = Field(description="Rendered DSL text form of the query, or `null` if it could not be rendered.")
+    query_ir: Optional[QueryIr] = Field(description="Typed query IR, or `null` for a metric whose IR was never populated (re-save it to backfill).", alias="queryIr")
+    display_name: Optional[StrictStr] = Field(description="Human-friendly display name shown in the dashboard, or `null` to fall back to `name`.", alias="displayName")
+    preset_id: Optional[StrictStr] = Field(description="Id of the metric preset this metric was created from, or `null` for a custom metric.", alias="presetId")
+    unit: Optional[StrictStr] = Field(description="Display unit (e.g. `ms`, `%`, `$`), or `null` when unitless.")
+    version: StrictInt = Field(description="Monotonic save counter — incremented on every update.")
+    deleted_at: Optional[StrictStr] = Field(description="ISO-8601 soft-delete (archive) timestamp, or `null` while the metric is live.", alias="deletedAt")
     direction: Optional[StrictStr] = Field(default=None, description="Desired direction of movement. `higher_better` (default), `lower_better`, or `neutral` (guardrail).")
     winsorize_pct: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Winsorise percentile applied to the metric.", alias="winsorizePct")
-    min_detectable_effect: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Configured MDE, or `null`.", alias="minDetectableEffect")
-    created_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 creation timestamp.", alias="createdAt")
+    default_min_effect_of_interest: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Metric-level default minimum effect of interest (relative, 0–1), or `null`.", alias="defaultMinEffectOfInterest")
+    created_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 creation timestamp, or `null` on legacy rows created before the column existed.", alias="createdAt")
     updated_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 last-update timestamp.", alias="updatedAt")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "name", "folder", "eventName", "aggregation", "valuePath", "query", "queryIr", "direction", "winsorizePct", "minDetectableEffect", "createdAt", "updatedAt"]
+    __properties: ClassVar[List[str]] = ["id", "name", "folder", "eventName", "query", "queryIr", "displayName", "presetId", "unit", "version", "deletedAt", "direction", "winsorizePct", "defaultMinEffectOfInterest", "createdAt", "updatedAt"]
 
     @field_validator('direction')
     def direction_validate_enum(cls, value):
@@ -108,20 +111,45 @@ class GetMetricResponse(BaseModel):
         if self.folder is None and "folder" in self.model_fields_set:
             _dict['folder'] = None
 
-        # set to None if value_path (nullable) is None
-        # and model_fields_set contains the field
-        if self.value_path is None and "value_path" in self.model_fields_set:
-            _dict['valuePath'] = None
-
         # set to None if query (nullable) is None
         # and model_fields_set contains the field
         if self.query is None and "query" in self.model_fields_set:
             _dict['query'] = None
 
-        # set to None if min_detectable_effect (nullable) is None
+        # set to None if query_ir (nullable) is None
         # and model_fields_set contains the field
-        if self.min_detectable_effect is None and "min_detectable_effect" in self.model_fields_set:
-            _dict['minDetectableEffect'] = None
+        if self.query_ir is None and "query_ir" in self.model_fields_set:
+            _dict['queryIr'] = None
+
+        # set to None if display_name (nullable) is None
+        # and model_fields_set contains the field
+        if self.display_name is None and "display_name" in self.model_fields_set:
+            _dict['displayName'] = None
+
+        # set to None if preset_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.preset_id is None and "preset_id" in self.model_fields_set:
+            _dict['presetId'] = None
+
+        # set to None if unit (nullable) is None
+        # and model_fields_set contains the field
+        if self.unit is None and "unit" in self.model_fields_set:
+            _dict['unit'] = None
+
+        # set to None if deleted_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.deleted_at is None and "deleted_at" in self.model_fields_set:
+            _dict['deletedAt'] = None
+
+        # set to None if default_min_effect_of_interest (nullable) is None
+        # and model_fields_set contains the field
+        if self.default_min_effect_of_interest is None and "default_min_effect_of_interest" in self.model_fields_set:
+            _dict['defaultMinEffectOfInterest'] = None
+
+        # set to None if created_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.created_at is None and "created_at" in self.model_fields_set:
+            _dict['createdAt'] = None
 
         return _dict
 
@@ -139,13 +167,16 @@ class GetMetricResponse(BaseModel):
             "name": obj.get("name"),
             "folder": obj.get("folder"),
             "eventName": obj.get("eventName"),
-            "aggregation": obj.get("aggregation"),
-            "valuePath": obj.get("valuePath"),
             "query": obj.get("query"),
-            "queryIr": ListMetricsResponseInnerQueryIr.from_dict(obj["queryIr"]) if obj.get("queryIr") is not None else None,
+            "queryIr": QueryIr.from_dict(obj["queryIr"]) if obj.get("queryIr") is not None else None,
+            "displayName": obj.get("displayName"),
+            "presetId": obj.get("presetId"),
+            "unit": obj.get("unit"),
+            "version": obj.get("version"),
+            "deletedAt": obj.get("deletedAt"),
             "direction": obj.get("direction"),
             "winsorizePct": obj.get("winsorizePct"),
-            "minDetectableEffect": obj.get("minDetectableEffect"),
+            "defaultMinEffectOfInterest": obj.get("defaultMinEffectOfInterest"),
             "createdAt": obj.get("createdAt"),
             "updatedAt": obj.get("updatedAt")
         })

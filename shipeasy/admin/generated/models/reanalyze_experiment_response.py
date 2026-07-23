@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List
 from typing import Optional, Set
 from typing_extensions import Self
@@ -28,15 +28,8 @@ class ReanalyzeExperimentResponse(BaseModel):
     ReanalyzeExperimentResponse
     """ # noqa: E501
     id: StrictStr
-    queued: StrictBool
+    queued: StrictBool = Field(description="`true` when the analysis job was enqueued; `false` when the worker enqueue failed or the analysis queue is not configured (retry later).")
     __properties: ClassVar[List[str]] = ["id", "queued"]
-
-    @field_validator('queued')
-    def queued_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['true']):
-            raise ValueError("must be one of enum values ('true')")
-        return value
 
     model_config = ConfigDict(
         validate_by_name=True,

@@ -29,9 +29,9 @@ class ListI18nProfilesResponseInner(BaseModel):
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque profile id.")
     name: StrictStr = Field(description="Profile handle, e.g. `en:prod` or `fr:prod`.")
-    is_default: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="`1` for the project's single default profile (always seeded as `en:prod`), else `0`.", alias="isDefault")
-    created_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 timestamp of creation.", alias="createdAt")
-    deleted_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 soft-delete timestamp, or `null` if live.", alias="deletedAt")
+    is_default: Union[StrictFloat, StrictInt] = Field(description="`1` for the project's single default profile (always seeded as `en:prod`), else `0`.", alias="isDefault")
+    created_at: StrictStr = Field(description="ISO-8601 timestamp of creation.", alias="createdAt")
+    deleted_at: Optional[StrictStr] = Field(description="ISO-8601 soft-delete timestamp, or `null` if live.", alias="deletedAt")
     __properties: ClassVar[List[str]] = ["id", "name", "isDefault", "createdAt", "deletedAt"]
 
     model_config = ConfigDict(

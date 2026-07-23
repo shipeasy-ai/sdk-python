@@ -20,6 +20,7 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.universe_param import UniverseParam
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,10 +31,13 @@ class ListUniversesResponseDataInner(BaseModel):
     """ # noqa: E501
     id: StrictStr = Field(description="Stable opaque universe id.")
     name: Annotated[str, Field(strict=True, max_length=128)] = Field(description="Stable universe key. Single segment or `folder.name`. Lowercase letters, digits, `_` or `-`; max 128 chars. Immutable after create.")
+    description: Optional[StrictStr] = Field(default=None, description="Human-readable blurb shown in the universe picker/hovercard.")
     unit_type: StrictStr = Field(description="Unit of randomisation. Snake-case in request (`unit_type`), camelCase in response.", alias="unitType")
     holdout_range: Optional[Annotated[List[Union[StrictFloat, StrictInt]], Field(min_length=2, max_length=2)]] = Field(description="Reserved holdout bucket range, or `null` if none.", alias="holdoutRange")
+    recommended_headroom: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="Basis points of headroom seeded into each new experiment's reserved tail (0 = none).", alias="recommendedHeadroom")
+    param_schema: Optional[List[UniverseParam]] = Field(default=None, description="The universe-owned config schema, or `null` on pre-rework universes not yet seeded.", alias="paramSchema")
     created_at: StrictStr = Field(description="ISO-8601 timestamp of creation.", alias="createdAt")
-    __properties: ClassVar[List[str]] = ["id", "name", "unitType", "holdoutRange", "createdAt"]
+    __properties: ClassVar[List[str]] = ["id", "name", "description", "unitType", "holdoutRange", "recommendedHeadroom", "paramSchema", "createdAt"]
 
     @field_validator('name')
     def name_validate_regular_expression(cls, value):
@@ -84,10 +88,27 @@ class ListUniversesResponseDataInner(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in param_schema (list)
+        _items = []
+        if self.param_schema:
+            for _item_param_schema in self.param_schema:
+                if _item_param_schema:
+                    _items.append(_item_param_schema.to_dict())
+            _dict['paramSchema'] = _items
+        # set to None if description (nullable) is None
+        # and model_fields_set contains the field
+        if self.description is None and "description" in self.model_fields_set:
+            _dict['description'] = None
+
         # set to None if holdout_range (nullable) is None
         # and model_fields_set contains the field
         if self.holdout_range is None and "holdout_range" in self.model_fields_set:
             _dict['holdoutRange'] = None
+
+        # set to None if param_schema (nullable) is None
+        # and model_fields_set contains the field
+        if self.param_schema is None and "param_schema" in self.model_fields_set:
+            _dict['paramSchema'] = None
 
         return _dict
 
@@ -103,8 +124,11 @@ class ListUniversesResponseDataInner(BaseModel):
         _obj = cls.model_validate({
             "id": obj.get("id"),
             "name": obj.get("name"),
+            "description": obj.get("description"),
             "unitType": obj.get("unitType"),
             "holdoutRange": obj.get("holdoutRange"),
+            "recommendedHeadroom": obj.get("recommendedHeadroom"),
+            "paramSchema": [UniverseParam.from_dict(_item) for _item in obj["paramSchema"]] if obj.get("paramSchema") is not None else None,
             "createdAt": obj.get("createdAt")
         })
         return _obj

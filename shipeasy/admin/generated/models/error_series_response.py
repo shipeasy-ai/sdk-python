@@ -19,7 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List
-from shipeasy.admin.generated.models.error_series_response_rows_inner import ErrorSeriesResponseRowsInner
+from shipeasy.admin.generated.models.get_metric_series_response_rows_inner import GetMetricSeriesResponseRowsInner
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +29,7 @@ class ErrorSeriesResponse(BaseModel):
     Bucketed occurrence counts for one tracked error (by its fingerprint), plus the Analytics Engine SQL that produced them.
     """ # noqa: E501
     sql: StrictStr = Field(description="The Analytics Engine SQL executed to produce `rows` (echoed for transparency / debugging).")
-    rows: List[ErrorSeriesResponseRowsInner] = Field(description="Bucketed occurrence series, ordered by `t` ascending.")
+    rows: List[GetMetricSeriesResponseRowsInner] = Field(description="Bucketed occurrence series, ordered by `t` ascending.")
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["sql", "rows"]
 
@@ -99,7 +99,7 @@ class ErrorSeriesResponse(BaseModel):
 
         _obj = cls.model_validate({
             "sql": obj.get("sql"),
-            "rows": [ErrorSeriesResponseRowsInner.from_dict(_item) for _item in obj["rows"]] if obj.get("rows") is not None else None
+            "rows": [GetMetricSeriesResponseRowsInner.from_dict(_item) for _item in obj["rows"]] if obj.get("rows") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -20,17 +20,21 @@ import json
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
+from shipeasy.admin.generated.models.universe_param import UniverseParam
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
 class UpdateUniverseRequest(BaseModel):
     """
-    Body for `PATCH /api/admin/universes/{id}`. Only `holdout_range` is mutable — name and unit_type are immutable after create.
+    Body for `PATCH /api/admin/universes/{id}`. `name` and `unit_type` are immutable after create; `holdout_range`, `description`, `recommended_headroom` and `param_schema` are mutable.
     """ # noqa: E501
     folder: Optional[Annotated[str, Field(strict=True, max_length=256)]] = Field(default=None, description="Optional folder name grouping items in the dashboard. Alphanumeric, `_` or `-` (no `/`). Part of the SDK lookup key (`<folder>/<name>`).")
+    description: Optional[Annotated[str, Field(strict=True, max_length=2000)]] = Field(default=None, description="Human-readable blurb shown in the universe picker/hovercard.")
     holdout_range: Optional[Annotated[List[Annotated[int, Field(le=9999, strict=True, ge=0)]], Field(min_length=2, max_length=2)]] = Field(default=None, description="Inclusive `[lo, hi]` bucket range (0–9999) reserved as the **holdout** — callers hashed into this slice are excluded from every experiment in the universe. `null` disables the holdout. Pro plan or higher required.")
-    __properties: ClassVar[List[str]] = ["folder", "holdout_range"]
+    recommended_headroom: Optional[Annotated[int, Field(le=10000, strict=True, ge=0)]] = Field(default=None, description="Basis points of reserved headroom seeded into new experiments in this universe.")
+    param_schema: Optional[List[UniverseParam]] = Field(default=None, description="Replace the universe config schema. Additive changes + default edits are always allowed; removing a param a running experiment overrides is rejected (deprecate-only).")
+    __properties: ClassVar[List[str]] = ["folder", "description", "holdout_range", "recommended_headroom", "param_schema"]
 
     @field_validator('folder')
     def folder_validate_regular_expression(cls, value):
@@ -84,15 +88,32 @@ class UpdateUniverseRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in param_schema (list)
+        _items = []
+        if self.param_schema:
+            for _item_param_schema in self.param_schema:
+                if _item_param_schema:
+                    _items.append(_item_param_schema.to_dict())
+            _dict['param_schema'] = _items
         # set to None if folder (nullable) is None
         # and model_fields_set contains the field
         if self.folder is None and "folder" in self.model_fields_set:
             _dict['folder'] = None
 
+        # set to None if description (nullable) is None
+        # and model_fields_set contains the field
+        if self.description is None and "description" in self.model_fields_set:
+            _dict['description'] = None
+
         # set to None if holdout_range (nullable) is None
         # and model_fields_set contains the field
         if self.holdout_range is None and "holdout_range" in self.model_fields_set:
             _dict['holdout_range'] = None
+
+        # set to None if param_schema (nullable) is None
+        # and model_fields_set contains the field
+        if self.param_schema is None and "param_schema" in self.model_fields_set:
+            _dict['param_schema'] = None
 
         return _dict
 
@@ -107,7 +128,10 @@ class UpdateUniverseRequest(BaseModel):
 
         _obj = cls.model_validate({
             "folder": obj.get("folder"),
-            "holdout_range": obj.get("holdout_range")
+            "description": obj.get("description"),
+            "holdout_range": obj.get("holdout_range"),
+            "recommended_headroom": obj.get("recommended_headroom"),
+            "param_schema": [UniverseParam.from_dict(_item) for _item in obj["param_schema"]] if obj.get("param_schema") is not None else None
         })
         return _obj
 

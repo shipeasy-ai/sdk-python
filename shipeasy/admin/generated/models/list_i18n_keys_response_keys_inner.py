@@ -30,14 +30,15 @@ class ListI18nKeysResponseKeysInner(BaseModel):
     id: StrictStr = Field(description="Stable opaque key id.")
     key: StrictStr = Field(description="Dotted key path, e.g. `home.cta`.")
     value: StrictStr = Field(description="Current translated value for the key.")
-    description: Optional[StrictStr] = Field(default=None, description="Optional human note stored with the key.")
-    variables: Optional[List[StrictStr]] = Field(default=None, description="`{{var}}` placeholder names in the value, or `null` when there are none.")
-    profile_id: Optional[StrictStr] = Field(default=None, description="Owning profile id.", alias="profileId")
-    chunk_id: Optional[StrictStr] = Field(default=None, description="Owning chunk (authoring grouping) id.", alias="chunkId")
-    updated_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 timestamp of the last edit.", alias="updatedAt")
-    updated_by: Optional[StrictStr] = Field(default=None, description="Actor email that last edited the key.", alias="updatedBy")
-    additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "key", "value", "description", "variables", "profileId", "chunkId", "updatedAt", "updatedBy"]
+    description: Optional[StrictStr] = Field(description="Optional human note stored with the key.")
+    variables: Optional[List[StrictStr]] = Field(description="`{{var}}` placeholder names in the value, or `null` when there are none.")
+    profile_id: StrictStr = Field(description="Owning profile id.", alias="profileId")
+    profile_name: Optional[StrictStr] = Field(description="Name of the owning profile (e.g. `en:prod`), or `null` when it cannot be resolved.", alias="profileName")
+    chunk_id: StrictStr = Field(description="Owning chunk (authoring grouping) id.", alias="chunkId")
+    chunk_name: Optional[StrictStr] = Field(description="Name of the owning chunk (authoring grouping), or `null` when it cannot be resolved.", alias="chunkName")
+    updated_at: StrictStr = Field(description="ISO-8601 timestamp of the last edit.", alias="updatedAt")
+    updated_by: StrictStr = Field(description="Actor email that last edited the key.", alias="updatedBy")
+    __properties: ClassVar[List[str]] = ["id", "key", "value", "description", "variables", "profileId", "profileName", "chunkId", "chunkName", "updatedAt", "updatedBy"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -69,10 +70,8 @@ class ListI18nKeysResponseKeysInner(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
-        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
-            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -80,11 +79,6 @@ class ListI18nKeysResponseKeysInner(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # puts key-value pairs in additional_properties in the top level
-        if self.additional_properties is not None:
-            for _key, _value in self.additional_properties.items():
-                _dict[_key] = _value
-
         # set to None if description (nullable) is None
         # and model_fields_set contains the field
         if self.description is None and "description" in self.model_fields_set:
@@ -94,6 +88,16 @@ class ListI18nKeysResponseKeysInner(BaseModel):
         # and model_fields_set contains the field
         if self.variables is None and "variables" in self.model_fields_set:
             _dict['variables'] = None
+
+        # set to None if profile_name (nullable) is None
+        # and model_fields_set contains the field
+        if self.profile_name is None and "profile_name" in self.model_fields_set:
+            _dict['profileName'] = None
+
+        # set to None if chunk_name (nullable) is None
+        # and model_fields_set contains the field
+        if self.chunk_name is None and "chunk_name" in self.model_fields_set:
+            _dict['chunkName'] = None
 
         return _dict
 
@@ -113,15 +117,12 @@ class ListI18nKeysResponseKeysInner(BaseModel):
             "description": obj.get("description"),
             "variables": obj.get("variables"),
             "profileId": obj.get("profileId"),
+            "profileName": obj.get("profileName"),
             "chunkId": obj.get("chunkId"),
+            "chunkName": obj.get("chunkName"),
             "updatedAt": obj.get("updatedAt"),
             "updatedBy": obj.get("updatedBy")
         })
-        # store additional fields in additional_properties
-        for _key in obj.keys():
-            if _key not in cls.__properties:
-                _obj.additional_properties[_key] = obj.get(_key)
-
         return _obj
 
 
