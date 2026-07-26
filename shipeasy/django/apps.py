@@ -106,7 +106,7 @@ class ShipeasyConfig(AppConfig):
                 "Shipeasy: no SERVER_KEY found in the SHIPEASY settings dict — "
                 "the SDK is not configured. Set SHIPEASY = {'SERVER_KEY': "
                 "os.environ['SHIPEASY_SERVER_KEY'], ...} (mint a server key at "
-                "https://app.shipeasy.ai). Reads will raise until configured.",
+                "https://shipeasy.ai). Reads will raise until configured.",
                 stacklevel=2,
             )
             return

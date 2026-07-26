@@ -37,7 +37,7 @@ ENV_KEY = "SHIPEASY_SERVER_KEY"
 # if missing.
 SHIPEASY_BLOCK = """\
 # --- Shipeasy (feature flags, configs, kill switches, A/B experiments) ---------
-# Read more: https://docs.shipeasy.ai  ·  Mint keys: https://app.shipeasy.ai
+# Read more: https://docs.shipeasy.ai  ·  Mint keys: https://shipeasy.ai
 # configure() runs once at boot from this dict (shipeasy.django AppConfig.ready);
 # then read per request: shipeasy.Client(request.user).get_flag("new_checkout").
 SHIPEASY = {
@@ -333,7 +333,7 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(self.style.MIGRATE_HEADING("Next steps:"))
         self.stdout.write(
-            "  1. Mint a SERVER key: https://app.shipeasy.ai → Settings → SDK keys"
+            "  1. Mint a SERVER key: https://shipeasy.ai → Connect → SDK Keys"
         )
         self.stdout.write(
             f"  2. Set {ENV_KEY} in your environment (or .env)."
