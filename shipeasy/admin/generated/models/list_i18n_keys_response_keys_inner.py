@@ -33,11 +33,10 @@ class ListI18nKeysResponseKeysInner(BaseModel):
     description: Optional[StrictStr] = Field(default=None, description="Optional human note stored with the key.")
     variables: Optional[List[StrictStr]] = Field(default=None, description="`{{var}}` placeholder names in the value, or `null` when there are none.")
     profile_id: Optional[StrictStr] = Field(default=None, description="Owning profile id.", alias="profileId")
-    chunk_id: Optional[StrictStr] = Field(default=None, description="Owning chunk (authoring grouping) id.", alias="chunkId")
     updated_at: Optional[StrictStr] = Field(default=None, description="ISO-8601 timestamp of the last edit.", alias="updatedAt")
     updated_by: Optional[StrictStr] = Field(default=None, description="Actor email that last edited the key.", alias="updatedBy")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "key", "value", "description", "variables", "profileId", "chunkId", "updatedAt", "updatedBy"]
+    __properties: ClassVar[List[str]] = ["id", "key", "value", "description", "variables", "profileId", "updatedAt", "updatedBy"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -113,7 +112,6 @@ class ListI18nKeysResponseKeysInner(BaseModel):
             "description": obj.get("description"),
             "variables": obj.get("variables"),
             "profileId": obj.get("profileId"),
-            "chunkId": obj.get("chunkId"),
             "updatedAt": obj.get("updatedAt"),
             "updatedBy": obj.get("updatedBy")
         })

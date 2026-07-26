@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Union
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -31,8 +31,7 @@ class PushI18nKeysResponse(BaseModel):
     skipped: List[StrictStr] = Field(description="Key names that already existed and were left untouched.")
     pushed_count: Union[StrictFloat, StrictInt] = Field(description="Number of keys inserted (== `added.length`).")
     skipped_count: Union[StrictFloat, StrictInt] = Field(description="Number of keys skipped (== `skipped.length`).")
-    chunk: Optional[StrictStr] = Field(default=None, description="The chunk the keys were filed under.")
-    __properties: ClassVar[List[str]] = ["added", "skipped", "pushed_count", "skipped_count", "chunk"]
+    __properties: ClassVar[List[str]] = ["added", "skipped", "pushed_count", "skipped_count"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -88,8 +87,7 @@ class PushI18nKeysResponse(BaseModel):
             "added": obj.get("added"),
             "skipped": obj.get("skipped"),
             "pushed_count": obj.get("pushed_count"),
-            "skipped_count": obj.get("skipped_count"),
-            "chunk": obj.get("chunk")
+            "skipped_count": obj.get("skipped_count")
         })
         return _obj
 

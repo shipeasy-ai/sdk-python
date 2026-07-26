@@ -29,7 +29,6 @@ class PublishI18nProfileResponse(BaseModel):
     """ # noqa: E501
     ok: StrictBool = Field(description="Always `true` on success.")
     profile_id: StrictStr = Field(description="Profile that was published.")
-    chunk: Optional[StrictStr] = Field(description="Audit chunk label, or `null` when none was given.")
     published_at: StrictStr = Field(description="ISO-8601 timestamp of the publish.")
     version: StrictStr = Field(description="New KV snapshot version that was shipped.")
     key_count: Union[StrictFloat, StrictInt] = Field(description="Number of keys in the published snapshot.")
@@ -37,7 +36,7 @@ class PublishI18nProfileResponse(BaseModel):
     purged: StrictStr = Field(description="CDN purge outcome: `purged` ok, `skipped` (no creds), or `failed` (edge still stale).")
     kv_verified: StrictBool = Field(description="Whether a KV read-back confirmed the new version persisted.")
     warning: Optional[StrictStr] = Field(default=None, description="Human-readable caveat when the publish landed but is not fully live.")
-    __properties: ClassVar[List[str]] = ["ok", "profile_id", "chunk", "published_at", "version", "key_count", "changed", "purged", "kv_verified", "warning"]
+    __properties: ClassVar[List[str]] = ["ok", "profile_id", "published_at", "version", "key_count", "changed", "purged", "kv_verified", "warning"]
 
     @field_validator('ok')
     def ok_validate_enum(cls, value):
@@ -92,11 +91,6 @@ class PublishI18nProfileResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if chunk (nullable) is None
-        # and model_fields_set contains the field
-        if self.chunk is None and "chunk" in self.model_fields_set:
-            _dict['chunk'] = None
-
         return _dict
 
     @classmethod
@@ -111,7 +105,6 @@ class PublishI18nProfileResponse(BaseModel):
         _obj = cls.model_validate({
             "ok": obj.get("ok"),
             "profile_id": obj.get("profile_id"),
-            "chunk": obj.get("chunk"),
             "published_at": obj.get("published_at"),
             "version": obj.get("version"),
             "key_count": obj.get("key_count"),

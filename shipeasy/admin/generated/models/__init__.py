@@ -148,7 +148,6 @@ from shipeasy.admin.generated.models.notify_ops_request import NotifyOpsRequest
 from shipeasy.admin.generated.models.notify_ops_response import NotifyOpsResponse
 from shipeasy.admin.generated.models.publish_config_draft_request import PublishConfigDraftRequest
 from shipeasy.admin.generated.models.publish_config_draft_response import PublishConfigDraftResponse
-from shipeasy.admin.generated.models.publish_i18n_profile_request import PublishI18nProfileRequest
 from shipeasy.admin.generated.models.publish_i18n_profile_response import PublishI18nProfileResponse
 from shipeasy.admin.generated.models.push_i18n_keys_request import PushI18nKeysRequest
 from shipeasy.admin.generated.models.push_i18n_keys_request_keys_inner import PushI18nKeysRequestKeysInner

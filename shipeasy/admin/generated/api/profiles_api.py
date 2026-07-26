@@ -16,12 +16,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import Field, StrictStr
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from typing_extensions import Annotated
 from shipeasy.admin.generated.models.create_i18n_profile_request import CreateI18nProfileRequest
 from shipeasy.admin.generated.models.create_i18n_profile_response import CreateI18nProfileResponse
 from shipeasy.admin.generated.models.list_i18n_profiles_response_inner import ListI18nProfilesResponseInner
-from shipeasy.admin.generated.models.publish_i18n_profile_request import PublishI18nProfileRequest
 from shipeasy.admin.generated.models.publish_i18n_profile_response import PublishI18nProfileResponse
 
 from shipeasy.admin.generated.api_client import ApiClient, RequestSerialized
@@ -368,7 +367,7 @@ class ProfilesApi:
     ) -> List[ListI18nProfilesResponseInner]:
         """List i18n profiles
 
-        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing a chunk.
+        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
@@ -441,7 +440,7 @@ class ProfilesApi:
     ) -> ApiResponse[List[ListI18nProfilesResponseInner]]:
         """List i18n profiles
 
-        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing a chunk.
+        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
@@ -514,7 +513,7 @@ class ProfilesApi:
     ) -> RESTResponseType:
         """List i18n profiles
 
-        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing a chunk.
+        Returns every locale profile in the project (e.g. `en:prod`, `fr:prod`).  **Use case:** Discover which locale profiles exist before pushing keys or publishing.
 
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
@@ -632,8 +631,8 @@ class ProfilesApi:
     def publish_i18n_profile(
         self,
         profile_id: Annotated[Optional[StrictStr], Field(description="The profile id to publish.")],
-        publish_i18n_profile_request: PublishI18nProfileRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        body: Optional[Dict[str, Any]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -649,14 +648,14 @@ class ProfilesApi:
     ) -> PublishI18nProfileResponse:
         """Publish a profile live
 
-        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the optional `chunk` in the body is an audit label only (it does not scope what ships).  **Use case:** Ship the latest translations live after pushing/updating keys.
+        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the body takes no options.  **Use case:** Ship the latest translations live after pushing/updating keys.
 
         :param profile_id: The profile id to publish. (required)
         :type profile_id: str
-        :param publish_i18n_profile_request: (required)
-        :type publish_i18n_profile_request: PublishI18nProfileRequest
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param body:
+        :type body: object
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -681,8 +680,8 @@ class ProfilesApi:
 
         _param = self._publish_i18n_profile_serialize(
             profile_id=profile_id,
-            publish_i18n_profile_request=publish_i18n_profile_request,
             x_project_id=x_project_id,
+            body=body,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -713,8 +712,8 @@ class ProfilesApi:
     def publish_i18n_profile_with_http_info(
         self,
         profile_id: Annotated[Optional[StrictStr], Field(description="The profile id to publish.")],
-        publish_i18n_profile_request: PublishI18nProfileRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        body: Optional[Dict[str, Any]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -730,14 +729,14 @@ class ProfilesApi:
     ) -> ApiResponse[PublishI18nProfileResponse]:
         """Publish a profile live
 
-        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the optional `chunk` in the body is an audit label only (it does not scope what ships).  **Use case:** Ship the latest translations live after pushing/updating keys.
+        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the body takes no options.  **Use case:** Ship the latest translations live after pushing/updating keys.
 
         :param profile_id: The profile id to publish. (required)
         :type profile_id: str
-        :param publish_i18n_profile_request: (required)
-        :type publish_i18n_profile_request: PublishI18nProfileRequest
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param body:
+        :type body: object
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -762,8 +761,8 @@ class ProfilesApi:
 
         _param = self._publish_i18n_profile_serialize(
             profile_id=profile_id,
-            publish_i18n_profile_request=publish_i18n_profile_request,
             x_project_id=x_project_id,
+            body=body,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -794,8 +793,8 @@ class ProfilesApi:
     def publish_i18n_profile_without_preload_content(
         self,
         profile_id: Annotated[Optional[StrictStr], Field(description="The profile id to publish.")],
-        publish_i18n_profile_request: PublishI18nProfileRequest,
         x_project_id: Annotated[Optional[StrictStr], Field(description="Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).")] = None,
+        body: Optional[Dict[str, Any]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -811,14 +810,14 @@ class ProfilesApi:
     ) -> RESTResponseType:
         """Publish a profile live
 
-        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the optional `chunk` in the body is an audit label only (it does not scope what ships).  **Use case:** Ship the latest translations live after pushing/updating keys.
+        Publish a profile to the CDN — rebuild its KV snapshot + purge the edge. Publishing is PROFILE-WIDE: the whole profile is snapshotted into one KV blob, so the body takes no options.  **Use case:** Ship the latest translations live after pushing/updating keys.
 
         :param profile_id: The profile id to publish. (required)
         :type profile_id: str
-        :param publish_i18n_profile_request: (required)
-        :type publish_i18n_profile_request: PublishI18nProfileRequest
         :param x_project_id: Project the request operates on. Optional — defaults to the project the SDK key belongs to; pass it only to scope a multi-project key (the generated client sets it once from its configuration, so per-call callers never thread it).
         :type x_project_id: str
+        :param body:
+        :type body: object
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -843,8 +842,8 @@ class ProfilesApi:
 
         _param = self._publish_i18n_profile_serialize(
             profile_id=profile_id,
-            publish_i18n_profile_request=publish_i18n_profile_request,
             x_project_id=x_project_id,
+            body=body,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -870,8 +869,8 @@ class ProfilesApi:
     def _publish_i18n_profile_serialize(
         self,
         profile_id,
-        publish_i18n_profile_request,
         x_project_id,
+        body,
         _request_auth,
         _content_type,
         _headers,
@@ -901,8 +900,8 @@ class ProfilesApi:
             _header_params['X-Project-Id'] = x_project_id
         # process the form parameters
         # process the body parameter
-        if publish_i18n_profile_request is not None:
-            _body_params = publish_i18n_profile_request
+        if body is not None:
+            _body_params = body
 
 
         # set the HTTP header `Accept`

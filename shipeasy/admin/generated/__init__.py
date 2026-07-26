@@ -179,7 +179,6 @@ __all__ = [
     "NotifyOpsResponse",
     "PublishConfigDraftRequest",
     "PublishConfigDraftResponse",
-    "PublishI18nProfileRequest",
     "PublishI18nProfileResponse",
     "PushI18nKeysRequest",
     "PushI18nKeysRequestKeysInner",
@@ -398,7 +397,6 @@ from shipeasy.admin.generated.models.notify_ops_request import NotifyOpsRequest 
 from shipeasy.admin.generated.models.notify_ops_response import NotifyOpsResponse as NotifyOpsResponse
 from shipeasy.admin.generated.models.publish_config_draft_request import PublishConfigDraftRequest as PublishConfigDraftRequest
 from shipeasy.admin.generated.models.publish_config_draft_response import PublishConfigDraftResponse as PublishConfigDraftResponse
-from shipeasy.admin.generated.models.publish_i18n_profile_request import PublishI18nProfileRequest as PublishI18nProfileRequest
 from shipeasy.admin.generated.models.publish_i18n_profile_response import PublishI18nProfileResponse as PublishI18nProfileResponse
 from shipeasy.admin.generated.models.push_i18n_keys_request import PushI18nKeysRequest as PushI18nKeysRequest
 from shipeasy.admin.generated.models.push_i18n_keys_request_keys_inner import PushI18nKeysRequestKeysInner as PushI18nKeysRequestKeysInner
