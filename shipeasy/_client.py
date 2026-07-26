@@ -17,7 +17,7 @@ from ._eval import (
     param_defaults_from_schema,
     _enabled,
 )
-from ._bootstrap import render_bootstrap_tag, render_i18n_tag
+from ._bootstrap import render_bootstrap_tag, render_devtools_tag, render_i18n_tag
 from ._sticky import StickyBucketStore, InMemoryStickyStore, StickyEntry
 from ._detail import (
     FlagDetail,
@@ -74,6 +74,10 @@ class Engine:
         sticky_store: Optional[StickyBucketStore] = None,
         log_level: str = "warn",
         disable_internal_error_reporting: bool = False,
+        client_key: Optional[str] = None,
+        profile: Optional[str] = None,
+        project_id: Optional[str] = None,
+        cdn_base_url: Optional[str] = None,
     ) -> None:
         # Set the SDK's internal log verbosity first, so any diagnostic emitted
         # during the rest of construction is already gated. An unknown value is
@@ -113,6 +117,18 @@ class Engine:
             env=env,
             disabled=telemetry_disabled,
         )
+        # SSR tag defaults. The tag helpers (i18n / bootstrap / devtools) take
+        # every argument from here unless the callsite passes one, so a template
+        # says ``shipeasy.i18n_script_tag()`` instead of repeating configuration
+        # at each callsite. ``client_key`` is the PUBLIC client key — never the
+        # server key, which must not reach a browser.
+        self._client_key = client_key
+        self._profile = profile
+        self._project_id = project_id
+        self._cdn_base_url = cdn_base_url
+        # Missing-setting warnings, deduped per (helper, setting): a tag helper
+        # runs on every render and one misconfiguration must not log per request.
+        self._warned_tag_settings: set = set()
         self._flags_blob: Optional[dict] = None
         self._exps_blob: Optional[dict] = None
         self._flags_etag: Optional[str] = None
@@ -166,17 +182,19 @@ class Engine:
             self._initialized = True
 
     @classmethod
-    def for_testing(cls) -> "Engine":
+    def for_testing(cls, **engine_opts: Any) -> "Engine":
         """Build a no-network client for tests. Telemetry is disabled,
         ``init()``/``init_once()`` are no-ops (never fetch), ``track()`` is a
         no-op, and no api_key is required. The client is immediately usable:
         getters resolve against an empty blob plus whatever you seed via the
-        ``override_*`` setters.
+        ``override_*`` setters. Extra keyword options (``client_key``,
+        ``profile``, ``project_id``, ``cdn_base_url`` …) are passed through.
         """
         client = cls(
             api_key="",
             disable_telemetry=True,
             disable_internal_error_reporting=True,
+            **engine_opts,
         )
         client._test_mode = True
         client._flags_blob = {}
@@ -185,7 +203,9 @@ class Engine:
         return client
 
     @classmethod
-    def from_snapshot(cls, flags: Optional[dict], experiments: Optional[dict]) -> "Engine":
+    def from_snapshot(
+        cls, flags: Optional[dict], experiments: Optional[dict], **engine_opts: Any
+    ) -> "Engine":
         """Build an offline client from in-memory blobs (no network, ever).
 
         ``flags`` is the body of ``/sdk/flags`` (``{"gates": ..., "configs":
@@ -200,6 +220,7 @@ class Engine:
             api_key="",
             disable_telemetry=True,
             disable_internal_error_reporting=True,
+            **engine_opts,
         )
         client._test_mode = True
         client._flags_blob = dict(flags) if flags else {}
@@ -622,35 +643,97 @@ class Engine:
             "universes": universes,
         }
 
+    def _warn_missing_tag_setting(self, fn_name: str, setting: str, value: Optional[str]) -> None:
+        """A tag built with no key / project id is not an error — it renders, and
+        the browser bundle reports what it needs — but it is never what the
+        caller wanted. Logged once per (helper, setting)."""
+        if value:
+            return
+        seen = f"{fn_name}.{setting}"
+        if seen in self._warned_tag_settings:
+            return
+        self._warned_tag_settings.add(seen)
+        _log.warn(
+            "%s: no %s — pass it, or set %s=... in configure(); "
+            "the tag will render without it",
+            fn_name,
+            setting,
+            setting,
+        )
+
     def bootstrap_script_tag(
         self,
-        user: Mapping[str, Any],
+        user: Optional[Mapping[str, Any]] = None,
         *,
         anon_id: Optional[str] = None,
-        i18n_profile: str = "en:prod",
+        i18n_profile: Optional[str] = None,
         base_url: Optional[str] = None,
     ) -> str:
         """Return the cross-platform SSR bootstrap ``<script>`` tag for a request.
         ``se-bootstrap.js`` reads its ``data-*`` attributes and hydrates
         ``window.__SE_BOOTSTRAP`` (and writes the anon cookie). No key embedded.
+
+        Every argument is optional: ``user`` defaults to an anonymous request,
+        ``i18n_profile`` to the configured ``profile``, ``base_url`` to the
+        configured ``cdn_base_url``.
         """
+        user = user or {}
         return render_bootstrap_tag(
             self.evaluate(user),
             anon_id=anon_id,
             identity=user,
-            i18n_profile=i18n_profile,
-            base_url=base_url,
+            i18n_profile=i18n_profile or self._profile or "en:prod",
+            base_url=base_url or self._cdn_base_url,
         )
 
     def i18n_script_tag(
         self,
-        client_key: str,
-        profile: str = "en:prod",
+        client_key: Optional[str] = None,
+        profile: Optional[str] = None,
         *,
         base_url: Optional[str] = None,
     ) -> str:
-        """Return the i18n loader ``<script>`` tag (uses the public client key)."""
-        return render_i18n_tag(client_key, profile, base_url=base_url)
+        """Return the i18n loader ``<script>`` tag (uses the PUBLIC client key).
+
+        Every argument is optional and falls back to ``configure()``:
+        ``client_key`` to the configured ``client_key``, ``profile`` to
+        ``profile``, ``base_url`` to ``cdn_base_url``.
+        """
+        key = client_key or self._client_key
+        self._warn_missing_tag_setting("i18n_script_tag", "client_key", key)
+        return render_i18n_tag(
+            key or "",
+            profile or self._profile or "en:prod",
+            base_url=base_url or self._cdn_base_url,
+        )
+
+    def devtools_script_tag(
+        self,
+        project_id: Optional[str] = None,
+        *,
+        client_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        defer: bool = True,
+    ) -> str:
+        """Return the devtools overlay ``<script>`` tag — the hosted
+        ``se-devtools.js`` bundle, which opens with Shift+Alt+S or on any page
+        loaded with ``?se=1``.
+
+        Every argument is optional and falls back to ``configure()``:
+        ``project_id`` to the configured ``project_id``, ``client_key`` to
+        ``client_key``, ``base_url`` to ``cdn_base_url``. ``defer`` (default
+        ``True``) keeps the overlay off the critical rendering path.
+        """
+        pid = project_id or self._project_id
+        key = client_key or self._client_key
+        self._warn_missing_tag_setting("devtools_script_tag", "project_id", pid)
+        self._warn_missing_tag_setting("devtools_script_tag", "client_key", key)
+        return render_devtools_tag(
+            pid or "",
+            key or "",
+            base_url=base_url or self._cdn_base_url,
+            defer=defer,
+        )
 
     def track(self, user_id: str, event_name: str, properties: Optional[Mapping[str, Any]] = None) -> None:
         """Fire-and-forget a metric event. Fail-safe: any unexpected internal
@@ -972,6 +1055,7 @@ def configure_for_testing(
     configs: Optional[Mapping[str, Any]] = None,
     experiments: Optional[Mapping[str, Any]] = None,
     log_level: str = "warn",
+    **engine_opts: Any,
 ) -> Engine:
     """Configure Shipeasy in **test mode** — a drop-in sibling of
     :func:`configure` with no network, ever (no api key needed).
@@ -996,7 +1080,7 @@ def configure_for_testing(
     Replaces any previously-configured engine, so tests can reconfigure freely.
     """
     set_log_level(log_level)
-    engine = Engine.for_testing()
+    engine = Engine.for_testing(**engine_opts)
     _apply_overrides(engine, flags, configs, experiments)
     return _install_global(engine, attributes)
 
@@ -1085,14 +1169,17 @@ def clear_overrides() -> None:
 
 
 def i18n_script_tag(
-    client_key: str,
-    profile: str = "en:prod",
+    client_key: Optional[str] = None,
+    profile: Optional[str] = None,
     *,
     base_url: Optional[str] = None,
 ) -> str:
     """Return the i18n loader ``<script>`` tag (public client key) for SSR.
 
-    Delegates to the configured global engine — call ``configure(...)`` first.
+    Every argument is optional — each falls back to what ``configure()`` set
+    (``client_key`` / ``profile`` / ``cdn_base_url``), so the normal call is
+    ``shipeasy.i18n_script_tag()``. Delegates to the configured global engine —
+    call ``configure(...)`` first.
     """
     return _require_global("i18n_script_tag").i18n_script_tag(
         client_key, profile, base_url=base_url
@@ -1100,18 +1187,39 @@ def i18n_script_tag(
 
 
 def bootstrap_script_tag(
-    user: Mapping[str, Any],
+    user: Optional[Mapping[str, Any]] = None,
     *,
     anon_id: Optional[str] = None,
-    i18n_profile: str = "en:prod",
+    i18n_profile: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> str:
     """Return the SSR bootstrap ``<script>`` tag for a request (no key embedded).
 
+    Every argument is optional: no ``user`` renders an anonymous request, and
+    ``i18n_profile`` / ``base_url`` fall back to what ``configure()`` set.
     Delegates to the configured global engine — call ``configure(...)`` first.
     """
     return _require_global("bootstrap_script_tag").bootstrap_script_tag(
         user, anon_id=anon_id, i18n_profile=i18n_profile, base_url=base_url
+    )
+
+
+def devtools_script_tag(
+    project_id: Optional[str] = None,
+    *,
+    client_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    defer: bool = True,
+) -> str:
+    """Return the devtools overlay ``<script>`` tag (hosted ``se-devtools.js``;
+    opens with Shift+Alt+S or ``?se=1``).
+
+    Every argument is optional — ``project_id`` / ``client_key`` / ``base_url``
+    fall back to what ``configure()`` set. Delegates to the configured global
+    engine — call ``configure(...)`` first.
+    """
+    return _require_global("devtools_script_tag").devtools_script_tag(
+        project_id, client_key=client_key, base_url=base_url, defer=defer
     )
 
 

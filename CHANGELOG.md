@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.21.0 (2026-07-26)
+
+### feat: the SSR tag helpers take every argument from `configure()`, plus a devtools tag
+
+- **`i18n_script_tag()` and `bootstrap_script_tag()` now take no required
+  arguments.** Each falls back to what `configure()` set — `client_key` →
+  `client_key`, `profile` / `i18n_profile` → `profile`, `base_url` →
+  `cdn_base_url`, and `bootstrap_script_tag`'s `user` → an anonymous request.
+  Every argument is still accepted and an explicit one wins, so a template says
+  `shipeasy.i18n_script_tag()` instead of repeating configuration at each
+  callsite.
+- **New `shipeasy.devtools_script_tag()`** emits the hosted devtools overlay
+  bundle (`se-devtools.js`) with `data-project-id` + `data-client-api-key`,
+  `defer` by default. The overlay opens with **Shift+Alt+S** or on any page
+  loaded with `?se=1`. Its arguments are optional the same way.
+- **New `configure()` options** feeding those defaults: `client_key` (the PUBLIC
+  client key), `profile`, `project_id`, `cdn_base_url`. `configure_for_testing`,
+  `Engine.for_testing` and `Engine.from_snapshot` pass them through.
+- A tag built with a missing key / project id still renders, and the SDK logs a
+  warning naming the `configure()` option to fill in — once per option, not once
+  per render.
+- No behaviour change for existing callsites: an explicitly passed key/profile
+  still wins, and the profile fallback is still `"en:prod"` when nothing is
+  configured. Mirrors the Ruby SDK 3.7.0.
+
 ## 0.20.0 (2026-07-19)
 
 ### feat: carry the server-identified user on the SSR bootstrap tag (no anon→identified flip)

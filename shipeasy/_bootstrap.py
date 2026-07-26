@@ -82,8 +82,31 @@ def render_i18n_tag(
     src = html.escape(f"{base}/sdk/i18n/loader.js", quote=True)
     return (
         f'<script src="{src}" '
-        + _attr("data-key", client_key)
+        + _attr("data-key", client_key or "")
         + " "
         + _attr("data-profile", profile or "en:prod")
         + "></script>"
     )
+
+
+def render_devtools_tag(
+    project_id: str,
+    client_key: str = "",
+    *,
+    base_url: Optional[str] = None,
+    defer: bool = True,
+) -> str:
+    """Render the devtools overlay tag. ``se-devtools.js`` is a hosted,
+    self-executing bundle — nothing to install — that reads the project and the
+    PUBLIC client key off the tag. The overlay opens with Shift+Alt+S or on any
+    page loaded with ``?se=1``. Deferred by default: a developer tool never
+    belongs on the critical rendering path."""
+    base = _cdn_base(base_url)
+    src = html.escape(f"{base}/se-devtools.js", quote=True)
+    attrs = [
+        _attr("data-project-id", project_id or ""),
+        _attr("data-client-api-key", client_key or ""),
+    ]
+    if defer:
+        attrs.append("defer")
+    return f'<script src="{src}" ' + " ".join(attrs) + "></script>"

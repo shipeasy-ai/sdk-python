@@ -65,6 +65,10 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 | `sticky_store` | `StickyBucketStore` | `None` | Pin a user's experiment group across re-buckets. See [advanced](advanced.md). |
 | `log_level` | `str` | `"warn"` | Verbosity of the SDK's own internal diagnostics. See below. |
 | `disable_internal_error_reporting` | `bool` | `False` | Opt out of SDK self-monitoring (see below). Your `see()` reporting is unaffected. |
+| `client_key` | `str` | `None` | **Public** client key (`sdk_client_…`) — the default for the SSR i18n / devtools tags. Never the server key. See [advanced](advanced.md). |
+| `profile` | `str` | `"en:prod"` | Default i18n profile the SSR tags carry. See [i18n](i18n.md). |
+| `project_id` | `str` | `None` | Your project id (`proj_…`) — read by `devtools_script_tag`. See [advanced](advanced.md). |
+| `cdn_base_url` | `str` | `https://cdn.shipeasy.ai` | CDN origin the SSR tags are built against. |
 
 ## Fail-safe reads & the `log_level` option
 

@@ -100,12 +100,49 @@ import shipeasy
 user = {"user_id": "u_123"}
 
 # Two tags for the document <head>. The PUBLIC client key (not the server key)
-# goes on the i18n loader tag.
+# goes on the i18n loader tag — and it comes from configure(), so the callsite
+# does not repeat it.
 head = shipeasy.bootstrap_script_tag(user, anon_id=anon_id) \
-     + shipeasy.i18n_script_tag(client_key, "en:prod")
+     + shipeasy.i18n_script_tag()
 ```
 
-`bootstrap_script_tag` also accepts `i18n_profile=` and `base_url=`.
+### Every argument is optional
+
+All three tag helpers fall back to what `configure()` already set, so the bare
+call is the normal one — pass an argument only to override the configured value
+for that one tag:
+
+| Helper | Signature | Defaults |
+| --- | --- | --- |
+| `shipeasy.i18n_script_tag` | `(client_key=None, profile=None, *, base_url=None)` | `client_key`, `profile`, `cdn_base_url` |
+| `shipeasy.bootstrap_script_tag` | `(user=None, *, anon_id=None, i18n_profile=None, base_url=None)` | anonymous request, no anon id, `profile`, `cdn_base_url` |
+| `shipeasy.devtools_script_tag` | `(project_id=None, *, client_key=None, base_url=None, defer=True)` | `project_id`, `client_key`, `cdn_base_url` |
+
+```python
+shipeasy.configure(
+    api_key=os.environ["SHIPEASY_SERVER_KEY"],
+    client_key=os.environ["SHIPEASY_CLIENT_KEY"],   # PUBLIC key, for the tags
+    project_id=os.environ["SHIPEASY_PROJECT_ID"],   # for the devtools tag
+    profile="en:prod",
+)
+```
+
+A tag still renders when a value is missing (the browser bundle reports what it
+needs), but the SDK logs a warning naming the `configure()` option to fill in —
+once per option, not once per render.
+
+### Devtools overlay tag
+
+`shipeasy.devtools_script_tag()` emits the hosted devtools overlay bundle —
+nothing to install, no overlay code in your bundle. It reads the project id and
+public client key off the tag and opens with **Shift+Alt+S** or on any page
+loaded with `?se=1`. It is `defer`red by default: a developer tool never belongs
+on the critical rendering path.
+
+```python
+# Render it for your own team only.
+head += shipeasy.devtools_script_tag() if request.user.is_staff else ""
+```
 
 ### Identity coherence (no anon→identified flip)
 

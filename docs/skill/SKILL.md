@@ -167,7 +167,10 @@ outside a request). A stray `.extras` after `.to` is ignored (never raises).
   logs one exposure (deduped per process and durably per unit/experiment/group);
   `assign()` itself is side-effect free, and `a.get(field, fallback,
   exposure=False)` peeks without logging. There is no manual `log_exposure`.
-- SSR: `shipeasy.bootstrap_script_tag(user)` + `shipeasy.i18n_script_tag(client_key, "en:prod")`.
+- SSR tags — every argument optional (defaults from `configure()`):
+  `shipeasy.bootstrap_script_tag(user)`, `shipeasy.i18n_script_tag()`,
+  `shipeasy.devtools_script_tag()` (overlay; needs `project_id` + `client_key`;
+  opens with Shift+Alt+S or `?se=1`).
 
 → More: `pages/advanced.md`.
 
