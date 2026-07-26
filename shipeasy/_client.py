@@ -670,8 +670,9 @@ class Engine:
         base_url: Optional[str] = None,
     ) -> str:
         """Return the cross-platform SSR bootstrap ``<script>`` tag for a request.
-        ``se-bootstrap.js`` reads its ``data-*`` attributes and hydrates
-        ``window.__SE_BOOTSTRAP`` (and writes the anon cookie). No key embedded.
+        ``/sdk/runtime.js`` reads its ``data-*`` attributes, installs
+        ``window.shipeasy``, republishes ``window.__SE_BOOTSTRAP`` and writes the
+        anon cookie. No key embedded.
 
         Every argument is optional: ``user`` defaults to an anonymous request,
         ``i18n_profile`` to the configured ``profile``, ``base_url`` to the

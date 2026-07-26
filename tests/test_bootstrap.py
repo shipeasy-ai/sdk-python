@@ -28,7 +28,7 @@ def test_evaluate_builds_payload():
 
 def test_bootstrap_script_tag_attrs():
     tag = _client().bootstrap_script_tag({"user_id": "u1"}, anon_id="anon-1")
-    assert 'src="https://cdn.shipeasy.ai/sdk/bootstrap.js"' in tag
+    assert 'src="https://cdn.shipeasy.ai/sdk/runtime.js"' in tag
     assert "data-se-bootstrap" in tag
     assert 'data-anon-id="anon-1"' in tag
     assert 'data-i18n-profile="en:prod"' in tag
@@ -95,7 +95,7 @@ def test_i18n_script_tag_defaults_from_config():
 
 def test_bootstrap_script_tag_needs_no_user():
     tag = _configured().bootstrap_script_tag()
-    assert 'src="https://cdn.example.test/sdk/bootstrap.js"' in tag
+    assert 'src="https://cdn.example.test/sdk/runtime.js"' in tag
     assert 'data-i18n-profile="fr:prod"' in tag
     assert "data-user" not in tag
 

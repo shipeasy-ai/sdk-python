@@ -2,9 +2,10 @@
 
 Cross-platform bootstrap: the server emits declarative ``<script>`` tags whose
 ``data-*`` attributes carry the request's evaluated flags/configs/experiments.
-The static ``se-bootstrap.js`` loader reads them and hydrates
-``window.__SE_BOOTSTRAP`` (and writes the anon cookie); the i18n loader installs
-translations. No SDK key is ever embedded in the bootstrap tag.
+The ``/sdk/runtime.js`` browser runtime reads them, installs ``window.shipeasy``,
+republishes ``window.__SE_BOOTSTRAP`` for the npm client SDK and writes the anon
+cookie; the i18n loader installs translations. No SDK key is ever embedded in
+the bootstrap tag.
 """
 
 from __future__ import annotations
@@ -45,7 +46,13 @@ def render_bootstrap_tag(
     i18n_profile: str = "en:prod",
     base_url: Optional[str] = None,
 ) -> str:
-    """Render the ``se-bootstrap.js`` tag from an evaluated bootstrap payload.
+    """Render the SSR bootstrap tag from an evaluated bootstrap payload.
+
+    The tag loads ``/sdk/runtime.js``, which reads these ``data-*`` attributes,
+    installs ``window.shipeasy``, republishes ``window.__SE_BOOTSTRAP`` for the
+    npm client SDK and writes the ``__se_anon_id`` cookie. Both marker
+    attributes ride the tag: the npm SDK finds it by ``data-se-bootstrap``, the
+    runtime finds itself by ``data-se-boot``.
 
     When ``identity`` carries a server-identified user, its traits ride the tag
     as ``data-user`` so the browser SDK **adopts** the server's identity on first
@@ -54,6 +61,7 @@ def render_bootstrap_tag(
     base = _cdn_base(base_url)
     attrs = [
         "data-se-bootstrap",
+        "data-se-boot",
         _attr("data-flags", json.dumps(payload.get("flags", {}))),
         _attr("data-configs", json.dumps(payload.get("configs", {}))),
         _attr("data-experiments", json.dumps(payload.get("experiments", {}))),
@@ -66,7 +74,7 @@ def render_bootstrap_tag(
     data_user = _identity_attrs(identity)
     if data_user is not None:
         attrs.append(_attr("data-user", data_user))
-    src = html.escape(f"{base}/sdk/bootstrap.js", quote=True)
+    src = html.escape(f"{base}/sdk/runtime.js", quote=True)
     return f'<script src="{src}" ' + " ".join(attrs) + "></script>"
 
 
