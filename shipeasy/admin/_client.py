@@ -14,7 +14,6 @@ from typing import Optional
 
 from .generated import (
     ApiClient,
-    CommentsApi,
     Configuration,
     FlagsApi,
     KillswitchApi,
@@ -23,17 +22,16 @@ from .generated import (
 
 # Friendly attribute name -> generated Api class.
 #
-# This is the LEAN admin surface: the vendored spec is pruned to three groups
-# (scripts/sdk-spec/keep-set.json in the monorepo) — the public ops ticket
-# surface, the killswitch nested-switch writes, and gate whitelist management.
-# The full admin API (experiments, metrics, events, configs, i18n, projects, …)
-# is intentionally NOT here; reach it through the Shipeasy CLI or MCP, which
-# consume the complete spec.
+# This is the LEAN admin surface: the vendored spec is the dedicated server-SDK
+# contract (marketplace/openapi/spec/openapi-sdk.yaml in the monorepo), seven
+# operations across three capabilities — file a public ticket, toggle a kill
+# switch, manage a flag's whitelist. The full admin API (experiments, metrics,
+# events, configs, i18n, projects, …) is intentionally NOT here; reach it through
+# the Shipeasy CLI or MCP, which consume the complete spec.
 _APIS = {
     "flags": FlagsApi,
     "killswitch": KillswitchApi,
     "ops": OpsApi,
-    "comments": CommentsApi,
 }
 
 
@@ -48,19 +46,30 @@ class AdminClient:
 
         admin = AdminClient(api_key=os.environ["SHIPEASY_ADMIN_KEY"],
                             project_id=os.environ["SHIPEASY_PROJECT_ID"])
-        admin.flags.list_gates()
-        admin.ops.create_ops_item(...)
+        admin.ops.create_public_bug({"title": "Checkout 500s on Safari"})
+        admin.killswitch.toggle_killswitch("payments.checkout", {})
+        admin.flags.add_to_gate_whitelist("new_checkout", {"entries": ["alice@acme.dev"]})
 
-    Four resource groups are available — ``flags``, ``killswitch``, ``ops`` and
-    ``comments``. The rest of the admin API is reachable through the Shipeasy
-    CLI or MCP.
+    Three resource groups are available — ``flags``, ``killswitch`` and ``ops``.
+    The rest of the admin API is reachable through the Shipeasy CLI or MCP.
+
+    Two of the seven operations — ``ops.create_public_bug`` and
+    ``ops.create_public_feature_request`` — are the PUBLIC ticket intake. They
+    live on the Shipeasy edge worker and authenticate with a **client** key
+    (``X-SDK-Key``), not the admin key, so pass ``client_key`` if you want to
+    call them. The generated client routes them to the edge host on its own.
 
     :param api_key: Admin SDK key sent as ``Authorization: Bearer <api_key>``.
     :param project_id: Optional project id sent as the ``X-Project-Id`` header on
         every request (the per-request scoping the API expects). Operations also
         accept an explicit ``x_project_id`` argument to override per call.
-    :param host: API base URL. Defaults to ``https://shipeasy.ai`` (the spec's
-        production server); point it at ``http://localhost:3000`` for local dev.
+    :param host: Admin API base URL. Defaults to ``https://shipeasy.ai`` (the
+        spec's production server); point it at ``http://localhost:3000`` for
+        local dev. The public intake ignores this — it has its own server list;
+        pass ``_host_index=1`` on those calls to hit a local ``wrangler dev``.
+    :param client_key: Client SDK key (``sdk_client_…``) carrying the
+        ``tickets:public_create`` scope, sent as ``X-SDK-Key`` on the two public
+        ticket operations. Optional — omit it if you only use the admin ones.
     """
 
     def __init__(
@@ -69,8 +78,11 @@ class AdminClient:
         *,
         project_id: Optional[str] = None,
         host: str = "https://shipeasy.ai",
+        client_key: Optional[str] = None,
     ) -> None:
         config = Configuration(host=host, access_token=api_key)
+        if client_key:
+            config.api_key["clientSdkKey"] = client_key
         self._api_client = ApiClient(config)
         if project_id:
             self._api_client.set_default_header("X-Project-Id", project_id)

@@ -18,22 +18,20 @@ from enum import Enum
 from typing_extensions import Self
 
 
-class OpsItemPriority(str, Enum):
+class GateWhitelistAttr(str, Enum):
     """
-    Triage priority of a queue item. The lowest tier is `nice_to_have` (not `low`) — carried over from the feature-request \"importance\" scale this priority set replaced.
+    Which identity attribute the whitelist matches on. `email` compares the caller's `email`; `user_id` compares the caller's `userID`. A whitelist matches on exactly one of the two at a time.
     """
 
     """
     allowed enum values
     """
-    NICE_TO_HAVE = 'nice_to_have'
-    MEDIUM = 'medium'
-    HIGH = 'high'
-    CRITICAL = 'critical'
+    EMAIL = 'email'
+    USER_ID = 'user_id'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
-        """Create an instance of OpsItemPriority from a JSON string"""
+        """Create an instance of GateWhitelistAttr from a JSON string"""
         return cls(json.loads(json_str))
 
 

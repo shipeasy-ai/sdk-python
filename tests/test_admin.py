@@ -31,14 +31,20 @@ def test_admin_client_constructs_and_wires_auth_and_scope():
 
 def test_admin_client_exposes_resource_groups():
     client = _client()
-    # The four groups of the pruned admin surface. Exhaustive on purpose: a
-    # keep-set change that adds or drops a group must move this list too.
+    # The three groups of the lean admin surface. Exhaustive on purpose: a
+    # change to the SDK spec that adds or drops a group must move this list too.
     assert type(client.flags).__name__ == "FlagsApi"
     assert type(client.killswitch).__name__ == "KillswitchApi"
     assert type(client.ops).__name__ == "OpsApi"
-    assert type(client.comments).__name__ == "CommentsApi"
-    assert hasattr(client.flags, "list_gates")
-    assert hasattr(client.ops, "create_ops_item")
+    assert not hasattr(client, "comments")
+    # …and the seven operations it carries, likewise exhaustive.
+    assert hasattr(client.ops, "create_public_bug")
+    assert hasattr(client.ops, "create_public_feature_request")
+    assert hasattr(client.killswitch, "toggle_killswitch")
+    assert hasattr(client.flags, "get_gate_whitelist")
+    assert hasattr(client.flags, "set_gate_whitelist")
+    assert hasattr(client.flags, "add_to_gate_whitelist")
+    assert hasattr(client.flags, "remove_from_gate_whitelist")
     # Lazily constructed but cached: same instance on repeat access.
     assert client.flags is client.flags
 
@@ -47,6 +53,17 @@ def test_admin_client_unknown_group_raises_attribute_error():
     client = _client()
     with pytest.raises(AttributeError):
         client.not_a_real_group  # noqa: B018
+
+
+def test_client_key_wires_the_public_intake_scheme():
+    # The two public ticket ops authenticate with a CLIENT key (X-SDK-Key) on the
+    # edge worker, not the admin bearer — the shim must plumb it to the
+    # generated `clientSdkKey` apiKey slot or those calls go out unauthenticated.
+    plain = _client()
+    assert "clientSdkKey" not in plain.api_client.configuration.api_key
+
+    scoped = AdminClient(api_key="sdk_admin_test", client_key="sdk_client_test")
+    assert scoped.api_client.configuration.api_key["clientSdkKey"] == "sdk_client_test"
 
 
 def test_project_id_is_optional():

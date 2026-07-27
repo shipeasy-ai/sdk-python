@@ -17,20 +17,35 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
-from shipeasy.admin.generated.models.notification_target_slack_channel import NotificationTargetSlackChannel
+from typing_extensions import Annotated
+from shipeasy.admin.generated.models.env import Env
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class NotificationTarget(BaseModel):
+class ToggleKillswitchRequest(BaseModel):
     """
-    Delivery target for a notification; `null` = use the project default.
+    Body for `POST /api/admin/killswitches/{id}/toggle`. Every field is optional, so the four useful calls read as one method with a widening argument list:  - `{}` — flip the flat value on prod. - `{ \"switchKey\": \"eu_region\" }` — flip that sub-switch on prod. - `{ \"switchKey\": \"eu_region\", \"value\": true }` — set that sub-switch on prod, idempotently. - `{ \"switchKey\": \"eu_region\", \"value\": true, \"env\": \"staging\" }` — the same, on a chosen env.
     """ # noqa: E501
-    slack_channel: Optional[NotificationTargetSlackChannel] = Field(default=None, alias="slackChannel")
-    email: Optional[StrictStr] = None
-    __properties: ClassVar[List[str]] = ["slackChannel", "email"]
+    switch_key: Optional[Annotated[str, Field(strict=True, max_length=64)]] = Field(default=None, description="Which target to flip. Omit (or `null`) to flip the killswitch's own flat `value`; name a switch key to flip that nested sub-switch instead, creating the entry if it doesn't exist yet.", alias="switchKey")
+    value: Optional[StrictBool] = Field(default=None, description="The value to publish. Omit (or `null`) to flip whatever is stored now — read-modify-write in one call. Pass an explicit `true`/`false` to make the call idempotent, so a retry can't undo the first attempt.")
+    env: Optional[Env] = Field(default=None, description="Environment to publish on. Defaults to `prod` — the environment an incident response means when it says \"kill it\".")
+    __properties: ClassVar[List[str]] = ["switchKey", "value", "env"]
+
+    @field_validator('switch_key')
+    def switch_key_validate_regular_expression(cls, value):
+        """Validates the regular expression"""
+        if value is None:
+            return value
+
+        if not isinstance(value, str):
+            value = str(value)
+
+        if not re.match(r"^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$", value):
+            raise ValueError(r"must validate the regular expression /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -50,7 +65,7 @@ class NotificationTarget(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of NotificationTarget from a JSON string"""
+        """Create an instance of ToggleKillswitchRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -71,24 +86,21 @@ class NotificationTarget(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of slack_channel
-        if self.slack_channel:
-            _dict['slackChannel'] = self.slack_channel.to_dict()
-        # set to None if slack_channel (nullable) is None
+        # set to None if switch_key (nullable) is None
         # and model_fields_set contains the field
-        if self.slack_channel is None and "slack_channel" in self.model_fields_set:
-            _dict['slackChannel'] = None
+        if self.switch_key is None and "switch_key" in self.model_fields_set:
+            _dict['switchKey'] = None
 
-        # set to None if email (nullable) is None
+        # set to None if value (nullable) is None
         # and model_fields_set contains the field
-        if self.email is None and "email" in self.model_fields_set:
-            _dict['email'] = None
+        if self.value is None and "value" in self.model_fields_set:
+            _dict['value'] = None
 
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of NotificationTarget from a dict"""
+        """Create an instance of ToggleKillswitchRequest from a dict"""
         if obj is None:
             return None
 
@@ -96,8 +108,9 @@ class NotificationTarget(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "slackChannel": NotificationTargetSlackChannel.from_dict(obj["slackChannel"]) if obj.get("slackChannel") is not None else None,
-            "email": obj.get("email")
+            "switchKey": obj.get("switchKey"),
+            "value": obj.get("value"),
+            "env": obj.get("env")
         })
         return _obj
 
