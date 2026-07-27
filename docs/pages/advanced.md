@@ -141,7 +141,16 @@ loaded with `?se=1`. It is `defer`red by default: a developer tool never belongs
 on the critical rendering path.
 
 ```python
-# Render it for your own team only.
+head += shipeasy.devtools_script_tag()
+```
+
+Adding it unconditionally is fine: the overlay only opens for someone with a
+signed-in Shipeasy session, so on a page where nobody has authenticated it
+renders nothing and says nothing. Gating it on your own staff or environment
+check is **optional** — worth it only if you'd rather the bundle not load for
+end users at all:
+
+```python
 head += shipeasy.devtools_script_tag() if request.user.is_staff else ""
 ```
 
