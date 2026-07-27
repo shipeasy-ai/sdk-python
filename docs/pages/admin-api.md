@@ -2,9 +2,22 @@
 
 The base SDK *evaluates* flags, configs, and experiments
 ([`configure()`](configuration.md) + `shipeasy.Client(user)`). The **Admin API
-client** is a separate, optional surface for *administering* those resources from
-server code — creating gates, starting experiments, managing configs, kill
-switches, universes, metrics, events, and more.
+client** is a separate, optional surface for *administering* a small, deliberate
+slice of those resources from server code.
+
+It is **intentionally lean** — three groups of operations, not the whole admin
+API:
+
+| Group                       | What it covers                                                     |
+| --------------------------- | ------------------------------------------------------------------ |
+| Public ticket queue         | File a bug or feature request, list the queue, read and update one item, and hold its comment thread |
+| Kill-switch sub-switches    | Add, edit, and delete the named nested switches on a kill switch    |
+| Flag whitelists             | Read a gate and manage the whitelist on its targeting stack         |
+
+Everything else in the admin API — experiments, metrics, events, configs, i18n,
+projects, connectors, keys — is deliberately **not** here. Reach for the Shipeasy
+CLI or MCP for those; they speak the complete spec. Keeping the vendored contract
+small is what keeps the generated client small.
 
 It is **off by default**: the base SDK never imports it, and its dependencies are
 only pulled in when you opt in.
@@ -44,21 +57,27 @@ Each resource group is a lazily-constructed attribute whose methods map 1:1 to
 the OpenAPI operations:
 
 ```python
-# list and create gates
-flags = admin.flags.list_gates()
-admin.flags.create_gate(...)
+# file a bug on the public ticket queue
+admin.ops.create_ops_item(...)
 
-# start an experiment
-admin.experiments.create_experiment(...)
-admin.experiments.start_experiment(...)
+# read one item and comment on it
+item = admin.ops.get_ops_item("42")
+admin.comments.create_ops_comment("42", ...)
+
+# manage a gate's whitelist (it lives on the targeting stack)
+gate = admin.flags.get_gate("g_123")
+admin.flags.update_gate("g_123", ...)
+
+# add or remove a kill switch's nested sub-switch
+admin.killswitch.set_killswitch_switch("k_123", ...)
+admin.killswitch.unset_killswitch_switch("k_123", ...)
 ```
 
-Available groups: `flags`, `configs`, `killswitch`, `experiments`, `universes`,
-`attributes`, `metrics`, `events`, `ops`, `alerts`, `projects`, `profiles`,
-`keys`, `drafts`, `errors`, `connectors`, `api_keys`.
+Available groups: `flags`, `killswitch`, `ops`, `comments`. Any other attribute
+raises `AttributeError` listing these four.
 
 The exact method names, request models, and response shapes come straight from
-the spec — explore them with `dir(admin.gates)` or your editor's autocomplete,
+the spec — explore them with `dir(admin.flags)` or your editor's autocomplete,
 and the request/response types under `shipeasy.admin.generated.models`.
 
 ## Escape hatch
@@ -68,13 +87,21 @@ and the request/response types under `shipeasy.admin.generated.models`.
 
 ## Regenerating
 
-The generated code lives under `shipeasy/admin/generated/` and is committed. When
-the API contract changes, refresh the vendored spec and regenerate — only the
-generated subpackage is rewritten, never the `AdminClient` shim:
+The generated code lives under `shipeasy/admin/generated/` and is committed.
+`admin/openapi.json` is **not** the full Shipeasy spec — it is the pruned subset
+described above, produced in the monorepo by `scripts/sdk-spec/prune.mjs` from
+`scripts/sdk-spec/keep-set.json`. Do not hand-edit it, and do not replace it with
+the full `openapi.json`: that is what bloats the generated client back to
+megabytes.
+
+From the monorepo, re-vendor and regenerate in one step (only the generated
+subpackage is rewritten, never the `AdminClient` shim):
 
 ```bash
-cp <monorepo>/marketplace/openapi/openapi.json admin/openapi.json
-bash scripts/gen_admin.sh
+pnpm sdk:spec:regen sdk-python
 ```
+
+A monorepo pre-commit hook blocks any commit that changes the admin spec while
+this vendored copy is stale, so the two cannot silently drift.
 
 The generator version is pinned in `openapitools.json`.

@@ -13,47 +13,27 @@ from __future__ import annotations
 from typing import Optional
 
 from .generated import (
-    AlertsApi,
     ApiClient,
-    APIKeysApi,
-    AttributesApi,
+    CommentsApi,
     Configuration,
-    ConfigsApi,
-    ConnectorsApi,
-    DraftsApi,
-    ErrorsApi,
-    EventsApi,
-    ExperimentsApi,
     FlagsApi,
-    KeysApi,
     KillswitchApi,
-    MetricsApi,
     OpsApi,
-    ProfilesApi,
-    ProjectsApi,
-    UniversesApi,
 )
 
-# Friendly attribute name -> generated Api class. Mirrors the resource tags of
-# the Admin API (and the CLI/MCP `release`/`metrics`/`events`/... groups).
+# Friendly attribute name -> generated Api class.
+#
+# This is the LEAN admin surface: the vendored spec is pruned to three groups
+# (scripts/sdk-spec/keep-set.json in the monorepo) — the public ops ticket
+# surface, the killswitch nested-switch writes, and gate whitelist management.
+# The full admin API (experiments, metrics, events, configs, i18n, projects, …)
+# is intentionally NOT here; reach it through the Shipeasy CLI or MCP, which
+# consume the complete spec.
 _APIS = {
     "flags": FlagsApi,
-    "configs": ConfigsApi,
     "killswitch": KillswitchApi,
-    "experiments": ExperimentsApi,
-    "universes": UniversesApi,
-    "attributes": AttributesApi,
-    "metrics": MetricsApi,
-    "events": EventsApi,
     "ops": OpsApi,
-    "alerts": AlertsApi,
-    "projects": ProjectsApi,
-    "profiles": ProfilesApi,
-    "keys": KeysApi,
-    "drafts": DraftsApi,
-    "errors": ErrorsApi,
-    "connectors": ConnectorsApi,
-    "api_keys": APIKeysApi,
+    "comments": CommentsApi,
 }
 
 
@@ -69,7 +49,11 @@ class AdminClient:
         admin = AdminClient(api_key=os.environ["SHIPEASY_ADMIN_KEY"],
                             project_id=os.environ["SHIPEASY_PROJECT_ID"])
         admin.flags.list_gates()
-        admin.experiments.create_experiment(...)
+        admin.ops.create_ops_item(...)
+
+    Four resource groups are available — ``flags``, ``killswitch``, ``ops`` and
+    ``comments``. The rest of the admin API is reachable through the Shipeasy
+    CLI or MCP.
 
     :param api_key: Admin SDK key sent as ``Authorization: Bearer <api_key>``.
     :param project_id: Optional project id sent as the ``X-Project-Id`` header on

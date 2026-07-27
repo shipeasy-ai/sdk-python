@@ -31,13 +31,14 @@ def test_admin_client_constructs_and_wires_auth_and_scope():
 
 def test_admin_client_exposes_resource_groups():
     client = _client()
-    # A representative slice of the 17 generated resource groups.
+    # The four groups of the pruned admin surface. Exhaustive on purpose: a
+    # keep-set change that adds or drops a group must move this list too.
     assert type(client.flags).__name__ == "FlagsApi"
-    assert type(client.experiments).__name__ == "ExperimentsApi"
-    assert type(client.connectors).__name__ == "ConnectorsApi"
-    assert type(client.errors).__name__ == "ErrorsApi"
+    assert type(client.killswitch).__name__ == "KillswitchApi"
+    assert type(client.ops).__name__ == "OpsApi"
+    assert type(client.comments).__name__ == "CommentsApi"
     assert hasattr(client.flags, "list_gates")
-    assert hasattr(client.experiments, "create_experiment")
+    assert hasattr(client.ops, "create_ops_item")
     # Lazily constructed but cached: same instance on repeat access.
     assert client.flags is client.flags
 
