@@ -25,18 +25,25 @@ from shipeasy import see
 try:
     charge(order)
 except PaymentError as e:
-    # .extras(mapping)            structured fields attached to the report; call
-    #                             it BEFORE .to, or pass extras inline as
-    #                             .to(outcome, mapping). (A stray .extras AFTER
-    #                             .to is ignored with a warning — it never raises
-    #                             into the except block.)
-    see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
-
-    # equivalent — extras folded into the terminal, no ordering to remember:
+    # .to(outcome, mapping)       PREFERRED: fold the extras into the terminal.
+    #                             The consequence sentence stays whole and
+    #                             there is no ordering to remember.
     see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
+
+    # .to() fires synchronously here, so a trailing .extras() AFTER .to() is
+    # ignored with a warning (it never raises into the except block) — the
+    # extras are DROPPED. Use the inline form above, or add_extras() below.
+    # see(e).causes_the("checkout").to("use cached prices").extras({"order_id": oid})
+
+    # NEVER: extras wedged between the subject and the outcome — it splits the
+    # consequence sentence in half and is hard to read.
+    # see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
 ```
 
 ### Attach context from anywhere with `add_extras(...)`
+
+Prefer this over the inline form whenever the context already exists *above*
+the except block — it keeps the catch site a clean one-liner.
 
 ```python
 import shipeasy

@@ -145,14 +145,16 @@ try:
     charge(order)
 except PaymentError as e:
     see(e).causes_the("checkout").to("use the backup processor")
-    # extras inline on the terminal (or .extras(...) before .to):
+    # extras inline on the terminal — NEVER .causes_the(x).extras({...}).to(y),
+    # which splits the consequence sentence in half:
     see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
 ```
 
 Buffer request-wide context from any layer with `shipeasy.add_extras(order_id=...)`
 — every later `see()` in the same request merges it in (ContextVar-scoped; the
 WSGI/ASGI/Django middleware clears it per request; `shipeasy.clear_extras()`
-outside a request). A stray `.extras` after `.to` is ignored (never raises).
+outside a request). A stray `.extras` after `.to` is ignored (never raises) — the
+extras are dropped, so use the inline form or `add_extras`.
 
 → More: `pages/error-reporting.md` · snippets `snippets/ops/see.md`
 (`.extras()`, `add_extras`, violations, control-flow exceptions).

@@ -19,20 +19,32 @@ except PaymentError as e:
     fallback_charge(order)
 ```
 
-`.causes_the(subject)` and `.extras(mapping)` are chainable setters callable in
-any order **before** `.to`. You can also fold the extras into the terminal as
-`.to(outcome, extras)`, so there is no ordering to remember:
+### Where extras go in the chain
+
+`.causes_the(subject)` and `.to(outcome)` are two halves of one sentence and
+must stay adjacent, so fold the extras into the terminal:
 
 ```python
-see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
-
-# equivalent, extras inline on the terminal:
+# PREFERRED — the consequence reads as one sentence:
 see(e).causes_the("checkout").to("use cached prices", {"order_id": oid})
 ```
 
-A stray `.extras` chained **after** `.to` is ignored with a warning (the report
-already shipped) — it never raises into your `except` block (`.to` returns the
-chain).
+`.to` fires the report synchronously, so a stray `.extras` chained **after**
+`.to` is ignored with a warning — it never raises into your `except` block
+(`.to` returns the chain), but the extras are **dropped**:
+
+```python
+# WRONG — extras silently lost:
+see(e).causes_the("checkout").to("use cached prices").extras({"order_id": oid})
+
+# WRONG — extras wedged between the subject and the outcome. You read
+# "checkout … order_id … use cached prices" and lose the consequence.
+see(e).causes_the("checkout").extras({"order_id": oid}).to("use cached prices")
+```
+
+When the context already exists *above* the `except` block, prefer
+[`add_extras`](#attach-context-from-anywhere-add_extras) over the inline form —
+it keeps the catch site a clean one-liner.
 
 Use the package-level `see()` — it reports against the engine you set up with
 [`configure()`](configuration.md). No object to construct or pass around.
