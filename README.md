@@ -9,7 +9,7 @@
 [![PyPI](https://img.shields.io/pypi/v/shipeasy.svg)](https://pypi.org/project/shipeasy/)
 [![Python](https://img.shields.io/pypi/pyversions/shipeasy.svg)](https://pypi.org/project/shipeasy/)
 
-Server SDK for [Shipeasy](https://shipeasy.dev) — **feature flags, dynamic
+Server SDK for [Shipeasy](https://shipeasy.ai) — **feature flags, dynamic
 configs, kill switches, A/B experiments, and metric tracking**. Server-key only;
 never embed in a browser.
 
@@ -124,4 +124,4 @@ More — the on-the-spot override helpers and a working example
 ## License
 
 MIT. Evaluation is tested against the cross-language MurmurHash3 vectors in
-`experiment-platform/04-evaluation.md`.
+[Rollouts & bucketing](https://docs.shipeasy.ai/flags/gates/rollouts).

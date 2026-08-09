@@ -4,7 +4,7 @@ Guidance for AI agents (and humans) working in this repository.
 
 ## What this is
 
-`shipeasy` — the **server** SDK for [Shipeasy](https://shipeasy.dev): feature
+`shipeasy` — the **server** SDK for [Shipeasy](https://shipeasy.ai): feature
 flags, dynamic configs, kill switches, A/B experiments, metric tracking, `see()`
 error reporting, and SSR/i18n helpers. Server-key only; never embed in a browser.
 Source under `shipeasy/`, tests under `tests/` (run with `pytest`).
