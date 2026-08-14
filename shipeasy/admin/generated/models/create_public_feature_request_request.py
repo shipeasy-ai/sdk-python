@@ -29,7 +29,7 @@ from pydantic_core import to_jsonable_python
 
 class CreatePublicFeatureRequestRequest(BaseModel):
     """
-    Body for `POST /ops/feature-request`. The same feature-request fields as `CreateFeatureRequestRequest`, minus the `type` discriminator — the path already says what is being filed.
+    Body for `POST /ops/feature-request`. The same feature-request fields as `CreateFeatureRequestRequest`, minus the `type` discriminator — the path already says what is being filed, plus the public intake's own `dedupKey`.
     """ # noqa: E501
     title: Annotated[str, Field(min_length=1, strict=True, max_length=200)] = Field(description="One-line feature-request title (no leading/trailing whitespace).")
     description: Optional[Annotated[str, Field(strict=True, max_length=8000)]] = Field(default='', description="What the feature is.")
@@ -43,8 +43,9 @@ class CreatePublicFeatureRequestRequest(BaseModel):
     page_url: Optional[StrictStr] = Field(default=None, description="URL of the page the request relates to, or `null`.", alias="pageUrl")
     user_agent: Optional[Annotated[str, Field(strict=True, max_length=500)]] = Field(default=None, description="Reporter's user-agent string, or `null`.", alias="userAgent")
     context: Optional[Dict[str, Any]] = Field(default=None, description="Arbitrary capture context, or `null`.")
+    dedup_key: Optional[Annotated[str, Field(strict=True, max_length=200)]] = Field(default=None, description="Caller-chosen dedupe identity for this request, stored on the ticket. Behaves exactly as on `POST /ops/bug`: a repeat carrying the same key refreshes the open ticket already holding it (fields overwritten, a \"re-triggered\" comment appended) and returns `deduped: true` with `updated: true`, instead of filing a second one.", alias="dedupKey")
     notify: Optional[NotificationTarget] = Field(default=None, description="Where this request's completion notification lands.")
-    __properties: ClassVar[List[str]] = ["title", "description", "useCase", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "context", "notify"]
+    __properties: ClassVar[List[str]] = ["title", "description", "useCase", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "context", "dedupKey", "notify"]
 
     @field_validator('title')
     def title_validate_regular_expression(cls, value):
@@ -157,6 +158,7 @@ class CreatePublicFeatureRequestRequest(BaseModel):
             "pageUrl": obj.get("pageUrl"),
             "userAgent": obj.get("userAgent"),
             "context": obj.get("context"),
+            "dedupKey": obj.get("dedupKey"),
             "notify": NotificationTarget.from_dict(obj["notify"]) if obj.get("notify") is not None else None
         })
         return _obj

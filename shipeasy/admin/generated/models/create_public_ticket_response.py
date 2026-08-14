@@ -25,12 +25,13 @@ from pydantic_core import to_jsonable_python
 
 class CreatePublicTicketResponse(BaseModel):
     """
-    Response for the public ticket intake. A fresh file returns `201` with `id` + `number`; a repeat of a report already tracked by an open ticket returns `200` with that ticket's `number` and `deduped: true`.
+    Response for the public ticket intake. A fresh file returns `201` with `id` + `number`; a repeat of a report already tracked by an open ticket returns `200` with that ticket's `number` and `deduped: true` — plus `updated: true` when a `dedupKey` re-triggered it and its fields were refreshed.
     """ # noqa: E501
     id: Optional[StrictStr] = Field(default=None, description="The new item's id. Absent on a deduped response — nothing was created, so there is no new id to report.")
     number: StrictInt = Field(description="Per-project item number. On a deduped response this is the number of the OPEN ticket already tracking the report, which is what a caller should show the user either way.")
     deduped: Optional[StrictBool] = Field(default=None, description="`true` when an open ticket already tracked this report and nothing was filed (HTTP 200). Absent on a fresh file (HTTP 201).")
-    __properties: ClassVar[List[str]] = ["id", "number", "deduped"]
+    updated: Optional[StrictBool] = Field(default=None, description="`true` when the deduped ticket was REFRESHED from this payload and got a \"re-triggered\" comment — only ever set alongside `deduped` on a submission that carried a `dedupKey`. Absent when the existing ticket was returned untouched.")
+    __properties: ClassVar[List[str]] = ["id", "number", "deduped", "updated"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -85,7 +86,8 @@ class CreatePublicTicketResponse(BaseModel):
         _obj = cls.model_validate({
             "id": obj.get("id"),
             "number": obj.get("number"),
-            "deduped": obj.get("deduped")
+            "deduped": obj.get("deduped"),
+            "updated": obj.get("updated")
         })
         return _obj
 

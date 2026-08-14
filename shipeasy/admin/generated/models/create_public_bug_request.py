@@ -29,7 +29,7 @@ from pydantic_core import to_jsonable_python
 
 class CreatePublicBugRequest(BaseModel):
     """
-    Body for `POST /ops/bug`. The same bug fields as `CreateBugRequest`, minus the `type` discriminator — the path already says what is being filed.
+    Body for `POST /ops/bug`. The same bug fields as `CreateBugRequest`, minus the `type` discriminator — the path already says what is being filed, plus the public intake's own `dedupKey`.
     """ # noqa: E501
     title: Annotated[str, Field(min_length=1, strict=True, max_length=200)] = Field(description="One-line bug title (no leading/trailing whitespace).")
     steps_to_reproduce: Optional[Annotated[str, Field(strict=True, max_length=8000)]] = Field(default='', description="How to reproduce the bug.", alias="stepsToReproduce")
@@ -45,8 +45,9 @@ class CreatePublicBugRequest(BaseModel):
     user_agent: Optional[Annotated[str, Field(strict=True, max_length=500)]] = Field(default=None, description="Reporter's user-agent string, or `null`.", alias="userAgent")
     viewport: Optional[Annotated[str, Field(strict=True, max_length=40)]] = Field(default=None, description="Reporter's viewport (e.g. `1280x720`), or `null`.")
     context: Optional[Dict[str, Any]] = Field(default=None, description="Arbitrary capture context, or `null`.")
+    dedup_key: Optional[Annotated[str, Field(strict=True, max_length=200)]] = Field(default=None, description="Caller-chosen dedupe identity for this report, stored on the ticket. A repeat submission carrying the same key does NOT file a second ticket: the open ticket already holding that key is refreshed from this payload (title and the report fields overwritten, a \"re-triggered\" comment appended) and returned with `deduped: true` and `updated: true`. Triage state a human owns — status, priority, assignee, tags — is left untouched, and a `resolved`/`wont_fix` ticket no longer holds the key, so a failure that comes back after being closed files a fresh ticket. Omit it to fall back to the derived (title + `context.step`) dedupe, whose repeats return the existing ticket unchanged.", alias="dedupKey")
     notify: Optional[NotificationTarget] = Field(default=None, description="Where this bug's completion notification lands.")
-    __properties: ClassVar[List[str]] = ["title", "stepsToReproduce", "actualResult", "expectedResult", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "viewport", "context", "notify"]
+    __properties: ClassVar[List[str]] = ["title", "stepsToReproduce", "actualResult", "expectedResult", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "viewport", "context", "dedupKey", "notify"]
 
     @field_validator('title')
     def title_validate_regular_expression(cls, value):
@@ -166,6 +167,7 @@ class CreatePublicBugRequest(BaseModel):
             "userAgent": obj.get("userAgent"),
             "viewport": obj.get("viewport"),
             "context": obj.get("context"),
+            "dedupKey": obj.get("dedupKey"),
             "notify": NotificationTarget.from_dict(obj["notify"]) if obj.get("notify") is not None else None
         })
         return _obj
