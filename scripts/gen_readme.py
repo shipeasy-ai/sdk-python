@@ -139,7 +139,7 @@ def main() -> None:
 [![PyPI](https://img.shields.io/pypi/v/{PYPI}.svg)](https://pypi.org/project/{PYPI}/)
 [![Python](https://img.shields.io/pypi/pyversions/{PYPI}.svg)](https://pypi.org/project/{PYPI}/)
 
-Server SDK for [Shipeasy](https://shipeasy.dev) — **feature flags, dynamic
+Server SDK for [Shipeasy](https://shipeasy.ai) — **feature flags, dynamic
 configs, kill switches, A/B experiments, and metric tracking**. Server-key only;
 never embed in a browser.
 
@@ -204,7 +204,7 @@ More — the on-the-spot override helpers and a working example
 ## License
 
 MIT. Evaluation is tested against the cross-language MurmurHash3 vectors in
-`experiment-platform/04-evaluation.md`.
+[Rollouts & bucketing](https://docs.shipeasy.ai/flags/gates/rollouts).
 """
 
     (ROOT / "README.md").write_text(readme, encoding="utf-8")
