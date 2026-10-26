@@ -69,3 +69,24 @@ def test_client_key_wires_the_public_intake_scheme():
 def test_project_id_is_optional():
     client = AdminClient(api_key="sdk_admin_test")
     assert "X-Project-Id" not in client.api_client.default_headers
+
+
+def test_public_ticket_carries_tag_names():
+    # Tags go out as plain names; the server matches each case-insensitively
+    # against the project's existing tags and creates the ones it lacks.
+    from pydantic import ValidationError
+
+    from shipeasy.admin.generated.models import (
+        CreatePublicBugRequest,
+        CreatePublicFeatureRequestRequest,
+    )
+
+    bug = CreatePublicBugRequest(title="Checkout 500", tags=["ios", "Checkout"])
+    assert bug.to_dict()["tags"] == ["ios", "Checkout"]
+    feature = CreatePublicFeatureRequestRequest(title="Dark mode", tags=["ui"])
+    assert feature.to_dict()["tags"] == ["ui"]
+
+    with pytest.raises(ValidationError):
+        CreatePublicBugRequest(title="x", tags=["x" * 65])
+    with pytest.raises(ValidationError):
+        CreatePublicBugRequest(title="x", tags=[f"t{i}" for i in range(51)])

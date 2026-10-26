@@ -39,7 +39,7 @@ class CreatePublicBugRequest(BaseModel):
     status: Optional[OpsItemStatus] = Field(default=None, description="Initial lifecycle status; defaults to `open` when omitted.")
     assignee_id: Optional[StrictStr] = Field(default=None, description="The `users.id` of the person to assign as owner at creation, or `null`.", alias="assigneeId")
     subscribers: Optional[List[StrictStr]] = Field(default=None, description="Emails of teammates to subscribe to this item's Slack pings at creation.")
-    tags: Optional[List[StrictStr]] = Field(default=None, description="Tag names to attach at creation (get-or-created by name, deduped case-insensitively).")
+    tags: Optional[Annotated[List[Annotated[str, Field(min_length=1, strict=True, max_length=64)]], Field(max_length=50)]] = Field(default=None, description="Tag names to label the item with, e.g. `[\"ios\", \"checkout\"]`. Each name is matched case-insensitively against the project's existing tags and reuses that tag (keeping its stored casing) when one matches; a name with no match creates a new project tag. Here the tags only label the ticket: the project's tag rules (owner/status/agent routing) are not applied to a public report while it awaits approval.")
     reporter_email: Optional[StrictStr] = Field(default=None, description="Email of the reporter, or `null`.", alias="reporterEmail")
     page_url: Optional[StrictStr] = Field(default=None, description="URL of the page the bug relates to, or `null`.", alias="pageUrl")
     user_agent: Optional[Annotated[str, Field(strict=True, max_length=500)]] = Field(default=None, description="Reporter's user-agent string, or `null`.", alias="userAgent")

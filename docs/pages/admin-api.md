@@ -72,6 +72,10 @@ operations in three ways worth knowing before you call them:
   a human promotes it in the dashboard, and repeat submissions of the same title
   dedupe against the open ticket already tracking them (HTTP 200 with
   `deduped: true` instead of a second ticket).
+- Pass `tags` — a list of tag names — to label the ticket. Each name is matched
+  case-insensitively against the project's existing tags and reuses that tag
+  (`ios` files under an existing `iOS`); a name with no match creates a new one.
+  Up to 50 names of at most 64 characters each.
 
 The project is the key's own project — there is no project id to pass and no way
 to file into someone else's queue. The project must have public ticket creation
@@ -89,6 +93,7 @@ filed = admin.ops.create_public_bug(
         steps_to_reproduce="Open the cart on iOS Safari and tap the price row.",
         actual_result="The primary CTA overlaps the price.",
         priority="high",
+        tags=["ios", "checkout"],
     )
 )
 print(filed.number)
