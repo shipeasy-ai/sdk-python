@@ -41,7 +41,8 @@ admin = [
 shipeasy-skill = "shipeasy._skill:main"
 
 [project.urls]
-Homepage = "https://shipeasy.dev"
+Homepage = "https://shipeasy.ai"
+Documentation = "https://docs.shipeasy.ai"
 Source = "https://github.com/shipeasy-ai/sdk-python"
 
 [tool.hatch.build.targets.wheel]

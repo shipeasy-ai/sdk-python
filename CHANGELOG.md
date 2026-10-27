@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Package metadata: `Homepage` pointed at `https://shipeasy.dev`, a domain
+  we do not own that does not resolve. It is `https://shipeasy.ai` now, with a
+  `Documentation` link to `https://docs.shipeasy.ai`.
+
 ## 0.24.0 (2026-10-26)
 
 ### Public tickets accept `tags`
