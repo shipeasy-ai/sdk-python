@@ -33,7 +33,7 @@ fully-rolled (100%) gate as on. Cookie name + format are a cross-SDK contract.
 
 Pass `private_attributes` to [`configure()`](configuration.md) to strip the named
 keys from every outbound event `properties` bag before it POSTs to `/collect`
-(LD/Statsig `privateAttributes`). The server evaluates locally, so private attrs
+(`privateAttributes`). The server evaluates locally, so private attrs
 **still drive targeting** — they just never leave the process on the telemetry
 path:
 

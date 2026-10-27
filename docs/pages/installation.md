@@ -94,7 +94,7 @@ shipeasy.configure(
 | `env` | `str` | `"prod"` | Deployment environment tag, attached to `see()` error events and usage telemetry so the dashboard can split by environment. |
 | `disable_telemetry` | `bool` | `False` | Opt out of per-evaluation usage telemetry (the fire-and-forget beacon). Evaluation itself is unaffected. |
 | `telemetry_url` | `str` | built-in | Override the telemetry endpoint. Rarely needed; pair with a self-hosted collector. |
-| `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event `properties` bag before it leaves the process (LaunchDarkly/Statsig `privateAttributes`). They still drive **targeting** locally — they just never reach `/collect`. See [advanced](advanced.md). |
+| `private_attributes` | `Sequence[str]` | `[]` | Attribute keys stripped from every outbound event `properties` bag before it leaves the process (`privateAttributes`). They still drive **targeting** locally — they just never reach `/collect`. See [advanced](advanced.md). |
 | `sticky_store` | `StickyBucketStore` | `None` | Pluggable store that pins a user's experiment group across re-buckets (doc 20 §2). Absent ⇒ purely deterministic hashing. See [advanced](advanced.md). |
 
 ```python
