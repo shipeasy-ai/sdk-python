@@ -5,16 +5,17 @@ The base SDK *evaluates* flags, configs, and experiments
 client** is a separate, optional surface for *administering* a small, deliberate
 slice of those resources from server code.
 
-It is **intentionally lean** — three capabilities, seven operations, not the
+It is **intentionally lean** — four capabilities, eight operations, not the
 whole admin API:
 
 | Capability          | Operations                                                                    |
 | ------------------- | ----------------------------------------------------------------------------- |
+| List the ops queue   | `list_ops_items` |
 | File a public ticket (client key) | `create_public_bug`, `create_public_feature_request`                          |
 | Toggle a kill switch | `toggle_killswitch`                                                           |
 | Manage a whitelist   | `get_gate_whitelist`, `set_gate_whitelist`, `add_to_gate_whitelist`, `remove_from_gate_whitelist` |
 
-Everything else in the admin API — listing, generic CRUD, experiments, metrics,
+Everything else in the admin API — generic CRUD, experiments, metrics,
 events, configs, i18n, projects, connectors, keys — is deliberately **not** here.
 Reach for the Shipeasy CLI or MCP for those; they speak the complete spec.
 Keeping the vendored contract small is what keeps the generated client small.
@@ -59,7 +60,7 @@ optional on the constructor — individual operations also accept an explicit
 Two dedicated endpoints, so there is no discriminator to set and no fields from
 the other kind in the request. Both accept just a `title`.
 
-These two are the **public** intake, and they differ from the other five
+These two are the **public** intake, and they differ from the other six
 operations in three ways worth knowing before you call them:
 
 - They authenticate with a **client** key (`sdk_client_…`) carrying the
@@ -101,6 +102,34 @@ print(filed.number)
 admin.ops.create_public_feature_request(
     CreatePublicFeatureRequestRequest(title="Dark mode", use_case="Reduce eye strain at night")
 )
+```
+
+## List the ops queue
+
+``list_ops_items`` reads the project's tickets (bugs, feature requests, errors, alerts) in
+work order — highest priority first, oldest first within a priority. Filters
+combine with AND and are applied before paging; walk the queue with `limit` and
+`offset`.
+
+- `reporter` — only items filed by one email (case-insensitive, exact). Items with
+  no reporter never match, and while it is set `status=all` also returns
+  `pending_approval` items, so a reporter sees the ticket they just filed.
+- `closed_since` — items still being worked are always returned; `resolved` and
+  `wont_fix` items only when they closed at or after this time.
+- Every item carries `closed_at` (ISO-8601, null while open), so you can tell when
+  a ticket closed without reading `updated_at`.
+
+```python
+from datetime import datetime, timezone
+
+items = admin.ops.list_ops_items(
+    status="all",
+    reporter="jane@clinic.com",
+    closed_since=datetime(2026, 10, 27, tzinfo=timezone.utc),
+    limit=50,
+)
+for i in items:
+    print(f"#{i.number} {i.status.value} {i.title} (closed: {i.closed_at})")
 ```
 
 ## Toggle a kill switch
