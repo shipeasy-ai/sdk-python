@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Admin API client: `list_ops_items` — list the ops queue, with the new `reporter`
+  (filer's email, case-insensitive) and `closed_since` filters; every item now
+  carries `closed_at`. Regenerated from the server-SDK spec, which gains
+  `GET /api/admin/ops`.
+
 - Package metadata: `Homepage` pointed at `https://shipeasy.dev`, a domain
   we do not own that does not resolve. It is `https://shipeasy.ai` now, with a
   `Documentation` link to `https://docs.shipeasy.ai`.
