@@ -4,4 +4,4 @@ Kept in sync with ``pyproject.toml``. Imported by ``__init__`` (as
 ``__version__``) and by the see() reporter (``sdk_version`` on every event).
 """
 
-SDK_VERSION = "0.25.0"
+SDK_VERSION = "0.26.0"
