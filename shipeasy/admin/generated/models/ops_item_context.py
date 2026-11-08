@@ -24,6 +24,7 @@ from shipeasy.admin.generated.models.ops_browser_context import OpsBrowserContex
 from shipeasy.admin.generated.models.ops_error_context import OpsErrorContext
 from shipeasy.admin.generated.models.ops_item_context_error_chart import OpsItemContextErrorChart
 from shipeasy.admin.generated.models.ops_measure_plan_context import OpsMeasurePlanContext
+from shipeasy.admin.generated.models.ops_reporter_context import OpsReporterContext
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -36,9 +37,10 @@ class OpsItemContext(BaseModel):
     error: Optional[OpsErrorContext] = None
     alert: Optional[OpsAlertContext] = None
     measure_plan: Optional[OpsMeasurePlanContext] = Field(default=None, alias="measurePlan")
+    reporter: Optional[OpsReporterContext] = None
     error_chart: Optional[OpsItemContextErrorChart] = Field(default=None, alias="errorChart")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["browser", "error", "alert", "measurePlan", "errorChart"]
+    __properties: ClassVar[List[str]] = ["browser", "error", "alert", "measurePlan", "reporter", "errorChart"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -93,6 +95,9 @@ class OpsItemContext(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of measure_plan
         if self.measure_plan:
             _dict['measurePlan'] = self.measure_plan.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of reporter
+        if self.reporter:
+            _dict['reporter'] = self.reporter.to_dict()
         # override the default output from pydantic by calling `to_dict()` of error_chart
         if self.error_chart:
             _dict['errorChart'] = self.error_chart.to_dict()
@@ -117,6 +122,7 @@ class OpsItemContext(BaseModel):
             "error": OpsErrorContext.from_dict(obj["error"]) if obj.get("error") is not None else None,
             "alert": OpsAlertContext.from_dict(obj["alert"]) if obj.get("alert") is not None else None,
             "measurePlan": OpsMeasurePlanContext.from_dict(obj["measurePlan"]) if obj.get("measurePlan") is not None else None,
+            "reporter": OpsReporterContext.from_dict(obj["reporter"]) if obj.get("reporter") is not None else None,
             "errorChart": OpsItemContextErrorChart.from_dict(obj["errorChart"]) if obj.get("errorChart") is not None else None
         })
         # store additional fields in additional_properties

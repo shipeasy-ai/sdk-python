@@ -64,6 +64,10 @@ __all__ = [
     "OpsItemPriority",
     "OpsItemStatus",
     "OpsMeasurePlanContext",
+    "OpsReporterContext",
+    "OpsReporterExperiment",
+    "OpsReporterFlag",
+    "OpsReporterKillswitch",
     "OpsRun",
     "OpsRunAction",
     "OpsRunActionOrNull",
@@ -126,6 +130,10 @@ from shipeasy.admin.generated.models.ops_item_owner_user import OpsItemOwnerUser
 from shipeasy.admin.generated.models.ops_item_priority import OpsItemPriority as OpsItemPriority
 from shipeasy.admin.generated.models.ops_item_status import OpsItemStatus as OpsItemStatus
 from shipeasy.admin.generated.models.ops_measure_plan_context import OpsMeasurePlanContext as OpsMeasurePlanContext
+from shipeasy.admin.generated.models.ops_reporter_context import OpsReporterContext as OpsReporterContext
+from shipeasy.admin.generated.models.ops_reporter_experiment import OpsReporterExperiment as OpsReporterExperiment
+from shipeasy.admin.generated.models.ops_reporter_flag import OpsReporterFlag as OpsReporterFlag
+from shipeasy.admin.generated.models.ops_reporter_killswitch import OpsReporterKillswitch as OpsReporterKillswitch
 from shipeasy.admin.generated.models.ops_run import OpsRun as OpsRun
 from shipeasy.admin.generated.models.ops_run_action import OpsRunAction as OpsRunAction
 from shipeasy.admin.generated.models.ops_run_action_or_null import OpsRunActionOrNull as OpsRunActionOrNull

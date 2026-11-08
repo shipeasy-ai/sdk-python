@@ -43,9 +43,10 @@ class CreatePublicFeatureRequestRequest(BaseModel):
     page_url: Optional[StrictStr] = Field(default=None, description="URL of the page the request relates to, or `null`.", alias="pageUrl")
     user_agent: Optional[Annotated[str, Field(strict=True, max_length=500)]] = Field(default=None, description="Reporter's user-agent string, or `null`.", alias="userAgent")
     context: Optional[Dict[str, Any]] = Field(default=None, description="Arbitrary capture context, or `null`.")
+    user: Optional[Dict[str, Any]] = Field(default=None, description="The reporter's SDK identity — the same user attribute object your app passes to the Shipeasy SDK to evaluate flags (`user_id`, `anonymous_id`, `email`, plus any targeting attributes). When present, Shipeasy evaluates every feature flag, kill switch and running experiment for this user at filing time and stores the result on the ticket as `context.reporter`, so triage (and any agent working the ticket) sees exactly which features the reporter had on. The browser and React Native devtools attach the identified user automatically. Omit it (or send `null`) to file without a feature snapshot.")
     dedup_key: Optional[Annotated[str, Field(strict=True, max_length=200)]] = Field(default=None, description="Caller-chosen dedupe identity for this request, stored on the ticket. Behaves exactly as on `POST /ops/bug`: a repeat carrying the same key refreshes the open ticket already holding it (fields overwritten, a \"re-triggered\" comment appended) and returns `deduped: true` with `updated: true`, instead of filing a second one.", alias="dedupKey")
     notify: Optional[NotificationTarget] = Field(default=None, description="Where this request's completion notification lands.")
-    __properties: ClassVar[List[str]] = ["title", "description", "useCase", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "context", "dedupKey", "notify"]
+    __properties: ClassVar[List[str]] = ["title", "description", "useCase", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "context", "user", "dedupKey", "notify"]
 
     @field_validator('title')
     def title_validate_regular_expression(cls, value):
@@ -129,6 +130,11 @@ class CreatePublicFeatureRequestRequest(BaseModel):
         if self.context is None and "context" in self.model_fields_set:
             _dict['context'] = None
 
+        # set to None if user (nullable) is None
+        # and model_fields_set contains the field
+        if self.user is None and "user" in self.model_fields_set:
+            _dict['user'] = None
+
         # set to None if notify (nullable) is None
         # and model_fields_set contains the field
         if self.notify is None and "notify" in self.model_fields_set:
@@ -158,6 +164,7 @@ class CreatePublicFeatureRequestRequest(BaseModel):
             "pageUrl": obj.get("pageUrl"),
             "userAgent": obj.get("userAgent"),
             "context": obj.get("context"),
+            "user": obj.get("user"),
             "dedupKey": obj.get("dedupKey"),
             "notify": NotificationTarget.from_dict(obj["notify"]) if obj.get("notify") is not None else None
         })

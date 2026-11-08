@@ -45,9 +45,10 @@ class CreatePublicBugRequest(BaseModel):
     user_agent: Optional[Annotated[str, Field(strict=True, max_length=500)]] = Field(default=None, description="Reporter's user-agent string, or `null`.", alias="userAgent")
     viewport: Optional[Annotated[str, Field(strict=True, max_length=40)]] = Field(default=None, description="Reporter's viewport (e.g. `1280x720`), or `null`.")
     context: Optional[Dict[str, Any]] = Field(default=None, description="Arbitrary capture context, or `null`.")
+    user: Optional[Dict[str, Any]] = Field(default=None, description="The reporter's SDK identity — the same user attribute object your app passes to the Shipeasy SDK to evaluate flags (`user_id`, `anonymous_id`, `email`, plus any targeting attributes). When present, Shipeasy evaluates every feature flag, kill switch and running experiment for this user at filing time and stores the result on the ticket as `context.reporter`, so triage (and any agent working the ticket) sees exactly which features the reporter had on. The browser and React Native devtools attach the identified user automatically. Omit it (or send `null`) to file without a feature snapshot.")
     dedup_key: Optional[Annotated[str, Field(strict=True, max_length=200)]] = Field(default=None, description="Caller-chosen dedupe identity for this report, stored on the ticket. A repeat submission carrying the same key does NOT file a second ticket: the open ticket already holding that key is refreshed from this payload (title and the report fields overwritten, a \"re-triggered\" comment appended) and returned with `deduped: true` and `updated: true`. Triage state a human owns — status, priority, assignee, tags — is left untouched, and a `resolved`/`wont_fix` ticket no longer holds the key, so a failure that comes back after being closed files a fresh ticket. Omit it to fall back to the derived (title + `context.step`) dedupe, whose repeats return the existing ticket unchanged.", alias="dedupKey")
     notify: Optional[NotificationTarget] = Field(default=None, description="Where this bug's completion notification lands.")
-    __properties: ClassVar[List[str]] = ["title", "stepsToReproduce", "actualResult", "expectedResult", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "viewport", "context", "dedupKey", "notify"]
+    __properties: ClassVar[List[str]] = ["title", "stepsToReproduce", "actualResult", "expectedResult", "priority", "status", "assigneeId", "subscribers", "tags", "reporterEmail", "pageUrl", "userAgent", "viewport", "context", "user", "dedupKey", "notify"]
 
     @field_validator('title')
     def title_validate_regular_expression(cls, value):
@@ -136,6 +137,11 @@ class CreatePublicBugRequest(BaseModel):
         if self.context is None and "context" in self.model_fields_set:
             _dict['context'] = None
 
+        # set to None if user (nullable) is None
+        # and model_fields_set contains the field
+        if self.user is None and "user" in self.model_fields_set:
+            _dict['user'] = None
+
         # set to None if notify (nullable) is None
         # and model_fields_set contains the field
         if self.notify is None and "notify" in self.model_fields_set:
@@ -167,6 +173,7 @@ class CreatePublicBugRequest(BaseModel):
             "userAgent": obj.get("userAgent"),
             "viewport": obj.get("viewport"),
             "context": obj.get("context"),
+            "user": obj.get("user"),
             "dedupKey": obj.get("dedupKey"),
             "notify": NotificationTarget.from_dict(obj["notify"]) if obj.get("notify") is not None else None
         })

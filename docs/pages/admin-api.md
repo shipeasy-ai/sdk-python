@@ -104,6 +104,23 @@ admin.ops.create_public_feature_request(
 )
 ```
 
+### Attach the reporter's identity
+
+Pass `user` — the same dict you hand the SDK to evaluate flags for this
+person — and Shipeasy evaluates every flag, kill switch and running experiment
+for them at filing time. The ticket then shows what the reporter had on (flags
+that were on, engaged kill switches, experiment arms) in the dashboard, and the
+agent working it gets the same list. Omit it to file without one.
+
+```python
+admin.ops.create_public_bug(
+    CreatePublicBugRequest(
+        title="Checkout spinner never stops",
+        user={"user_id": user.id, "email": user.email, "plan": user.plan},
+    )
+)
+```
+
 ## List the ops queue
 
 ``list_ops_items`` reads the project's tickets (bugs, feature requests, errors, alerts) in

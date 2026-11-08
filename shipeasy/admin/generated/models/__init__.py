@@ -47,6 +47,10 @@ from shipeasy.admin.generated.models.ops_item_owner_user import OpsItemOwnerUser
 from shipeasy.admin.generated.models.ops_item_priority import OpsItemPriority
 from shipeasy.admin.generated.models.ops_item_status import OpsItemStatus
 from shipeasy.admin.generated.models.ops_measure_plan_context import OpsMeasurePlanContext
+from shipeasy.admin.generated.models.ops_reporter_context import OpsReporterContext
+from shipeasy.admin.generated.models.ops_reporter_experiment import OpsReporterExperiment
+from shipeasy.admin.generated.models.ops_reporter_flag import OpsReporterFlag
+from shipeasy.admin.generated.models.ops_reporter_killswitch import OpsReporterKillswitch
 from shipeasy.admin.generated.models.ops_run import OpsRun
 from shipeasy.admin.generated.models.ops_run_action import OpsRunAction
 from shipeasy.admin.generated.models.ops_run_action_or_null import OpsRunActionOrNull
