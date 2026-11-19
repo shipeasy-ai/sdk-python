@@ -10,7 +10,8 @@ Add to ``MIDDLEWARE`` (cleaner than wrapping ``wsgi.py``)::
 For any request without a valid ``__se_anon_id`` cookie it mints a UUIDv4,
 binds it for the duration of the request (so gate/experiment evaluations with no
 explicit ``user_id``/``anonymous_id`` bucket on it automatically), and
-``Set-Cookie``s it on the response. The cookie name + format are a cross-SDK
+``Set-Cookie``s it on the response. It also binds the browser SDK's
+``X-SE-Correlation`` header so ``see()`` reports carry ``correlation_id``. The cookie name + format are a cross-SDK
 contract (``18-identity-bucketing.md``); this reuses the same
 :mod:`shipeasy._anon_id` helpers as the WSGI/ASGI middleware so all surfaces
 mint identically.
@@ -25,7 +26,7 @@ from __future__ import annotations
 from typing import Callable
 
 from .. import _anon_id as anon_id
-from .._see import clear_ambient_extras
+from .._see import clear_ambient_extras, set_correlation_id
 
 
 class AnonIdMiddleware:
@@ -45,11 +46,14 @@ class AnonIdMiddleware:
         # to it as ``anonymous_id`` with no per-call wiring.
         request.shipeasy_anon_id = anon
         token = anon_id.set_current(anon)
+        # The browser SDK's per-request token: every see() fired while serving
+        # this request carries it as ``correlation_id``.
+        set_correlation_id(request.META.get("HTTP_X_SE_CORRELATION"))
         try:
             response = self.get_response(request)
         finally:
-            # Don't leak the id — or any ambient see() extras — onto the next
-            # request handled by this thread.
+            # Don't leak the id — or any ambient see() extras / correlation
+            # token — onto the next request handled by this thread.
             anon_id.reset_current(token)
             clear_ambient_extras()
 

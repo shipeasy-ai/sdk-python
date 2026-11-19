@@ -854,6 +854,7 @@ class Engine:
                 side="server",
                 sdk_version=SDK_VERSION,
                 env=self._env,
+                correlation_id=_see.current_correlation_id(),
             )
             if not self._see_limiter.should_send(ev):
                 return

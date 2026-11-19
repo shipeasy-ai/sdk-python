@@ -6,6 +6,11 @@ response. Once installed, gate/experiment evaluations with no explicit
 ``user_id``/``anonymous_id`` automatically bucket on the cookie id — anonymous
 visitors get stable, SSR/browser-consistent bucketing with zero per-call wiring.
 
+Both also read the browser SDK's ``X-SE-Correlation`` request header, so every
+``see()`` fired while serving the request carries it as ``correlation_id`` — the
+token Shipeasy joins on to link the browser's error to the server exception
+behind it. Malformed tokens are dropped; it is cleared at request end.
+
 WSGI (Flask, Django, any WSGI app)::
 
     from shipeasy.middleware import AnonIdMiddleware
@@ -22,7 +27,7 @@ from __future__ import annotations
 from typing import Callable
 
 from . import _anon_id as anon_id
-from ._see import clear_ambient_extras
+from ._see import clear_ambient_extras, set_correlation_id
 
 
 class AnonIdMiddleware:
@@ -35,6 +40,7 @@ class AnonIdMiddleware:
         anon, minted = anon_id.read_or_mint(environ.get("HTTP_COOKIE"))
         environ["shipeasy.anon_id"] = anon
         token = anon_id.set_current(anon)
+        set_correlation_id(environ.get("HTTP_X_SE_CORRELATION"))
 
         def _start_response(status, headers, exc_info=None):
             if minted:
@@ -47,8 +53,8 @@ class AnonIdMiddleware:
         try:
             return self.app(environ, _start_response)
         finally:
-            # Don't leak the id — or any ambient see() extras — onto the next
-            # request handled by this thread.
+            # Don't leak the id — or any ambient see() extras / correlation
+            # token — onto the next request handled by this thread.
             anon_id.reset_current(token)
             clear_ambient_extras()
 
@@ -69,6 +75,7 @@ class AnonIdASGIMiddleware:
         ).decode("latin-1") or None
         anon, minted = anon_id.read_or_mint(header)
         token = anon_id.set_current(anon)
+        set_correlation_id(_header(scope, b"x-se-correlation"))
 
         async def _send(message):
             if minted and message["type"] == "http.response.start":
@@ -83,6 +90,13 @@ class AnonIdASGIMiddleware:
         finally:
             anon_id.reset_current(token)
             clear_ambient_extras()
+
+
+def _header(scope, name: bytes):
+    for k, v in scope.get("headers", []):
+        if k.lower() == name:
+            return v
+    return None
 
 
 def _xfp_https(scope) -> bool:

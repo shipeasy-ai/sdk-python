@@ -156,6 +156,10 @@ WSGI/ASGI/Django middleware clears it per request; `shipeasy.clear_extras()`
 outside a request). A stray `.extras` after `.to` is ignored (never raises) — the
 extras are dropped, so use the inline form or `add_extras`.
 
+The WSGI/ASGI/Django middleware also reads the browser SDK's `X-SE-Correlation`
+header, so every `see()` in that request carries `correlation_id` and Shipeasy
+links the browser's error to this server exception — no code needed.
+
 → More: `pages/error-reporting.md` · snippets `snippets/ops/see.md`
 (`.extras()`, `add_extras`, violations, control-flow exceptions).
 

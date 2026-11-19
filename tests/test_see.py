@@ -284,3 +284,50 @@ def test_ambient_extras_do_not_bleed_across_contexts(monkeypatch):
     evs = _events(sent)
     assert evs[0]["extras"] == {"who": "a"}
     assert "extras" not in evs[1]
+
+
+# ---- request correlation token (X-SE-Correlation, shipeasy #704) ------------
+
+TOKEN = "c0rr-1234abcd"
+
+
+def test_correlation_id_emitted_when_set(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    try:
+        _see.set_correlation_id(TOKEN)
+        c.see(ValueError("x")).causes_the("checkout").to("use cached prices")
+        assert _events(sent)[0]["correlation_id"] == TOKEN
+    finally:
+        _see.clear_ambient_extras()
+    assert _see.current_correlation_id() is None
+
+
+def test_correlation_id_omitted_when_absent(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    c.see(ValueError("x")).causes_the("checkout").to("use cached prices")
+    assert "correlation_id" not in _events(sent)[0]
+
+
+def test_malformed_correlation_id_is_dropped(monkeypatch):
+    sent = _capture(monkeypatch)
+    c = Engine("srv_key", base_url="https://e.x")
+    for bad in ["short", "x" * 65, "has space here", "bad_underscore!", "", None]:
+        _see.set_correlation_id(bad)
+        assert _see.current_correlation_id() is None
+    c.see(ValueError("x")).to("be incomplete")
+    assert "correlation_id" not in _events(sent)[0]
+
+
+def test_build_see_event_validates_correlation_id():
+    ok = _see.build_see_event(
+        ValueError("x"), "s", "o", None, side="server", sdk_version="1", env=None,
+        correlation_id=TOKEN,
+    )
+    assert ok["correlation_id"] == TOKEN
+    bad = _see.build_see_event(
+        ValueError("x"), "s", "o", None, side="server", sdk_version="1", env=None,
+        correlation_id="nope!",
+    )
+    assert "correlation_id" not in bad

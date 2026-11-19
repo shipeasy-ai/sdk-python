@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import contextvars
 import logging
+import re
 import threading
 import time
 import traceback
@@ -145,8 +146,13 @@ def build_see_event(
     sdk_version: str,
     env: Optional[str],
     kind_override: Optional[str] = None,
+    correlation_id: Optional[str] = None,
 ) -> dict:
-    """Build the ``type:"error"`` event accepted by POST /collect."""
+    """Build the ``type:"error"`` event accepted by POST /collect.
+
+    ``correlation_id`` is the browser's per-request ``X-SE-Correlation`` token
+    (see :func:`set_correlation_id`); it is emitted only when it is well formed.
+    """
     stack: Optional[str] = None
     if isinstance(problem, Violation):
         error_type = problem.name
@@ -185,6 +191,9 @@ def build_see_event(
         ev["extras"] = clean
     if env:
         ev["env"] = env
+    corr = clean_correlation_id(correlation_id)
+    if corr:
+        ev["correlation_id"] = corr
     return ev
 
 
@@ -402,9 +411,51 @@ def _ambient_extras() -> dict:
 
 
 def clear_ambient_extras() -> None:
-    """Drop the current context's buffer so extras never leak to the next
-    request handled by this thread/task."""
+    """Drop the current context's buffer — and the request's correlation token —
+    so neither leaks to the next request handled by this thread/task."""
     _ambient.set(None)
+    _correlation.set(None)
+
+
+# ---- Request correlation token (X-SE-Correlation) ---------------------------
+
+# The browser SDK mints one token per same-origin request and sends it on the
+# ``X-SE-Correlation`` header. The WSGI / ASGI / Django middleware parks it here
+# for the duration of the request, so every see() fired while serving it carries
+# ``correlation_id`` — the value ingest joins on to record this server exception
+# as the cause of the browser's error. Same ContextVar scoping (and the same
+# end-of-request clear) as the ambient extras above.
+CORRELATION_HEADER = "x-se-correlation"
+# The shape the collector accepts; anything else is dropped, never sent.
+_CORRELATION_RE = re.compile(r"\A[A-Za-z0-9-]{8,64}\Z")
+
+_correlation: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "shipeasy_see_correlation_id", default=None
+)
+
+
+def clean_correlation_id(value: Any) -> Optional[str]:
+    """The token when it is well formed, else None. Never raises."""
+    try:
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode("latin-1")
+        s = str(value).strip()
+        return s if _CORRELATION_RE.match(s) else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def set_correlation_id(value: Any) -> None:
+    """Bind the current request's correlation token. Invalid / blank values
+    clear it. Never raises."""
+    _correlation.set(clean_correlation_id(value))
+
+
+def current_correlation_id() -> Optional[str]:
+    """The current request's correlation token, or None."""
+    return _correlation.get()
 
 
 # ---- Global default client ----
