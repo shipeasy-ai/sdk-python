@@ -76,6 +76,19 @@ overrides an ambient one. The WSGI / ASGI / Django middleware clears the buffer
 at the end of each request; in a background job or script call
 `shipeasy.clear_extras()` when a unit of work ends.
 
+### Linking a browser error to the server exception behind it
+
+The browser SDK (`@shipeasy/sdk/client`) sends a per-request token on the
+`X-SE-Correlation` header of every same-origin request. The same WSGI / ASGI /
+Django middleware (`AnonIdMiddleware`, `AnonIdASGIMiddleware`,
+`shipeasy.django.middleware.AnonIdMiddleware`) reads it, and every `see()` fired
+while serving that request carries it as `correlation_id`. Shipeasy joins the
+browser's report and this server report on that token and records the server
+exception as the browser error's cause, so the two are triaged as one issue
+instead of two. Nothing to call — install the middleware and it is there. A
+malformed token is dropped (never sent), and the token is cleared at the end of
+the request along with the ambient extras.
+
 ## Non-exception violations
 
 ```python

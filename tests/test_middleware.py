@@ -93,3 +93,104 @@ def test_asgi_mints_and_sets_cookie():
     cookies = [v.decode() for k, v in start["headers"] if k == b"set-cookie"]
     assert len(cookies) == 1 and "SameSite=Lax" in cookies[0] and "Secure" in cookies[0]
     assert _anon_id.current() is None
+
+
+# ---- X-SE-Correlation (shipeasy #704) ---------------------------------------
+
+from shipeasy import _see  # noqa: E402
+
+CORR = "abcdEFGH-1234"
+
+
+def test_wsgi_binds_and_clears_correlation_id():
+    seen = {}
+    _run_wsgi(
+        {"HTTP_X_SE_CORRELATION": CORR},
+        lambda env: seen.update(corr=_see.current_correlation_id()),
+    )
+    assert seen["corr"] == CORR
+    assert _see.current_correlation_id() is None
+
+
+def test_wsgi_drops_malformed_correlation_id():
+    seen = {}
+    _run_wsgi(
+        {"HTTP_X_SE_CORRELATION": "bad token!"},
+        lambda env: seen.update(corr=_see.current_correlation_id()),
+    )
+    assert seen["corr"] is None
+
+
+def test_wsgi_clears_correlation_id_on_exception():
+    def boom(env, sr):
+        raise RuntimeError("x")
+
+    app = AnonIdMiddleware(boom)
+    try:
+        app({"HTTP_X_SE_CORRELATION": CORR}, lambda *a: None)
+    except RuntimeError:
+        pass
+    assert _see.current_correlation_id() is None
+
+
+def _run_asgi(headers, downstream):
+    async def receive():
+        return {"type": "http.request"}
+
+    async def send(m):
+        pass
+
+    app = AnonIdASGIMiddleware(downstream)
+    asyncio.run(app({"type": "http", "scheme": "http", "headers": headers}, receive, send))
+
+
+def test_asgi_binds_and_clears_correlation_id():
+    seen = {}
+
+    async def downstream(scope, receive, send):
+        seen["corr"] = _see.current_correlation_id()
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+
+    _run_asgi([(b"x-se-correlation", CORR.encode())], downstream)
+    assert seen["corr"] == CORR
+    assert _see.current_correlation_id() is None
+
+
+def test_asgi_drops_malformed_and_clears_on_exception():
+    seen = {}
+
+    async def downstream(scope, receive, send):
+        seen["corr"] = _see.current_correlation_id()
+        raise RuntimeError("x")
+
+    try:
+        _run_asgi([(b"x-se-correlation", b"x")], downstream)
+    except RuntimeError:
+        pass
+    assert seen["corr"] is None
+    assert _see.current_correlation_id() is None
+
+
+def test_django_binds_and_clears_correlation_id():
+    from shipeasy.django.middleware import AnonIdMiddleware as DjangoMiddleware
+
+    seen = {}
+
+    class Resp:
+        def set_cookie(self, *a, **kw):
+            pass
+
+    class Req:
+        COOKIES = {}
+        META = {"HTTP_X_SE_CORRELATION": CORR}
+
+        def is_secure(self):
+            return False
+
+    def get_response(request):
+        seen["corr"] = _see.current_correlation_id()
+        return Resp()
+
+    DjangoMiddleware(get_response)(Req())
+    assert seen["corr"] == CORR
+    assert _see.current_correlation_id() is None
