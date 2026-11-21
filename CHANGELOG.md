@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.30.0 (2026-11-21)
+
+### Overrides reach APIs on sibling subdomains (shipeasy ops #714)
+
+The WSGI, ASGI and Django middleware also read the `X-Shipeasy-Overrides` request
+header (cookie syntax: `se_ov=...; se_ov_dev=...`, sent by the browser SDK's
+`getOverrideHeaders()`) for APIs that never see the host-only cookie. Per cookie
+name the `Cookie` header wins and the header fills in when it is absent; the same
+signature verification and `dev_overrides` + non-production guards apply.
+`request_overrides(cookie_header, overrides_header=None)` takes the header as an
+optional second argument.
+
 ## 0.29.0 (2026-11-21)
 
 ### Dev-only `se_ov_dev` URL override cookie (shipeasy ops #714)

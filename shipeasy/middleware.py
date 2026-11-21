@@ -46,7 +46,9 @@ class AnonIdMiddleware:
         environ["shipeasy.anon_id"] = anon
         token = anon_id.set_current(anon)
         set_correlation_id(environ.get("HTTP_X_SE_CORRELATION"))
-        ov_token = request_ov.enter(environ.get("HTTP_COOKIE"))
+        ov_token = request_ov.enter(
+            environ.get("HTTP_COOKIE"), environ.get("HTTP_X_SHIPEASY_OVERRIDES")
+        )
 
         def _start_response(status, headers, exc_info=None):
             if minted:
@@ -83,7 +85,9 @@ class AnonIdASGIMiddleware:
         anon, minted = anon_id.read_or_mint(header)
         token = anon_id.set_current(anon)
         set_correlation_id(_header(scope, b"x-se-correlation"))
-        ov_token = request_ov.enter(header)
+        ov_token = request_ov.enter(
+            header, _header_str(scope, b"x-shipeasy-overrides")
+        )
 
         async def _send(message):
             if minted and message["type"] == "http.response.start":
@@ -106,6 +110,11 @@ def _header(scope, name: bytes):
         if k.lower() == name:
             return v
     return None
+
+
+def _header_str(scope, name: bytes):
+    v = _header(scope, name)
+    return v.decode("latin-1") if v else None
 
 
 def _xfp_https(scope) -> bool:

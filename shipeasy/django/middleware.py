@@ -50,7 +50,9 @@ class AnonIdMiddleware:
         # The browser SDK's per-request token: every see() fired while serving
         # this request carries it as ``correlation_id``.
         set_correlation_id(request.META.get("HTTP_X_SE_CORRELATION"))
-        ov_token = request_ov.enter(request.META.get("HTTP_COOKIE"))
+        ov_token = request_ov.enter(
+            request.META.get("HTTP_COOKIE"), request.META.get("HTTP_X_SHIPEASY_OVERRIDES")
+        )
         try:
             response = self.get_response(request)
         finally:
