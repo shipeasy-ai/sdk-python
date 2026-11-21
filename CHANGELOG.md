@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.28.0 (2026-11-21)
+
+### Signed DevTools overrides reach server-side reads (shipeasy ops #714)
+
+A signed-in DevTools overlay mirrors its overrides (including `?se_gate_x=true`)
+into a signed `se_ov` cookie. The WSGI (`AnonIdMiddleware`), ASGI
+(`AnonIdASGIMiddleware`) and Django middleware now verify it once per request
+and scope the result with a `ContextVar`; apps without the middleware use the new
+`with shipeasy.request_overrides(cookie_header):`. `Client.get_flag` /
+`get_flag_detail` (reason `OVERRIDE`), `get_killswitch`, `get_config` and
+`universe().assign()` honor it, below programmatic `override_*` and above normal
+evaluation. Fail-closed: requires the project override key served in `/sdk/flags`,
+a valid signature, a matching key id and an unexpired cookie. Unsigned
+`?se_gate_` URL params remain client-only.
+
 ## 0.27.0 (2026-11-19)
 
 ### see() reports carry the browser's request correlation token
