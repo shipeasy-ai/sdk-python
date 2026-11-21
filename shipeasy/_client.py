@@ -79,6 +79,7 @@ class Engine:
         profile: Optional[str] = None,
         project_id: Optional[str] = None,
         cdn_base_url: Optional[str] = None,
+        dev_overrides: bool = False,
     ) -> None:
         # Set the SDK's internal log verbosity first, so any diagnostic emitted
         # during the rest of construction is already gated. An unknown value is
@@ -97,6 +98,15 @@ class Engine:
         # Master network gate. When off the SDK is fully OFFLINE: no fetch, no
         # track, no exposure, no see(), no telemetry — reads resolve against
         # overrides / in-code defaults. Reuses the test-mode machinery below.
+        # Opt-in unsigned ``se_ov_dev`` URL-override cookie: honored only when the
+        # option is on AND the process is non-production; in prod it is ignored
+        # with ONE warning.
+        self._dev_overrides = bool(dev_overrides) and not prod
+        if dev_overrides and prod:
+            _log.warn(
+                "dev_overrides=True ignored: this process looks like production "
+                "(the unsigned se_ov_dev cookie is never honored in production)"
+            )
         self._network_enabled = is_network_enabled if is_network_enabled is not None else prod
         offline = not self._network_enabled
         # Per-evaluation usage telemetry: honour an explicit disable_telemetry,
@@ -195,12 +205,14 @@ class Engine:
         ``override_*`` setters. Extra keyword options (``client_key``,
         ``profile``, ``project_id``, ``cdn_base_url`` …) are passed through.
         """
+        dev = engine_opts.pop("dev_overrides", False)
         client = cls(
             api_key="",
             disable_telemetry=True,
             disable_internal_error_reporting=True,
             **engine_opts,
         )
+        client._dev_overrides = bool(dev)  # testing counts as non-production
         client._test_mode = True
         client._flags_blob = {}
         client._exps_blob = {}
@@ -221,12 +233,14 @@ class Engine:
         *real* eval logic against the snapshot. ``override_*`` setters still
         apply on top.
         """
+        dev = engine_opts.pop("dev_overrides", False)
         client = cls(
             api_key="",
             disable_telemetry=True,
             disable_internal_error_reporting=True,
             **engine_opts,
         )
+        client._dev_overrides = bool(dev)  # offline counts as non-production
         client._test_mode = True
         client._flags_blob = dict(flags) if flags else {}
         client._exps_blob = dict(experiments) if experiments else {}

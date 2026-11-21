@@ -14,7 +14,11 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Dict, Iterator, Optional
 
-from ._override_cookie import extract_override_cookie, verify_override_cookie
+from ._override_cookie import (
+    decode_dev_override_cookie,
+    extract_override_cookie,
+    verify_override_cookie,
+)
 
 _current: ContextVar[Optional[Dict[str, Dict[str, Any]]]] = ContextVar(
     "shipeasy_request_overrides", default=None
@@ -40,6 +44,13 @@ def enter(cookie_header: Optional[str]):
         raw = extract_override_cookie(cookie_header)
         if raw and key and key_id:
             ov = verify_override_cookie(raw, key, key_id)
+        # Unsigned dev-only cookie: looked at ONLY when the engine opted in and
+        # the process is non-production (zero extra work in prod).
+        if getattr(engine, "_dev_overrides", False):
+            dev = decode_dev_override_cookie(cookie_header)
+            if dev:
+                # Per name, the signed cookie wins over the dev cookie.
+                ov = {k: {**dev[k], **((ov or {}).get(k) or {})} for k in dev}
     except Exception:  # noqa: BLE001 — fail closed
         ov = None
     return _current.set(ov)

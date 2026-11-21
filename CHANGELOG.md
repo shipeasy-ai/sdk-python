@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.0 (2026-11-21)
+
+### Dev-only `se_ov_dev` URL override cookie (shipeasy ops #714)
+
+Opt-in `configure(dev_overrides=True)` honors the unsigned dev-only
+`se_ov_dev` cookie (base64url JSON `{gates,configs,exps}`) so `?se_gate_` URL
+overrides reach server reads on a local/dev/test stack without DevTools sign-in.
+Honored only when the option is on AND the process is non-production; in
+production it is ignored with one warning and the cookie is not read.
+Precedence: programmatic > signed `se_ov` > `se_ov_dev` > evaluation.
+
 ## 0.28.0 (2026-11-21)
 
 ### Signed DevTools overrides reach server-side reads (shipeasy ops #714)

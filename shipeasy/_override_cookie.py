@@ -25,6 +25,7 @@ from urllib.parse import unquote
 
 OVERRIDE_COOKIE_NAME = "se_ov"
 OVERRIDE_FORMAT_VERSION = 1
+DEV_OVERRIDE_COOKIE_NAME = "se_ov_dev"
 
 
 def _b64u_decode(s: str) -> bytes:
@@ -110,6 +111,32 @@ def extract_override_cookie(value: Optional[str]) -> Optional[str]:
                 continue
             if part[:eq].strip() == OVERRIDE_COOKIE_NAME:
                 return unquote(part[eq + 1 :].strip())
+    except Exception:  # noqa: BLE001
+        return None
+    return None
+
+
+def decode_dev_override_cookie(cookie_header: Optional[str]) -> Optional[Dict[str, Dict[str, Any]]]:
+    """Decode the UNSIGNED dev-only ``se_ov_dev`` cookie from a ``Cookie:`` header:
+    base64url(JSON ``{"gates","configs","exps"}``), no signature, no expiry.
+    Malformed -> ``None``; never raises. Callers must only use this when the
+    ``dev_overrides`` option is on AND the process is non-production."""
+    try:
+        if not cookie_header:
+            return None
+        for part in cookie_header.split(";"):
+            eq = part.find("=")
+            if eq < 0 or part[:eq].strip() != DEV_OVERRIDE_COOKIE_NAME:
+                continue
+            raw = unquote(part[eq + 1 :].strip())
+            data = json.loads(_b64u_decode(raw).decode("utf-8"))
+            if not isinstance(data, dict):
+                return None
+            return {
+                "gates": _dict(data.get("gates")),
+                "configs": _dict(data.get("configs")),
+                "exps": _dict(data.get("exps")),
+            }
     except Exception:  # noqa: BLE001
         return None
     return None

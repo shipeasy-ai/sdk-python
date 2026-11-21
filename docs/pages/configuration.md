@@ -68,6 +68,7 @@ Any of these pass straight through `configure(...)` as keyword arguments:
 | `client_key` | `str` | `None` | **Public** client key (`sdk_client_…`) — the default for the SSR i18n / devtools tags. Never the server key. See [advanced](advanced.md). |
 | `profile` | `str` | `"en:prod"` | Default i18n profile the SSR tags carry. See [i18n](i18n.md). |
 | `project_id` | `str` | `None` | Your project id (`proj_…`) — read by `devtools_script_tag`. See [advanced](advanced.md). |
+| `dev_overrides` | `bool` | `False` | Dev/test only: honor the unsigned `se_ov_dev` URL-override cookie on server reads. Ignored (with a warning) in production. See [advanced](advanced.md). |
 | `cdn_base_url` | `str` | `https://cdn.shipeasy.ai` | CDN origin the SSR tags are built against. |
 
 ## Fail-safe reads & the `log_level` option
