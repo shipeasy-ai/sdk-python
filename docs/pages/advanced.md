@@ -180,6 +180,23 @@ normally and nothing raises. Outside a `request_overrides` scope behaviour is
 unchanged. A bare, unsigned `?se_gate_` URL param is client-only by design and
 never reaches the server.
 
+#### Dev-only URL overrides without DevTools sign-in
+
+On a local/dev/test stack you can opt in to the unsigned `se_ov_dev` cookie the
+browser SDK mirrors from `?se_gate_x=true`-style URL params, so URL overrides
+reach server reads with no DevTools sign-in:
+
+```python
+shipeasy.configure(api_key=..., dev_overrides=True)  # default False
+```
+
+Two guards, both required: the option is `True` **and** the process is not
+production (`SHIPEASY_ENV` / `APP_ENV` / `ENV` / `PYTHON_ENV`, else the `env`
+option; `configure_for_testing` counts as non-production). In a production
+process the option is ignored with one warning, and the cookie is never even
+read — it is never active in production. Precedence: `override_*` > signed
+`se_ov` > `se_ov_dev` > evaluation (per name; signed wins conflicts).
+
 ### Identity coherence (no anon→identified flip)
 
 When you pass an identified `user` (one carrying `user_id` / `email` / targeting

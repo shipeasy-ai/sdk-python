@@ -214,3 +214,78 @@ def _sign_gates(gates):
     kp = base64.urlsafe_b64decode(KEY + "=")
     ks = hmac.new(kp, f"se-ov-sess:v1:n:{exp}".encode(), hashlib.sha256).digest()
     return body + "." + b(hmac.new(ks, body.encode(), hashlib.sha256).digest())
+
+
+# ---- unsigned dev-only se_ov_dev cookie ----
+DEV = "eyJnYXRlcyI6eyJsb2JieV9ob2xkIjp0cnVlLCJvbGRfbmF2IjpmYWxzZX0sImNvbmZpZ3MiOnsiYmFubmVyIjp7InRleHQiOiJoaSJ9fSwiZXhwcyI6eyJjaGVja291dF9leHAiOiJ0cmVhdG1lbnQifX0"
+
+
+def test_dev_cookie_decodes_vector():
+    from shipeasy._override_cookie import decode_dev_override_cookie
+
+    want = {
+        "gates": {"lobby_hold": True, "old_nav": False},
+        "configs": {"banner": {"text": "hi"}},
+        "exps": {"checkout_exp": "treatment"},
+    }
+    assert decode_dev_override_cookie(f"a=1; se_ov_dev={DEV}") == want
+    assert decode_dev_override_cookie(f"se_ov_dev={DEV.replace('=', '%3D')}") == want
+    assert decode_dev_override_cookie("se_ov_dev=!!!") is None
+    assert decode_dev_override_cookie("a=1") is None
+
+
+def test_dev_cookie_ignored_when_option_off():
+    _install()
+    with shipeasy.request_overrides(f"se_ov_dev={DEV}"):
+        assert _request_overrides.current() is None
+        assert Client(U).get_flag("lobby_hold") is False
+
+
+def test_dev_cookie_honored_in_non_prod_with_option(monkeypatch):
+    monkeypatch.setenv("SHIPEASY_ENV", "development")
+    eng = Engine("k", dev_overrides=True, is_network_enabled=False)
+    assert eng._dev_overrides is True
+    eng._test_mode = True
+    eng._initialized = True
+    eng._flags_blob = {"gates": {"lobby_hold": OFF_GATE}}
+    _client._global_engine = eng
+    with shipeasy.request_overrides(f"se_ov_dev={DEV}"):
+        d = Client(U).get_flag_detail("lobby_hold")
+        assert d.value is True and d.reason == shipeasy.OVERRIDE
+    assert Client(U).get_flag("lobby_hold") is False
+
+
+def test_dev_cookie_ignored_in_production_with_warning(monkeypatch):
+    from shipeasy import _logging
+
+    msgs = []
+    monkeypatch.setattr(_logging, "warn", lambda m, *a: msgs.append(m))
+    monkeypatch.setenv("SHIPEASY_ENV", "production")
+    eng = Engine("k", dev_overrides=True)
+    assert eng._dev_overrides is False
+    assert len(msgs) == 1 and "production" in msgs[0]
+    _client._global_engine = eng
+    with shipeasy.request_overrides(f"se_ov_dev={DEV}"):
+        assert _request_overrides.current() is None
+
+
+def test_testing_mode_counts_as_non_prod():
+    eng = Engine.for_testing(dev_overrides=True)
+    assert eng._dev_overrides is True
+
+
+def test_signed_beats_dev_per_name():
+    eng = _install()
+    eng._dev_overrides = True
+    # dev says old_nav false... signed says old_nav false too; flip with a dev-only conflict:
+    dev_conflict = _b64({"gates": {"lobby_hold": False, "other": False}})
+    with shipeasy.request_overrides(f"se_ov={COOKIE}; se_ov_dev={dev_conflict}"):
+        c = Client(U)
+        assert c.get_flag("lobby_hold") is True   # signed wins
+        assert c.get_flag("other") is False       # dev-only name applies
+
+
+def _b64(obj):
+    import base64, json
+
+    return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()

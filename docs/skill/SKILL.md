@@ -173,6 +173,8 @@ links the browser's error to this server exception — no code needed.
   (programmatic `override_*` > cookie > normal). Fail-closed: needs the project
   override key served by Shipeasy, a valid unexpired signature. Unsigned
   `?se_gate_` params stay client-only.
+  Opt-in `configure(dev_overrides=True)` additionally honors the unsigned
+  `se_ov_dev` cookie, only in a non-production process (ignored + warned in prod).
 - `configure(private_attributes=[...])` strips keys from outbound events.
 - `configure(sticky_store=InMemoryStickyStore())` pins experiment assignment.
 - Exposure fires on read: the first `a.get(field)` on an enrolled assignment

@@ -15,6 +15,13 @@ evaluation. Fail-closed: requires the project override key served in `/sdk/flags
 a valid signature, a matching key id and an unexpired cookie. Unsigned
 `?se_gate_` URL params remain client-only.
 
+Also: opt-in `configure(dev_overrides=True)` honors the unsigned dev-only
+`se_ov_dev` cookie (base64url JSON `{gates,configs,exps}`) so `?se_gate_` URL
+overrides reach server reads on a local/dev/test stack without DevTools sign-in.
+Honored only when the option is on AND the process is non-production; in
+production it is ignored with one warning and the cookie is not read.
+Precedence: programmatic > signed `se_ov` > `se_ov_dev` > evaluation.
+
 ## 0.27.0 (2026-11-19)
 
 ### see() reports carry the browser's request correlation token
