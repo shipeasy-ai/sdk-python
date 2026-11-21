@@ -30,9 +30,13 @@ def current() -> Optional[Dict[str, Dict[str, Any]]]:
     return _current.get()
 
 
-def enter(cookie_header: Optional[str]):
+def enter(cookie_header: Optional[str], overrides_header: Optional[str] = None):
     """Verify ``cookie_header`` (a ``Cookie:`` header or bare ``se_ov`` value)
     against the configured engine and bind the result. Returns the reset token.
+    ``overrides_header`` is the ``X-Shipeasy-Overrides`` request header (cookie
+    syntax, for APIs on a sibling subdomain that never see the cookie): per
+    cookie name the ``Cookie`` header wins and the custom header fills in when
+    the cookie is absent; the same verification and guards apply.
     Never raises; an unverifiable cookie binds ``None`` (no overrides)."""
     ov = None
     try:
@@ -41,13 +45,15 @@ def enter(cookie_header: Optional[str]):
         engine = _client.get_global_engine()
         key = getattr(engine, "_override_key", None)
         key_id = getattr(engine, "_override_key_id", None)
-        raw = extract_override_cookie(cookie_header)
+        raw = extract_override_cookie(cookie_header) or extract_override_cookie(overrides_header)
         if raw and key and key_id:
             ov = verify_override_cookie(raw, key, key_id)
         # Unsigned dev-only cookie: looked at ONLY when the engine opted in and
         # the process is non-production (zero extra work in prod).
         if getattr(engine, "_dev_overrides", False):
-            dev = decode_dev_override_cookie(cookie_header)
+            dev = decode_dev_override_cookie(cookie_header) or decode_dev_override_cookie(
+                overrides_header
+            )
             if dev:
                 # Per name, the signed cookie wins over the dev cookie.
                 ov = {k: {**dev[k], **((ov or {}).get(k) or {})} for k in dev}
@@ -61,14 +67,18 @@ def exit(token) -> None:  # noqa: A001
 
 
 @contextmanager
-def request_overrides(cookie_header: Optional[str]) -> Iterator[None]:
+def request_overrides(
+    cookie_header: Optional[str], overrides_header: Optional[str] = None
+) -> Iterator[None]:
     """Scope signed DevTools overrides to a block, for apps not using the
     middleware::
 
-        with shipeasy.request_overrides(request.headers.get("Cookie")):
+        with shipeasy.request_overrides(
+            request.headers.get("Cookie"), request.headers.get("X-Shipeasy-Overrides")
+        ):
             ...  # Client reads here honor a valid, signed se_ov cookie
     """
-    token = enter(cookie_header)
+    token = enter(cookie_header, overrides_header)
     try:
         yield
     finally:

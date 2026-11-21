@@ -180,6 +180,29 @@ normally and nothing raises. Outside a `request_overrides` scope behaviour is
 unchanged. A bare, unsigned `?se_gate_` URL param is client-only by design and
 never reaches the server.
 
+#### Frontend and API on different subdomains
+
+With the frontend on `app.example.com` and the API on `api.example.com`, the
+browser SDK scopes the override cookies to the registrable domain
+(auto-detected; override with the browser `overrideCookieDomain` option), so the
+API receives them as ordinary cookies. For token-auth APIs that do not take
+cookies, the browser SDK's `getOverrideHeaders()` returns an
+`X-Shipeasy-Overrides` header (cookie syntax, e.g. `se_ov=<v>; se_ov_dev=<v>`)
+to send on API calls; the API's CORS must allow that header. The middleware reads
+it automatically; with the manual scope pass it as the second argument:
+
+```python
+with shipeasy.request_overrides(
+    request.headers.get("Cookie"),
+    request.headers.get("X-Shipeasy-Overrides"),  # optional; the Cookie header wins per cookie name
+):
+    ...
+```
+
+The same verification and guards apply to the header: signed cookies must
+verify, and `se_ov_dev` is not even parsed unless `dev_overrides` is on in a
+non-production process.
+
 #### Dev-only URL overrides without DevTools sign-in
 
 On a local/dev/test stack you can opt in to the unsigned `se_ov_dev` cookie the

@@ -173,6 +173,9 @@ links the browser's error to this server exception — no code needed.
   (programmatic `override_*` > cookie > normal). Fail-closed: needs the project
   override key served by Shipeasy, a valid unexpired signature. Unsigned
   `?se_gate_` params stay client-only.
+  For an API on a sibling subdomain the browser forwards `X-Shipeasy-Overrides`
+  (cookie syntax); the middleware reads it too (Cookie header wins per name) and
+  `request_overrides(cookie, overrides_header)` accepts it. Same verification/guards.
   Opt-in `configure(dev_overrides=True)` additionally honors the unsigned
   `se_ov_dev` cookie, only in a non-production process (ignored + warned in prod).
 - `configure(private_attributes=[...])` strips keys from outbound events.

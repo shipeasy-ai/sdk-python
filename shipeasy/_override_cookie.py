@@ -102,7 +102,7 @@ def extract_override_cookie(value: Optional[str]) -> Optional[str]:
     ``Cookie:`` header (``a=1; se_ov=...; b=2``), URL-decoding it."""
     if not value:
         return None
-    if ";" not in value and "se_ov=" not in value:
+    if ";" not in value and "=" not in value:
         return value if "." in value else None
     try:
         for part in value.split(";"):

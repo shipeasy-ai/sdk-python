@@ -289,3 +289,51 @@ def _b64(obj):
     import base64, json
 
     return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
+
+
+# ---- X-Shipeasy-Overrides header fallback ----
+def test_header_only_signed_applies():
+    _install()
+    with shipeasy.request_overrides("a=1", f"se_ov={COOKIE}"):
+        assert Client(U).get_flag_detail("lobby_hold").reason == shipeasy.OVERRIDE
+    with shipeasy.request_overrides(None, f"se_ov={COOKIE}"):
+        assert Client(U).get_flag("lobby_hold") is True
+
+
+def test_header_dev_only_under_guards():
+    h = f"se_ov_dev={DEV}"
+    _install()
+    with shipeasy.request_overrides(None, h):
+        assert _request_overrides.current() is None
+    eng = _install()
+    eng._dev_overrides = True
+    with shipeasy.request_overrides("a=b.c", h):
+        assert Client(U).get_flag("lobby_hold") is True
+
+
+def test_cookie_beats_header():
+    _install()
+    cookie_off = _sign_gates({"lobby_hold": False})
+    with shipeasy.request_overrides(f"se_ov={cookie_off}", f"se_ov={COOKIE}"):
+        assert Client(U).get_flag("lobby_hold") is False
+
+
+def test_middlewares_read_header():
+    _install()
+    seen = {}
+
+    def downstream(env, sr):
+        seen["w"] = Client(U).get_flag("lobby_hold")
+        sr("200 OK", [])
+        return [b"ok"]
+
+    list(AnonIdMiddleware(downstream)({"HTTP_X_SHIPEASY_OVERRIDES": f"se_ov={COOKIE}"}, lambda *a, **k: None))
+    assert seen["w"] is True
+
+    async def adown(scope, receive, send):
+        seen["a"] = Client(U).get_flag("lobby_hold")
+
+    scope = {"type": "http", "headers": [(b"x-shipeasy-overrides", f"se_ov={COOKIE}".encode())]}
+    asyncio.run(AnonIdASGIMiddleware(adown)(scope, None, lambda m: asyncio.sleep(0)))
+    assert seen["a"] is True
+    assert _request_overrides.current() is None
