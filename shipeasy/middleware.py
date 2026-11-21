@@ -11,6 +11,10 @@ Both also read the browser SDK's ``X-SE-Correlation`` request header, so every
 token Shipeasy joins on to link the browser's error to the server exception
 behind it. Malformed tokens are dropped; it is cleared at request end.
 
+They also verify the DevTools ``se_ov`` cookie once per request and scope the
+signed overrides to it (see :func:`shipeasy.request_overrides`), so a signed-in
+DevTools session's overrides reach server-side ``Client`` reads. Fail-closed.
+
 WSGI (Flask, Django, any WSGI app)::
 
     from shipeasy.middleware import AnonIdMiddleware
@@ -27,6 +31,7 @@ from __future__ import annotations
 from typing import Callable
 
 from . import _anon_id as anon_id
+from . import _request_overrides as request_ov
 from ._see import clear_ambient_extras, set_correlation_id
 
 
@@ -41,6 +46,7 @@ class AnonIdMiddleware:
         environ["shipeasy.anon_id"] = anon
         token = anon_id.set_current(anon)
         set_correlation_id(environ.get("HTTP_X_SE_CORRELATION"))
+        ov_token = request_ov.enter(environ.get("HTTP_COOKIE"))
 
         def _start_response(status, headers, exc_info=None):
             if minted:
@@ -56,6 +62,7 @@ class AnonIdMiddleware:
             # Don't leak the id — or any ambient see() extras / correlation
             # token — onto the next request handled by this thread.
             anon_id.reset_current(token)
+            request_ov.exit(ov_token)
             clear_ambient_extras()
 
 
@@ -70,12 +77,13 @@ class AnonIdASGIMiddleware:
             await self.app(scope, receive, send)
             return
 
-        header = b"".join(
+        header = b"; ".join(
             v for k, v in scope.get("headers", []) if k == b"cookie"
         ).decode("latin-1") or None
         anon, minted = anon_id.read_or_mint(header)
         token = anon_id.set_current(anon)
         set_correlation_id(_header(scope, b"x-se-correlation"))
+        ov_token = request_ov.enter(header)
 
         async def _send(message):
             if minted and message["type"] == "http.response.start":
@@ -89,6 +97,7 @@ class AnonIdASGIMiddleware:
             await self.app(scope, receive, _send)
         finally:
             anon_id.reset_current(token)
+            request_ov.exit(ov_token)
             clear_ambient_extras()
 
 

@@ -62,3 +62,10 @@ unsubscribe = shipeasy.on_change(lambda: print("flags changed, rebuild cache"))
 ...
 unsubscribe()  # stop listening
 ```
+
+## DevTools overrides
+
+Behind the anon-id middleware (or `with shipeasy.request_overrides(cookie_header):`),
+a signed-in DevTools session's gate overrides apply to `get_flag` /
+`get_flag_detail` (reason `OVERRIDE`) for that request only. Fail-closed; see
+[advanced](advanced.md).

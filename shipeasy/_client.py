@@ -32,6 +32,7 @@ from ._telemetry import Telemetry, DEFAULT_TELEMETRY_URL
 from ._env import is_production_env
 from ._version import SDK_VERSION
 from . import _anon_id
+from . import _request_overrides
 from . import _see
 from . import _logging as _log
 from ._logging import set_log_level
@@ -130,6 +131,10 @@ class Engine:
         # runs on every render and one misconfiguration must not log per request.
         self._warned_tag_settings: set = set()
         self._flags_blob: Optional[dict] = None
+        # Project verify key for signed DevTools overrides (se_ov cookie), served
+        # at the top level of /sdk/flags. Absent -> overrides never trusted.
+        self._override_key: Optional[str] = None
+        self._override_key_id: Optional[str] = None
         self._exps_blob: Optional[dict] = None
         self._flags_etag: Optional[str] = None
         self._exps_etag: Optional[str] = None
@@ -329,6 +334,10 @@ class Engine:
         # 1. Override wins — short-circuit before telemetry (like the override path).
         if name in self._flag_overrides:
             return FlagDetail(value=self._flag_overrides[name], reason=OVERRIDE)
+        # 1b. Signed DevTools cookie override (request-scoped), then normal eval.
+        ov_gates = (_request_overrides.current() or {}).get("gates") or {}
+        if isinstance(ov_gates.get(name), bool):
+            return FlagDetail(value=ov_gates[name], reason=OVERRIDE)
 
         self._telemetry.emit("gate", name)
 
@@ -396,8 +405,13 @@ class Engine:
         decode: Optional[Callable[[Any], T]] = None,
         default: Optional[T] = None,
     ) -> Optional[T]:
-        if name in self._config_overrides:
-            value = self._config_overrides[name]
+        ov_configs = (_request_overrides.current() or {}).get("configs") or {}
+        if name in self._config_overrides or name in ov_configs:
+            value = (
+                self._config_overrides[name]
+                if name in self._config_overrides
+                else ov_configs[name]
+            )
             if decode is None:
                 return value
             try:
@@ -448,6 +462,16 @@ class Engine:
             group, params = self._experiment_overrides[name]
             return ExpStanding(
                 state="group", group=group, params=merge_params(param_defaults, params)
+            )
+        ov_exps = (_request_overrides.current() or {}).get("exps") or {}
+        if isinstance(ov_exps.get(name), str):
+            group = ov_exps[name]
+            gparams = next(
+                (g.get("params") for g in (exp.get("groups") or []) if g.get("name") == group),
+                None,
+            )
+            return ExpStanding(
+                state="group", group=group, params=merge_params(param_defaults, gparams)
             )
         if flags_blob is None or exps_blob is None:
             return ExpStanding(state="out")
@@ -554,6 +578,10 @@ class Engine:
         returned — this runtime read never raises.
         """
         try:
+            if switch_key is None:
+                ov_gates = (_request_overrides.current() or {}).get("gates") or {}
+                if isinstance(ov_gates.get(name), bool):
+                    return ov_gates[name]
             with self._lock:
                 entry = (self._flags_blob or {}).get("killswitches", {}).get(name)
             if not entry:
@@ -588,11 +616,15 @@ class Engine:
         standalone ``killswitches`` map is empty for this SDK. No telemetry.
         """
         user = _with_anon_id(user)
+        req_ov = _request_overrides.current() or {}
         with self._lock:
             flags_blob = self._flags_blob or {}
             exps_blob = self._exps_blob or {}
-            flag_ov = dict(self._flag_overrides)
-            config_ov = dict(self._config_overrides)
+            flag_ov = {
+                **{k: v for k, v in (req_ov.get("gates") or {}).items() if isinstance(v, bool)},
+                **self._flag_overrides,
+            }
+            config_ov = {**(req_ov.get("configs") or {}), **self._config_overrides}
 
         flags: dict = {}
         for name, gate in (flags_blob.get("gates") or {}).items():
@@ -899,7 +931,13 @@ class Engine:
             etag = headers.get("ETag") or headers.get("etag")
             if etag:
                 self._flags_etag = etag
-            self._flags_blob = json.loads(body)
+            blob = json.loads(body)
+            self._flags_blob = blob
+            key = blob.get("overrideKey") if isinstance(blob, dict) else None
+            key_id = blob.get("overrideKeyId") if isinstance(blob, dict) else None
+            ok = isinstance(key, str) and isinstance(key_id, str) and key and key_id
+            self._override_key = key if ok else None
+            self._override_key_id = key_id if ok else None
         return interval, True
 
     def _fetch_exps(self) -> bool:

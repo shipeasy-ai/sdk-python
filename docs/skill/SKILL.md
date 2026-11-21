@@ -167,6 +167,12 @@ links the browser's error to this server exception — no code needed.
 
 - Anon bucketing: `AnonIdMiddleware` (WSGI) / `AnonIdASGIMiddleware` (ASGI) mint
   the shared `__se_anon_id` cookie; anonymous `get_flag` then just works.
+- DevTools overrides on server reads: the same middleware (or
+  `with shipeasy.request_overrides(request.headers.get("Cookie")):`) verifies the
+  signed `se_ov` cookie once per request; `Client` reads then honor it
+  (programmatic `override_*` > cookie > normal). Fail-closed: needs the project
+  override key served by Shipeasy, a valid unexpired signature. Unsigned
+  `?se_gate_` params stay client-only.
 - `configure(private_attributes=[...])` strips keys from outbound events.
 - `configure(sticky_store=InMemoryStickyStore())` pins experiment assignment.
 - Exposure fires on read: the first `a.get(field)` on an enrolled assignment

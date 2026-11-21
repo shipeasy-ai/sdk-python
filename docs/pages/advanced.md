@@ -154,6 +154,32 @@ end users at all:
 head += shipeasy.devtools_script_tag() if request.user.is_staff else ""
 ```
 
+### DevTools overrides on server reads
+
+A signed-in DevTools overlay mirrors every override — including `?se_gate_x=true`
+URL state — into a signed `se_ov` cookie that rides every same-origin request.
+Install the middleware (or scope the request yourself) and server-side
+`Client` reads honor it: `get_flag` / `get_flag_detail` (reason `OVERRIDE`),
+`get_killswitch` (whole-switch reads), `get_config`, and
+`universe(name).assign()` experiment groups.
+
+```python
+# Already using AnonIdMiddleware / AnonIdASGIMiddleware / the Django middleware?
+# Nothing to add — they verify the cookie once per request. Otherwise scope it
+# by hand around the work that reads flags:
+with shipeasy.request_overrides(request.headers.get("Cookie")):  # a Cookie header or the bare se_ov value
+    client = shipeasy.Client(user)
+    client.get_flag("new_checkout")  # True if the signed cookie forces it
+```
+
+Precedence: `override_flag` / `override_config` / `override_experiment` >
+signed cookie > normal evaluation. It is **fail-closed**: overrides apply only
+when Shipeasy serves your project's override key, the signature verifies, the
+key id matches and the cookie has not expired — otherwise reads resolve
+normally and nothing raises. Outside a `request_overrides` scope behaviour is
+unchanged. A bare, unsigned `?se_gate_` URL param is client-only by design and
+never reaches the server.
+
 ### Identity coherence (no anon→identified flip)
 
 When you pass an identified `user` (one carrying `user_id` / `email` / targeting

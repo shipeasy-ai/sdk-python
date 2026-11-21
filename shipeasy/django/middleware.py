@@ -26,6 +26,7 @@ from __future__ import annotations
 from typing import Callable
 
 from .. import _anon_id as anon_id
+from .. import _request_overrides as request_ov
 from .._see import clear_ambient_extras, set_correlation_id
 
 
@@ -49,9 +50,11 @@ class AnonIdMiddleware:
         # The browser SDK's per-request token: every see() fired while serving
         # this request carries it as ``correlation_id``.
         set_correlation_id(request.META.get("HTTP_X_SE_CORRELATION"))
+        ov_token = request_ov.enter(request.META.get("HTTP_COOKIE"))
         try:
             response = self.get_response(request)
         finally:
+            request_ov.exit(ov_token)
             # Don't leak the id — or any ambient see() extras / correlation
             # token — onto the next request handled by this thread.
             anon_id.reset_current(token)

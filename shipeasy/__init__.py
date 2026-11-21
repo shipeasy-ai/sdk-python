@@ -39,6 +39,7 @@ from ._see import (
     clear_extras,
     set_default_client,
 )
+from ._request_overrides import request_overrides
 from ._env import is_production_env
 from ._version import SDK_VERSION
 
@@ -75,6 +76,7 @@ __all__ = [
     "StickyEntry",
     "AnonIdMiddleware",
     "AnonIdASGIMiddleware",
+    "request_overrides",
     "Violation",
     "see",
     "see_violation",
